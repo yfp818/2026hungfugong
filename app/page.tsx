@@ -8,7 +8,7 @@ import { notoSerif } from "./layout";
 import { supabase } from "@/lib/supabase";
 import AOSProvider from "@/components/AOSProvider"; 
 import FlashCampaignSection from "@/components/FlashCampaignSection";
-import CampaignSplash from "@/components/CampaignSplash"; // 引入前導頁元件
+import CampaignSplash from "@/components/CampaignSplash"; 
 
 export default async function Home() {
   // 1. 抓取主視覺資料
@@ -26,11 +26,11 @@ export default async function Home() {
     .limit(1)
     .maybeSingle();
 
-  // 2. 抓取文章公告並分流
+  // 2. 抓取文章公告並分流 (補上 :any 型別)
   const { data: newsData } = await supabase.from("news_events").select("*").order("created_at", { ascending: false });
   const newsList = newsData || [];
-  const listAnnouncements = newsList.filter(n => n.category === 'news' || !n.category);
-  const listEvents = newsList.filter(n => n.category === 'event');
+  const listAnnouncements = newsList.filter((n: any) => n.category === 'news' || !n.category);
+  const listEvents = newsList.filter((n: any) => n.category === 'event');
 
   // 3. 抓取祈福專區按鈕
   const { data: servicesData } = await supabase.from("blessing_services").select("*").order("created_at", { ascending: true });
@@ -82,6 +82,7 @@ export default async function Home() {
                 {displayTitle.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </h1>
               <p className={`animate-hero delay-300 ${notoSerif.className} text-2xl md:text-4xl lg:text-5xl text-white/90 font-bold tracking-[0.3em] leading-loose [writing-mode:vertical-rl] drop-shadow-2xl`}>
+                {/* 💡 這裡補上了 line: string, index: number */}
                 {displayContent.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </p>
             </div>
@@ -115,7 +116,8 @@ export default async function Home() {
               </div>
 
               <div className="flex-1 flex flex-col w-full border-t border-stone-200 md:border-none">
-                {listAnnouncements.map((news) => (
+                {/* 💡 這裡補上了 news: any */}
+                {listAnnouncements.map((news: any) => (
                   <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 hover:bg-stone-50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <svg className="w-5 h-5 text-[#D89F3C] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
@@ -140,7 +142,8 @@ export default async function Home() {
             </div>
             
             <div className="space-y-24 md:space-y-40">
-              {listEvents.map((news, index) => {
+              {/* 💡 這裡補上了 news: any, index: number */}
+              {listEvents.map((news: any, index: number) => {
                 const isEven = index % 2 === 0;
                 return (
                   <div key={news.id} data-aos="fade-up" className={`flex flex-col ${isEven ? 'md:flex-row' : 'md:flex-row-reverse'} items-center md:items-stretch group`}>
@@ -175,7 +178,8 @@ export default async function Home() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto px-6">
-            {dynamicServices.map((service, index) => (
+            {/* 💡 這裡補上了 service: any, index: number */}
+            {dynamicServices.map((service: any, index: number) => (
               <Link key={service.id} href={service.link_url || "#"} data-aos="fade-up" data-aos-delay={index * 100} className="group relative block w-full outline-none">
                 <div className="w-full bg-[#1A432D] border-[2px] border-[#D89F3C] rounded-full py-6 px-8 flex justify-between items-center shadow-[0_10px_20px_rgba(26,67,45,0.2)] group-hover:shadow-[0_20px_40px_rgba(216,159,60,0.4)] group-hover:-translate-y-2 group-hover:bg-[#122F20] transition-all duration-300 overflow-hidden relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%]"></div>
