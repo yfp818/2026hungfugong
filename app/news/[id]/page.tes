@@ -1,0 +1,83 @@
+import { supabase } from "@/lib/supabase";
+import { notoSerif } from "../../layout"; 
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { notFound } from "next/navigation";
+
+export const revalidate = 0;
+
+export default async function NewsDetailPage({ params }: { params: { id: string } }) {
+  // 依據網址的 ID 從資料庫抓取單篇活動文章
+  const { data: news, error } = await supabase
+    .from("news_events")
+    .select("*")
+    .eq("id", params.id)
+    .single();
+
+  // 如果找不到文章，自動導向 404 錯誤畫面
+  if (error || !news) {
+    return notFound();
+  }
+
+  return (
+    <main className="min-h-screen bg-[#FAF7F0] pb-32 selection:bg-[#A61D24] selection:text-white">
+      
+      {/* 頂部優雅的返回鍵 */}
+      <nav className="w-full max-w-4xl mx-auto px-6 py-8 md:py-12">
+        <Link href="/" className="inline-flex items-center text-stone-400 hover:text-[#A61D24] tracking-widest text-sm font-medium transition-colors group">
+          <span className="mr-2 group-hover:-translate-x-1 transition-transform">←</span> 返回首頁
+        </Link>
+      </nav>
+
+      {/* 文章主體卡片 */}
+      <article className="w-full max-w-4xl mx-auto px-6">
+        <div className="bg-white rounded-[2.5rem] shadow-sm border border-stone-100 overflow-hidden">
+          
+          {/* 大版面橫幅活動照片 */}
+          {news.image_url && (
+            <div className="w-full aspect-video md:aspect-[21/9] overflow-hidden bg-stone-100">
+              <img 
+                src={news.image_url} 
+                alt={news.title} 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+          )}
+
+          <div className="p-8 md:p-16 lg:p-20">
+            
+            {/* 標題與日期區塊 */}
+            <header className="text-center mb-12 border-b border-stone-100 pb-12">
+              <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold">
+                {new Date(news.created_at).toLocaleDateString('zh-TW')}
+              </p>
+              <h1 className={`${notoSerif.className} text-3xl md:text-5xl font-bold text-[#1A432D] tracking-wide leading-snug whitespace-pre-wrap`}>
+                {news.title}
+              </h1>
+            </header>
+
+            {/* 核心內文：100% 支援後台手動換行與 Safari 排版穩定度 */}
+            <div className="text-stone-600 leading-[2.3] text-justify whitespace-pre-wrap text-base md:text-lg">
+              {news.content}
+            </div>
+
+            {/* 底部行動導流按鈕 */}
+            <footer className="mt-16 pt-12 border-t border-stone-100 flex flex-col sm:flex-row justify-center items-center gap-6">
+              <Link href="/">
+                <Button variant="outline" className="rounded-full border-stone-300 text-stone-500 hover:bg-stone-50 px-8 py-6 tracking-widest">
+                  ← 閱讀其他活動
+                </Button>
+              </Link>
+              <Link href="/lamps">
+                <Button className="rounded-full bg-[#A61D24] text-white hover:bg-[#85161C] px-8 py-6 tracking-widest shadow-md">
+                  前往線上祈福袋
+                </Button>
+              </Link>
+            </footer>
+
+          </div>
+        </div>
+      </article>
+    </main>
+  );
+}
