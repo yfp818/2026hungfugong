@@ -79,10 +79,10 @@ export default async function Home() {
           <div className="flex-1 flex justify-center md:justify-end items-center w-full mt-10 md:mt-0">
             <div className="flex flex-row-reverse flex-wrap justify-center gap-6 md:gap-10">
               <h1 className={`animate-hero delay-100 ${notoSerif.className} text-4xl md:text-6xl lg:text-7xl text-white font-bold tracking-[0.3em] [writing-mode:vertical-rl] drop-shadow-2xl`}>
-                {displayTitle.split('\n').map((line, index) => <span key={index} className="block">{line}</span>)}
+                {displayTitle.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </h1>
               <p className={`animate-hero delay-300 ${notoSerif.className} text-2xl md:text-4xl lg:text-5xl text-white/90 font-bold tracking-[0.3em] leading-loose [writing-mode:vertical-rl] drop-shadow-2xl`}>
-                {displayContent.split('\n').map((line, index) => <span key={index} className="block">{line}</span>)}
+                {displayContent.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </p>
             </div>
           </div>
