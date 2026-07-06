@@ -26,7 +26,7 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     
   const [optionQuantities, setOptionQuantities] = useState<number[]>(new Array(campaignOptions.length).fill(0));
 
-  // 🌟 這裡就是剛剛遺失的總金額計算，已幫您加上嚴格的型別標籤 (number, any)
+  // 🌟 修復 1：明確定義 totalPrice 迴圈變數
   const totalPrice = campaignOptions.reduce((sum: number, opt: any, idx: number) => sum + (opt.price * optionQuantities[idx]), 0);
 
   useEffect(() => {
@@ -65,8 +65,9 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
     const bankString = campaign.campaign_bank_accounts ? `${campaign.campaign_bank_accounts.bank_name} | 帳號: ${campaign.campaign_bank_accounts.account_number}` : "";
 
+    // 🌟 修復 2：明確定義 selectedDetails 迴圈變數 (opt: any, idx: number)
     const selectedDetails = campaignOptions
-      .map((opt, idx) => optionQuantities[idx] > 0 ? `${opt.title} x${optionQuantities[idx]} ($${opt.price * optionQuantities[idx]})` : null)
+      .map((opt: any, idx: number) => optionQuantities[idx] > 0 ? `${opt.title} x${optionQuantities[idx]} ($${opt.price * optionQuantities[idx]})` : null)
       .filter(Boolean)
       .join("、");
 
@@ -81,7 +82,8 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     setShowRedirectModal(true);
   };
 
-  const displayPrice = campaignOptions.length > 1 ? `$${Math.min(...campaignOptions.map((o:any)=>o.price))} 起` : `$${campaignOptions[0].price}`;
+  // 🌟 修復 3：明確定義 displayPrice 迴圈變數 (o: any)
+  const displayPrice = campaignOptions.length > 1 ? `$${Math.min(...campaignOptions.map((o: any) => o.price))} 起` : `$${campaignOptions[0].price}`;
 
   return (
     <div className="w-full bg-white relative border-b border-stone-200/60">
@@ -134,6 +136,7 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
             
             <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
               <h4 className="text-xs font-bold text-stone-500 tracking-widest mb-3">請選擇欲報名之方案與數量</h4>
+              {/* 🌟 修復 4：明確定義 map 迴圈變數 (opt: any, idx: number) */}
               {campaignOptions.map((opt: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-lg border border-stone-100 shadow-sm">
                   <div>
