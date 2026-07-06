@@ -223,7 +223,7 @@ export default async function Home() {
 
           <div className="w-full h-64 md:h-[320px] rounded-2xl overflow-hidden border border-white/20 shadow-2xl relative group">
             <iframe 
-              src={`http://googleusercontent.com/maps.google.com/maps?q=${encodeURIComponent(footerData.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(footerData.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
               className="w-full h-full absolute inset-0" 
               style={{ border: 0 }} 
               allowFullScreen 
