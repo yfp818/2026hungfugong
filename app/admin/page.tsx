@@ -131,7 +131,6 @@ export default function AdminPage() {
   const totalIncomeCompleted = filteredOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
   const totalIncomePending = filteredOrders.filter(o => o.status !== 'completed').reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
   
-  // 🌟 完美修復：補回被遺漏的 serviceCounts 變數計算
   const serviceCounts = {
     lamp: filteredOrders.filter(o => o.service_type === '當月點燈' || o.service_type === 'lamp').length,
     burning: filteredOrders.filter(o => o.service_type === '代燒服務' || o.service_type === 'burning').length,
