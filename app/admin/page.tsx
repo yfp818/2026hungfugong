@@ -117,25 +117,28 @@ export default function AdminPage() {
   
   useEffect(() => { fetchData(); }, []);
 
-  // 月度分頁與數據分析計算
-  const monthOptions = Array.from(new Set(ordersList.map(o => {
+  // 💡 補齊: o: any
+  const monthOptions = Array.from(new Set(ordersList.map((o: any) => {
     const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }))).sort().reverse();
 
   useEffect(() => { if (monthOptions.length > 0 && !selectedMonth) setSelectedMonth(monthOptions[0]); }, [monthOptions]);
 
-  const filteredOrders = ordersList.filter(o => {
+  // 💡 補齊: o: any
+  const filteredOrders = ordersList.filter((o: any) => {
     const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
   });
 
-  const totalIncomeCompleted = filteredOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
-  const totalIncomePending = filteredOrders.filter(o => o.status !== 'completed').reduce((sum, o) => sum + (Number(o.total_price) || 0), 0);
+  // 💡 補齊: sum: number, o: any
+  const totalIncomeCompleted = filteredOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
+  const totalIncomePending = filteredOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
   
+  // 💡 補齊: o: any
   const serviceCounts = {
-    lamp: filteredOrders.filter(o => o.service_type === '當月點燈' || o.service_type === 'lamp').length,
-    burning: filteredOrders.filter(o => o.service_type === '代燒服務' || o.service_type === 'burning').length,
-    booking: filteredOrders.filter(o => o.service_type === '濟事問事' || o.service_type === 'booking').length,
-    campaign: filteredOrders.filter(o => o.service_type === '限時特辦活動' || o.service_type === 'campaign').length,
+    lamp: filteredOrders.filter((o: any) => o.service_type === '當月點燈' || o.service_type === 'lamp').length,
+    burning: filteredOrders.filter((o: any) => o.service_type === '代燒服務' || o.service_type === 'burning').length,
+    booking: filteredOrders.filter((o: any) => o.service_type === '濟事問事' || o.service_type === 'booking').length,
+    campaign: filteredOrders.filter((o: any) => o.service_type === '限時特辦活動' || o.service_type === 'campaign').length,
   };
 
   const handleSaveHero = async () => { setIsSavingHero(true); let url = previewUrl; if (imageFile) { const name = `hero_${Date.now()}`; await supabase.storage.from('images').upload(name, imageFile); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; } await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); alert("主視覺更新成功。"); setIsSavingHero(false); router.refresh(); };
@@ -163,7 +166,8 @@ export default function AdminPage() {
 
   const handleAddFlashCampaign = async () => {
     if(!fcTitle || !fcBankId) return alert("請輸入活動標題與綁定指定帳戶");
-    const validOptions = fcOptions.filter(o => o.title.trim() !== "");
+    // 💡 補齊: o: any
+    const validOptions = fcOptions.filter((o: any) => o.title.trim() !== "");
     if(validOptions.length === 0) return alert("請至少填寫一個完整的活動方案名稱");
 
     let url = fcPreviewUrl;
@@ -208,17 +212,20 @@ export default function AdminPage() {
   const exportToCSV = () => {
     if (filteredOrders.length === 0) return alert("這個月沒有資料可供匯出。");
     const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "農曆生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
-    const csvContent = [ headers.join(","), ...filteredOrders.map(order => [ new Date(order.created_at).toLocaleString('zh-TW'), order.service_type || "", order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || 0 ].join(",")) ].join("\n");
+    // 💡 補齊: order: any
+    const csvContent = [ headers.join(","), ...filteredOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.service_type || "", order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `皇府宮_${selectedMonth}_服務紀錄.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
   const exportCampaignCSV = (campaignTitle: string) => {
-    const campaignOrders = ordersList.filter(o => o.service_details && o.service_details.includes(campaignTitle));
+    // 💡 補齊: o: any
+    const campaignOrders = ordersList.filter((o: any) => o.service_details && o.service_details.includes(campaignTitle));
     if (campaignOrders.length === 0) return alert("目前尚無此活動的報名紀錄，或該活動名稱無人報名。");
     
     const headers = ["建立時間", "信眾姓名", "聯絡電話", "農曆生辰", "地址", "報名方案與明細", "匯款後五碼", "狀態", "金額"];
-    const csvContent = [ headers.join(","), ...campaignOrders.map(order => [ new Date(order.created_at).toLocaleString('zh-TW'), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待對帳', order.total_price || 0 ].join(",")) ].join("\n");
+    // 💡 補齊: order: any
+    const csvContent = [ headers.join(","), ...campaignOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待對帳', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
@@ -279,7 +286,8 @@ export default function AdminPage() {
           <button onClick={handleAddCampaignBank} className="md:col-span-3 bg-slate-800 hover:bg-slate-900 text-white py-4 rounded-xl font-bold tracking-widest text-sm">儲存增設為指定快閃帳戶</button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {campaignBanks.map(b => (
+          {/* 💡 補齊: b: any */}
+          {campaignBanks.map((b: any) => (
             <div key={b.id} className="p-4 bg-white border rounded-xl flex justify-between items-center shadow-sm">
               <div>
                 <p className="font-bold text-slate-800 text-sm">{b.account_alias}</p>
@@ -298,7 +306,8 @@ export default function AdminPage() {
           <div>
             <label className="block text-xs font-bold text-stone-500 mb-2">指定匯款對帳帳戶</label>
             <select value={fcBankId} onChange={e=>setFcBankId(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none font-bold text-stone-700">
-              {campaignBanks.map(b => <option key={b.id} value={b.id}>{b.account_alias}</option>)}
+              {/* 💡 補齊: b: any */}
+              {campaignBanks.map((b: any) => <option key={b.id} value={b.id}>{b.account_alias}</option>)}
             </select>
           </div>
           <div><label className="block text-xs font-bold text-stone-500 mb-2">限時活動主標題</label><input value={fcTitle} onChange={e=>setFcTitle(e.target.value)} placeholder="例: 虎爺祝壽點燈" className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
@@ -312,7 +321,8 @@ export default function AdminPage() {
               )}
             </div>
             <div className="space-y-3">
-              {fcOptions.map((opt, idx) => (
+              {/* 💡 補齊: opt: any, idx: number */}
+              {fcOptions.map((opt: any, idx: number) => (
                 <div key={idx} className="flex gap-3 items-center">
                   <input value={opt.title} onChange={e=>updateFcOption(idx, "title", e.target.value)} placeholder="方案名稱 (例: 一日燈)" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none"/>
                   <input type="number" value={opt.price} onChange={e=>updateFcOption(idx, "price", Number(e.target.value))} placeholder="金額" className="w-32 border border-stone-200 p-3 rounded-xl outline-none"/>
@@ -326,7 +336,6 @@ export default function AdminPage() {
 
           <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">上傳活動海報圖片</label><input type="file" onChange={e=>{if(e.target.files?.[0]){setFcImageFile(e.target.files[0]); setFcPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-xs text-stone-500 mt-1"/></div>
           
-          {/* 啟用前導頁開關 */}
           <div className="md:col-span-2 flex items-center gap-3 bg-white p-4 rounded-xl border border-stone-200">
             <input type="checkbox" id="splashToggle" checked={fcSplash} onChange={e => setFcSplash(e.target.checked)} className="w-5 h-5 accent-purple-700 cursor-pointer" />
             <label htmlFor="splashToggle" className="text-sm font-bold text-stone-700 cursor-pointer select-none">啟用「首頁全螢幕前導(Landing)畫面」強力曝光</label>
@@ -345,7 +354,8 @@ export default function AdminPage() {
         </div>
         
         <div className="space-y-4">
-          {flashCampaignsList.map(fc => (
+          {/* 💡 補齊: fc: any */}
+          {flashCampaignsList.map((fc: any) => (
             <div key={fc.id} className="p-5 bg-white border border-stone-200 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-shadow">
               <div className="space-y-2 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -353,6 +363,7 @@ export default function AdminPage() {
                   {fc.show_splash && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">含前導頁</span>}
                   <h4 className="font-bold text-stone-800 text-lg">{fc.title}</h4>
                 </div>
+                {/* 💡 補齊: o: any */}
                 <p className="text-xs text-stone-500 font-mono">方案: {fc.options && Array.isArray(fc.options) ? fc.options.map((o:any) => `${o.title}($${o.price})`).join('、') : `$${fc.price}`}</p>
                 <p className="text-xs text-stone-400">對帳帳戶: {fc.campaign_bank_accounts?.account_alias}</p>
               </div>
@@ -391,7 +402,8 @@ export default function AdminPage() {
           <button onClick={handleSaveNews} disabled={isAddingNews} className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-5 rounded-xl font-bold tracking-widest transition-colors">{editNewsId?"儲存更新":"發布公告"}</button>
         </div>
         <div className="space-y-3">
-          {newsList.map(n=>(
+          {/* 💡 補齊: n: any */}
+          {newsList.map((n: any) => (
             <div key={n.id} className="flex flex-col md:flex-row md:items-center justify-between border border-stone-100 p-4 rounded-xl gap-4 hover:shadow-sm transition-shadow">
               <div className="flex items-center">
                 <span className={`text-xs px-3 py-1 rounded-full mr-4 text-white font-bold shrink-0 ${n.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>{n.category === 'event' ? '重點活動' : '一般公告'}</span>
@@ -421,7 +433,8 @@ export default function AdminPage() {
           <button onClick={handleSaveService} disabled={isAddingSrv} className="bg-[#1A432D] hover:bg-[#122F20] text-white md:col-span-2 py-5 rounded-xl font-bold tracking-widest transition-colors">{editSrvId?"儲存更新":"新增按鈕"}</button>
         </div>
         <div className="space-y-3">
-          {servicesList.map(s=>(
+          {/* 💡 補齊: s: any */}
+          {servicesList.map((s: any) => (
             <div key={s.id} className="flex justify-between items-center border border-stone-100 p-4 rounded-xl hover:shadow-sm transition-shadow">
               <div className="flex flex-col">
                 <span className="font-bold text-[#1A432D] text-lg">{s.title}</span>
@@ -483,7 +496,8 @@ export default function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-          {productsList.map(p => (
+          {/* 💡 補齊: p: any */}
+          {productsList.map((p: any) => (
             <div key={p.id} className="bg-white border border-stone-200 p-5 rounded-2xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
               <div>
                 <div className="flex justify-between items-start mb-4">
@@ -512,7 +526,8 @@ export default function AdminPage() {
 
         {monthOptions.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {monthOptions.map(month => (
+            {/* 💡 補齊: month: string */}
+            {monthOptions.map((month: string) => (
               <button key={month} onClick={() => setSelectedMonth(month)} className={`px-5 py-2 rounded-full font-bold text-sm tracking-widest shrink-0 transition-colors ${selectedMonth === month ? 'bg-emerald-700 text-white shadow-md' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>{month}</button>
             ))}
           </div>
@@ -563,7 +578,8 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {filteredOrders.map((order) => (
+                {/* 💡 補齊: order: any */}
+                {filteredOrders.map((order: any) => (
                   <tr key={order.id} className="hover:bg-stone-50/50 transition-colors group">
                     <td className="p-4 text-stone-500">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
                     <td className="p-4 font-bold text-[#1A432D]">{order.service_type}</td>
