@@ -26,8 +26,6 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     
   const [optionQuantities, setOptionQuantities] = useState<number[]>(new Array(campaignOptions.length).fill(0));
 
-  const totalPrice = campaignOptions.reduce((sum, opt, idx) => sum + (opt.price * optionQuantities[idx]), 0);
-
   useEffect(() => {
     if (selfProfile && !name && selectedContactId === "self") {
       setName(selfProfile.userName); setPhone(selfProfile.userPhone);
