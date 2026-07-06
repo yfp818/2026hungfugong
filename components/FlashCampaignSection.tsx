@@ -26,6 +26,9 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     
   const [optionQuantities, setOptionQuantities] = useState<number[]>(new Array(campaignOptions.length).fill(0));
 
+  // 🌟 這裡就是剛剛遺失的總金額計算，已幫您加上嚴格的型別標籤 (number, any)
+  const totalPrice = campaignOptions.reduce((sum: number, opt: any, idx: number) => sum + (opt.price * optionQuantities[idx]), 0);
+
   useEffect(() => {
     if (selfProfile && !name && selectedContactId === "self") {
       setName(selfProfile.userName); setPhone(selfProfile.userPhone);
@@ -182,10 +185,9 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
             </div>
             <div className="flex flex-col gap-3 pt-2">
               
-              {/* 🌟 全新增加的按鈕：繼續為下一位親友報名 */}
               <button onClick={() => { 
                 setShowRedirectModal(false); 
-                setIsOpen(true); // 重新打開表單
+                setIsOpen(true);
                 setSelectedContactId("new"); 
                 setName(""); setBirthDate(""); setAddress(""); setPhone(selfProfile?.userPhone || ""); setRemarks("");
                 setOptionQuantities(new Array(campaignOptions.length).fill(0));
