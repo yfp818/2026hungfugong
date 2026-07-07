@@ -212,14 +212,36 @@ export default async function Home() {
             </div>
             
             <div className="flex gap-4 pt-6">
-              <a href={footerData.lineUrl} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-[#06C755] border border-white/20 p-3 rounded-full transition-all duration-300 hover:scale-110 group">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 group-hover:text-white"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.55 8.888 8.498 9.613.332.071.772.222.887.525.104.275.034.706.016.891-.022.213-.105.626-.135.795-.06.326-.297 1.455 1.272.795 1.57-.659 8.461-4.992 11.233-8.318z"/></svg>
-              </a>
-              <a href={footerData.igUrl} target="_blank" rel="noopener noreferrer" className="bg-white/10 hover:bg-[#E1306C] border border-white/20 p-3 rounded-full transition-all duration-300 hover:scale-110 group">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 group-hover:text-white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/></svg>
-              </a>
+              {/* 🟢 官方 LINE 按鈕 */}
+              {footerData.lineUrl && (
+                <a 
+                  href={footerData.lineUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-[#06C755] hover:border-[#06C755] transition-colors group"
+                >
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor">
+                    <path d="M22.5 10.9c0-4.3-4.3-7.8-9.5-7.8s-9.5 3.5-9.5 7.8c0 3.8 2.6 7 6.4 7.6.2.1.6.2.7.4l-.2 1.9c0 .1-.1.3.1.5.2.2.5.1.7 0 .2-.1 3-1.8 4.6-3.4 3-2.1 4.7-4.4 4.7-7z"/>
+                  </svg>
+                </a>
+              )}
+
+              {/* 🟠 官方 IG 按鈕 */}
+              {footerData.igUrl && (
+                <a 
+                  href={footerData.igUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:border-transparent transition-all group"
+                >
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                </a>
+              )}
             </div>
-          </div>
 
           <div className="w-full h-64 md:h-[320px] rounded-2xl overflow-hidden border border-white/20 shadow-2xl relative group">
             <iframe 
