@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
+/* 🌟 1. 告訴 Tailwind v4：我们要用 class (按鈕) 來切換深色模式，不要強制跟隨系統！ */
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -50,19 +53,45 @@
     --radius: 0.5rem;
   }
   
+  /* 🌟 2. 補上 Shadcn UI 需要的深色模式變數 (不再是死黑，而是高質感的深墨色) */
+  .dark {
+    --background: 0 0% 7%; 
+    --foreground: 0 0% 98%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 24 9.8% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 24 9.8% 10%;
+    --secondary: 24 9.8% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 24 9.8% 10%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 24 9.8% 10%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24 9.8% 10%;
+    --input: 24 9.8% 10%;
+    --ring: 24 5.4% 63.9%;
+  }
+
   *, ::after, ::before, ::backdrop, ::file-selector-button {
     border-color: var(--color-border, currentColor);
   }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    /* 確保深色切換時的過渡動畫流暢 */
+    transition: background-color 0.3s ease, color 0.3s ease; 
   }
 }
+
 /* 隱藏橫向捲軸但保留滑動功能 */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* 支援 IE 和 Edge */
-  scrollbar-width: none;  /* 支援 Firefox */
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
 }
 .hide-scrollbar::-webkit-scrollbar {
-  display: none; /* 支援 Chrome, Safari 和 Opera */
+  display: none; 
 }
