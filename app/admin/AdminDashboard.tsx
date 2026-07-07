@@ -216,22 +216,25 @@ export default function AdminDashboard() {
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const handleCopyUrl = (id: string) => {
+const handleCopyUrl = (id: string, title: string) => {
     const url = `${window.location.origin}/campaign/${id}`;
+    // ✨ 這裡自訂您想要的 LINE 宣傳排版
+    const shareText = `【${title}】熱烈報名中！\n👉 點此前往專屬報名網址：\n${url}`;
+
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(url).then(() => alert("已複製專屬報名網址！您可以貼到 LINE 群組分享了。"));
+      navigator.clipboard.writeText(shareText).then(() => alert("已複製報名文案！可以直接貼上 LINE 群組了。"));
     } else {
       const textArea = document.createElement("textarea");
-      textArea.value = url;
+      textArea.value = shareText;
       textArea.style.position = "absolute";
       textArea.style.left = "-999999px";
       document.body.appendChild(textArea);
       textArea.select();
       try {
         document.execCommand('copy');
-        alert("已複製專屬報名網址！您可以貼到 LINE 群組分享了。(相容模式)");
+        alert("已複製報名文案！可以直接貼上 LINE 群組了。");
       } catch (error) {
-        prompt("您的瀏覽器限制了自動複製，請手動複製以下網址：", url);
+        prompt("請手動複製以下文案：", shareText);
       } finally {
         textArea.remove();
       }
@@ -354,7 +357,7 @@ export default function AdminDashboard() {
               </div>
               
               <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-                <button onClick={() => handleCopyUrl(fc.id)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製網址</button>
+                <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製網址</button>
                 <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">📊 下載報表</button>
                 <button onClick={() => {
   setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); 
