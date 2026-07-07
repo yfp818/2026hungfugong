@@ -4,7 +4,8 @@ import SiteHeader from "@/components/SiteHeader";
 import AuthProvider from "@/components/AuthProvider"; 
 import { CartProvider } from "@/context/CartContext";
 import { Noto_Sans_TC, Noto_Serif_TC } from "next/font/google";
-import FloatingCartButton from "@/components/FloatingCartButton"; // 引入剛剛獨立的浮動按鈕
+import FloatingCartButton from "@/components/FloatingCartButton";
+import { ThemeProvider } from "@/components/ThemeProvider"; 
 
 const notoSans = Noto_Sans_TC({
   subsets: ["latin"],
@@ -26,18 +27,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // ✨ 註解移到 return 外面就安全了
   return (
-    <html lang="zh-TW" data-scroll-behavior="smooth">
-      <body className={`${notoSans.className} antialiased bg-stone-50 text-stone-900`}>
-        {/* 驗證與購物車的雙重防護罩 */}
-        <AuthProvider>
-          <CartProvider>
-            <SiteHeader fontClassName={notoSerif.className} />
-            {children}
-            {/* 浮動購物車按鈕放在這裡，全站皆可顯示 */}
-            <FloatingCartButton />
-          </CartProvider>
-        </AuthProvider>
+    <html lang="zh-TW" data-scroll-behavior="smooth" suppressHydrationWarning>
+<body className={`${notoSans.className} antialiased bg-stone-50 text-stone-900 dark:bg-[#121212] dark:text-stone-100 transition-colors duration-300`}>
+          <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <SiteHeader fontClassName={notoSerif.className} />
+              {children}
+              <FloatingCartButton />
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

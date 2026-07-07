@@ -11,14 +11,12 @@ import FlashCampaignSection from "@/components/FlashCampaignSection";
 import CampaignSplash from "@/components/CampaignSplash"; 
 
 export default async function Home() {
-  // 1. 抓取主視覺資料
   const { data: introData } = await supabase.from("site_content").select("*").eq("id", "homepage_intro").single();
   const displayTitle = introData?.title || "相信就會看見";
   const displayContent = introData?.content || "勇敢才能無畏";
   const displayImage = introData?.image_url || ""; 
   const opacityValue = introData?.bg_opacity ?? 40;
 
-  // 1.5 智慧抓取當前啟用中的限時活動
   const { data: activeCampaign } = await supabase
     .from("flash_campaigns")
     .select("*, campaign_bank_accounts(*)")
@@ -26,17 +24,14 @@ export default async function Home() {
     .limit(1)
     .maybeSingle();
 
-  // 2. 抓取文章公告並分流 (補上 :any 型別)
   const { data: newsData } = await supabase.from("news_events").select("*").order("created_at", { ascending: false });
   const newsList = newsData || [];
   const listAnnouncements = newsList.filter((n: any) => n.category === 'news' || !n.category);
   const listEvents = newsList.filter((n: any) => n.category === 'event');
 
-  // 3. 抓取祈福專區按鈕
   const { data: servicesData } = await supabase.from("blessing_services").select("*").order("created_at", { ascending: true });
   const dynamicServices = servicesData || [];
 
-  // 4. 抓取並解析頁尾聯絡資訊
   const { data: footerDataRaw } = await supabase.from("site_content").select("*").eq("id", "site_footer").single();
   let footerData = {
     address: "920 台灣屏東縣潮州鎮太平路602號",
@@ -55,12 +50,11 @@ export default async function Home() {
     } catch (e) { console.error("解析頁尾資訊失敗", e); }
   }
 
+  // ✨ 註解移到 return 外面就安全了！最外層大背景已加入 dark:bg-[#121212]
   return (
-    <main className="min-h-screen bg-[#FAF7F0] selection:bg-[#A61D24] selection:text-white">
+    <main className="min-h-screen bg-[#FAF7F0] dark:bg-[#121212] selection:bg-[#A61D24] selection:text-white transition-colors duration-500">
       
-      {/* 🌟 完美的安插位置：放在 main 標籤內的最上方 */}
       {activeCampaign && <CampaignSplash campaign={activeCampaign} />}
-
       <AOSProvider />
 
       <style>{`
@@ -82,7 +76,6 @@ export default async function Home() {
                 {displayTitle.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </h1>
               <p className={`animate-hero delay-300 ${notoSerif.className} text-2xl md:text-4xl lg:text-5xl text-white/90 font-bold tracking-[0.3em] leading-loose [writing-mode:vertical-rl] drop-shadow-2xl`}>
-                {/* 💡 這裡補上了 line: string, index: number */}
                 {displayContent.split('\n').map((line: string, index: number) => <span key={index} className="block">{line}</span>)}
               </p>
             </div>
@@ -100,30 +93,28 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 首頁黃金視覺區 (快閃短期活動廣告看板) */}
       {activeCampaign && <FlashCampaignSection campaign={activeCampaign} />}
 
-      {/* ================= 區塊二：本宮公告 (純文字列表) ================= */}
+      {/* ================= 區塊二：本宮公告 ================= */}
       {listAnnouncements.length > 0 && (
-        <div id="announcements" className="w-full bg-white relative z-20">
+        <div id="announcements" className="w-full bg-white dark:bg-[#121212] relative z-20 transition-colors duration-500">
           <section className="py-24 px-6 max-w-7xl mx-auto" data-aos="fade-up">
             <div className="flex flex-col md:flex-row gap-12 md:gap-24">
               <div className="flex flex-col items-center md:items-start shrink-0">
-                <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold text-slate-800 tracking-[0.4em] leading-[1.5]`}>
+                <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold text-slate-800 dark:text-stone-200 tracking-[0.4em] leading-[1.5] transition-colors`}>
                   <span className="block">本 宮</span><span className="block">公 告</span>
                 </h2>
-                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-white z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] shrink-0 -ml-1 rounded-r-full"></div></div>
+                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D] dark:bg-[#D89F3C]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-white dark:bg-[#121212] z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] dark:bg-[#D89F3C] shrink-0 -ml-1 rounded-r-full"></div></div>
               </div>
 
-              <div className="flex-1 flex flex-col w-full border-t border-stone-200 md:border-none">
-                {/* 💡 這裡補上了 news: any */}
+              <div className="flex-1 flex flex-col w-full border-t border-stone-200 dark:border-stone-800 md:border-none">
                 {listAnnouncements.map((news: any) => (
-                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 hover:bg-stone-50 transition-colors group">
+                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <svg className="w-5 h-5 text-[#D89F3C] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
-                      <h3 className="text-lg md:text-xl font-bold text-[#1A432D] group-hover:text-[#A61D24] transition-colors line-clamp-1">{news.title}</h3>
+                      <h3 className="text-lg md:text-xl font-bold text-[#1A432D] dark:text-[#D89F3C] group-hover:text-[#A61D24] transition-colors line-clamp-1">{news.title}</h3>
                     </div>
-                    <span className="text-stone-400 text-sm mt-3 sm:mt-0 font-medium tracking-widest shrink-0 sm:ml-4">{new Date(news.created_at).toISOString().split('T')[0]}</span>
+                    <span className="text-stone-400 dark:text-stone-500 text-sm mt-3 sm:mt-0 font-medium tracking-widest shrink-0 sm:ml-4">{new Date(news.created_at).toISOString().split('T')[0]}</span>
                   </Link>
                 ))}
               </div>
@@ -134,15 +125,14 @@ export default async function Home() {
 
       {/* ================= 區塊三：重點活動 ================= */}
       {listEvents.length > 0 && (
-        <div id="events" className="w-full bg-[#FAF7F0] border-t border-stone-200/50">
+        <div id="events" className="w-full bg-[#FAF7F0] dark:bg-[#1A1A1A] border-t border-stone-200/50 dark:border-stone-800/50 transition-colors duration-500">
           <section className="pt-24 pb-16 px-6 max-w-7xl mx-auto">
             <div className="text-center md:text-right mb-16 md:mb-24 pr-4" data-aos="fade-up">
-              <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold tracking-widest text-[#1A432D] mb-4`}>重點活動</h2>
-              <div className="w-full h-[2px] bg-[#D89F3C] mt-6 relative"><div className="absolute right-12 -top-[6px] w-3 h-3 border-2 border-[#D89F3C] rounded-full bg-[#FAF7F0]"></div></div>
+              <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold tracking-widest text-[#1A432D] dark:text-[#D89F3C] mb-4 transition-colors`}>重點活動</h2>
+              <div className="w-full h-[2px] bg-[#D89F3C] mt-6 relative"><div className="absolute right-12 -top-[6px] w-3 h-3 border-2 border-[#D89F3C] rounded-full bg-[#FAF7F0] dark:bg-[#1A1A1A]"></div></div>
             </div>
             
             <div className="space-y-24 md:space-y-40">
-              {/* 💡 這裡補上了 news: any, index: number */}
               {listEvents.map((news: any, index: number) => {
                 const isEven = index % 2 === 0;
                 return (
@@ -153,12 +143,12 @@ export default async function Home() {
                       </Link>
                     )}
 
-                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-white/85 backdrop-blur-xl border border-white/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-transform duration-500 group-hover:-translate-y-2 flex flex-col`}>
-                      <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
-                      <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] mb-6 tracking-wide leading-snug hover:text-[#A61D24] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
-                      <p className="text-stone-600 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{news.content}</p>
+                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-white/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
+                      <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
+                      <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] dark:text-stone-100 mb-6 tracking-wide leading-snug hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
+                      <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{news.content}</p>
                       <div className="flex justify-end pt-2">
-                        <Link href={`/news/${news.id}`} className="text-sm font-medium tracking-widest text-stone-400 hover:text-[#A61D24] transition-colors group-hover:translate-x-1 duration-300">閱讀全文 →</Link>
+                        <Link href={`/news/${news.id}`} className="text-sm font-medium tracking-widest text-stone-400 hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors group-hover:translate-x-1 duration-300">閱讀全文 →</Link>
                       </div>
                     </div>
                   </div>
@@ -171,14 +161,13 @@ export default async function Home() {
 
       {/* ================= 區塊四：祈福專區 ================= */}
       {dynamicServices.length > 0 && (
-        <section id="services" className="pb-32 pt-24 w-full bg-white border-t border-stone-100">
+        <section id="services" className="pb-32 pt-24 w-full bg-white dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
           <div className="text-center mb-16" data-aos="fade-up">
-            <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#A61D24] mb-4`}>祈 福 專 區</h2>
-            <p className="text-lg tracking-widest text-stone-500 font-medium">點亮心燈 照慧平安</p>
+            <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#A61D24] dark:text-[#D89F3C] mb-4 transition-colors`}>祈 福 專 區</h2>
+            <p className="text-lg tracking-widest text-stone-500 dark:text-stone-400 font-medium">點亮心燈 照慧平安</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto px-6">
-            {/* 💡 這裡補上了 service: any, index: number */}
             {dynamicServices.map((service: any, index: number) => (
               <Link key={service.id} href={service.link_url || "#"} data-aos="fade-up" data-aos-delay={index * 100} className="group relative block w-full outline-none">
                 <div className="w-full bg-[#1A432D] border-[2px] border-[#D89F3C] rounded-full py-6 px-8 flex justify-between items-center shadow-[0_10px_20px_rgba(26,67,45,0.2)] group-hover:shadow-[0_20px_40px_rgba(216,159,60,0.4)] group-hover:-translate-y-2 group-hover:bg-[#122F20] transition-all duration-300 overflow-hidden relative">
@@ -192,12 +181,11 @@ export default async function Home() {
         </section>
       )}
 
-  {/* ================= 區塊五：頁尾 ================= */}
+      {/* ================= 區塊五：頁尾 ================= */}
       <footer id="footer" className="bg-[#1A432D] text-white border-t-[8px] border-[#D89F3C]">
         <div className={`mx-auto px-6 py-16 md:py-24 grid grid-cols-1 gap-12 lg:gap-16 transition-all duration-500 ${
           footerData.showBankInfo ? 'max-w-7xl lg:grid-cols-3' : 'max-w-5xl md:grid-cols-2'
         }`}>
-          
           <div className="space-y-8 flex flex-col justify-center">
             <h3 className={`${notoSerif.className} text-3xl font-bold tracking-widest mb-4`}>皇府宮</h3>
             <div className="space-y-5 text-white/85 font-medium tracking-wide">
@@ -211,35 +199,15 @@ export default async function Home() {
               </p>
             </div>
             
-            {/* 🌟 已經對接好的 LINE 與 IG 按鈕 */}
             <div className="flex gap-4 pt-6">
-              {/* 🟢 官方 LINE 按鈕 */}
               {footerData.lineUrl && (
-                <a 
-                  href={footerData.lineUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-[#06C755] hover:border-[#06C755] transition-colors group"
-                >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor">
-                    <path d="M22.5 10.9c0-4.3-4.3-7.8-9.5-7.8s-9.5 3.5-9.5 7.8c0 3.8 2.6 7 6.4 7.6.2.1.6.2.7.4l-.2 1.9c0 .1-.1.3.1.5.2.2.5.1.7 0 .2-.1 3-1.8 4.6-3.4 3-2.1 4.7-4.4 4.7-7z"/>
-                  </svg>
+                <a href={footerData.lineUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-[#06C755] hover:border-[#06C755] transition-colors group">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="currentColor"><path d="M22.5 10.9c0-4.3-4.3-7.8-9.5-7.8s-9.5 3.5-9.5 7.8c0 3.8 2.6 7 6.4 7.6.2.1.6.2.7.4l-.2 1.9c0 .1-.1.3.1.5.2.2.5.1.7 0 .2-.1 3-1.8 4.6-3.4 3-2.1 4.7-4.4 4.7-7z"/></svg>
                 </a>
               )}
-
-              {/* 🟠 官方 IG 按鈕 */}
               {footerData.igUrl && (
-                <a 
-                  href={footerData.igUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:border-transparent transition-all group"
-                >
-                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                  </svg>
+                <a href={footerData.igUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center hover:bg-gradient-to-tr hover:from-[#F58529] hover:via-[#DD2A7B] hover:to-[#8134AF] hover:border-transparent transition-all group">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
                 </a>
               )}
             </div>
@@ -248,11 +216,7 @@ export default async function Home() {
           <div className="w-full h-64 md:h-[320px] rounded-2xl overflow-hidden border border-white/20 shadow-2xl relative group">
             <iframe 
               src={`https://maps.google.com/maps?q=${encodeURIComponent(footerData.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-              className="w-full h-full absolute inset-0" 
-              style={{ border: 0 }} 
-              allowFullScreen 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full absolute inset-0" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade"
             ></iframe>
             <a href="https://share.google/fRc8RL35ospbZZPoa" target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
               <Button className="bg-[#A61D24] text-white hover:bg-[#85161C] rounded-full px-8 tracking-widest shadow-2xl transform hover:scale-105 transition-all">開啟 Google 導航</Button>
