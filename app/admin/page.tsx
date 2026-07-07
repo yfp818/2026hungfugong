@@ -12,7 +12,6 @@ export default async function AdminPage() {
   // 請確認這裡有您的 LINE 綁定信箱
   const adminEmails = [
     "yfp818@gmail.com", 
-    "vip_818@me.com" 
   ];
 
   if (!session || !session.user?.email || !adminEmails.includes(session.user.email)) {
