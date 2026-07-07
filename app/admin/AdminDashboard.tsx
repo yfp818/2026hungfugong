@@ -54,6 +54,8 @@ export default function AdminDashboard() {
   const [editPId, setEditPId] = useState<string|null>(null);
 
   const [selectedMonth, setSelectedMonth] = useState<string>("");
+  // ✨ 新增：紀錄管理的專案分類狀態
+  const [selectedServiceType, setSelectedServiceType] = useState<string>("all");
 
   const [campaignBanks, setCampaignBankAccounts] = useState<any[]>([]);
   const [flashCampaignsList, setFlashCampaignsList] = useState<any[]>([]);
@@ -115,18 +117,29 @@ export default function AdminDashboard() {
 
   useEffect(() => { if (monthOptions.length > 0 && !selectedMonth) setSelectedMonth(monthOptions[0]); }, [monthOptions]);
 
+  // ✨ 更新：過濾器現在同時支援「月份」與「專案分類」
   const filteredOrders = ordersList.filter((o: any) => {
-    const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+    const d = new Date(o.created_at);
+    const isMonthMatch = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+    if (!isMonthMatch) return false;
+
+    if (selectedServiceType === 'all') return true;
+    if (selectedServiceType === 'lamp') return o.service_type === '當月點燈' || o.service_type === 'lamp';
+    if (selectedServiceType === 'burning') return o.service_type === '代燒服務' || o.service_type === 'burning';
+    if (selectedServiceType === 'booking') return o.service_type === '濟事問事' || o.service_type === 'booking';
+    if (selectedServiceType === 'campaign') return o.service_type === '限時特辦活動' || o.service_type === 'campaign';
+    
+    return true;
   });
 
   const totalIncomeCompleted = filteredOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
   const totalIncomePending = filteredOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
   
   const serviceCounts = {
-    lamp: filteredOrders.filter((o: any) => o.service_type === '當月點燈' || o.service_type === 'lamp').length,
-    burning: filteredOrders.filter((o: any) => o.service_type === '代燒服務' || o.service_type === 'burning').length,
-    booking: filteredOrders.filter((o: any) => o.service_type === '濟事問事' || o.service_type === 'booking').length,
-    campaign: filteredOrders.filter((o: any) => o.service_type === '限時特辦活動' || o.service_type === 'campaign').length,
+    lamp: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '當月點燈' || o.service_type === 'lamp'); }).length,
+    burning: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '代燒服務' || o.service_type === 'burning'); }).length,
+    booking: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '濟事問事' || o.service_type === 'booking'); }).length,
+    campaign: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '限時特辦活動' || o.service_type === 'campaign'); }).length,
   };
 
   const handleSaveHero = async () => { setIsSavingHero(true); let url = previewUrl; if (imageFile) { const name = `hero_${Date.now()}`; await supabase.storage.from('images').upload(name, imageFile); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; } await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); alert("主視覺更新成功。"); setIsSavingHero(false); router.refresh(); };
@@ -181,7 +194,6 @@ export default function AdminDashboard() {
     }
 
     setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setEditFcId(null); setFcSplash(false);
-    // ✨ 關鍵防呆：發布或儲存後，強制把帳戶清空回預設值
     setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : "");
     fetchData();
     router.refresh(); 
@@ -198,12 +210,19 @@ export default function AdminDashboard() {
     } catch (err: any) { alert("儲存發生錯誤: " + err.message); } finally { setIsAddingProduct(false); }
   };
 
+  // ✨ 更新：匯出功能會跟隨選定的分類標籤下載
   const exportToCSV = () => {
-    if (filteredOrders.length === 0) return alert("這個月沒有資料可供匯出。");
+    if (filteredOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
     const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "農曆生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
     const csvContent = [ headers.join(","), ...filteredOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.service_type || "", order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `皇府宮_${selectedMonth}_服務紀錄.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); 
+    
+    // 動態變更檔案名稱
+    const typeNames: Record<string, string> = { all: "全部", lamp: "點燈", burning: "代燒", booking: "問事", campaign: "特辦活動" };
+    link.setAttribute("download", `皇府宮_${selectedMonth}_${typeNames[selectedServiceType]}紀錄.csv`); 
+    
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
   const exportCampaignCSV = (campaignTitle: string) => {
@@ -216,11 +235,9 @@ export default function AdminDashboard() {
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-const handleCopyUrl = (id: string, title: string) => {
-    // ✨ 這裡已經為您換上「皇府宮祈福系統」專屬的 LIFF 任意門網址！
+  const handleCopyUrl = (id: string, title: string) => {
     const liffBaseUrl = "https://liff.line.me/2010604926-zQQVEwEM"; 
     const url = `${liffBaseUrl}/campaign/${id}`;
-    
     const shareText = `【${title}】熱烈報名中！\n👉 點此前往專屬報名網址：\n${url}`;
 
     if (navigator.clipboard && window.isSecureContext) {
@@ -295,7 +312,7 @@ const handleCopyUrl = (id: string, title: string) => {
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
           <div>
             <label className="block text-xs font-bold text-stone-500 mb-2">指定匯款對帳帳戶</label>
-            <select value={fcBankId|| ""} onChange={e=>setFcBankId(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none font-bold text-stone-700">
+            <select value={fcBankId || ""} onChange={e=>setFcBankId(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none font-bold text-stone-700">
               {campaignBanks.map((b: any) => <option key={b.id} value={b.id}>{b.account_alias}</option>)}
             </select>
           </div>
@@ -335,12 +352,12 @@ const handleCopyUrl = (id: string, title: string) => {
             </button>
             {editFcId && (
               <button onClick={() => { 
-  setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); 
-  setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); 
-  setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); 
-}} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
-  取消編輯
-</button>
+                setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); 
+                setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); 
+                setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); 
+              }} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
+                取消編輯
+              </button>
             )}
           </div>
         </div>
@@ -359,15 +376,17 @@ const handleCopyUrl = (id: string, title: string) => {
               </div>
               
               <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-                <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製網址</button>
+                <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製文案</button>
                 <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">📊 下載報表</button>
                 <button onClick={() => {
-  setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); 
-  setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false);
-  setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); 
-  setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}} className="text-xs font-bold bg-stone-100 text-stone-600 hover:bg-purple-50 hover:text-purple-700 px-4 py-2 rounded-lg transition-colors">編輯</button>              </div>
+                  setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); 
+                  setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false);
+                  setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); 
+                  setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }} className="text-xs font-bold bg-stone-100 text-stone-600 hover:bg-purple-50 hover:text-purple-700 px-4 py-2 rounded-lg transition-colors">編輯</button>
+                <button onClick={async()=>{if(confirm("確定刪除此限定活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); router.refresh();}}} className="text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors">刪除</button>
+              </div>
             </div>
           ))}
         </div>
@@ -501,25 +520,51 @@ const handleCopyUrl = (id: string, title: string) => {
         </div>
       </section>
 
-      {/* 8. 服務與預約紀錄管理 */}
+      {/* 8. 服務與預約紀錄管理 (✨ 全新進化版) */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-stone-100 pb-6 gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-xl font-bold border-l-4 border-emerald-700 pl-3 text-emerald-900">8. 服務與預約紀錄管理</h2>
-          <div className="flex gap-3"><button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold tracking-widest rounded-xl transition-colors">匯出全部 Excel</button></div>
+          <div className="flex gap-3">
+            <button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold tracking-widest rounded-xl transition-colors shadow-sm">
+              匯出當前名單 (Excel)
+            </button>
+          </div>
         </div>
 
-        {monthOptions.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {monthOptions.map((month: string) => (
-              <button key={month} onClick={() => setSelectedMonth(month)} className={`px-5 py-2 rounded-full font-bold text-sm tracking-widest shrink-0 transition-colors ${selectedMonth === month ? 'bg-emerald-700 text-white shadow-md' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>{month}</button>
+        {/* 篩選器列：月份 + 專案標籤 */}
+        <div className="flex flex-col md:flex-row gap-4 border-y border-stone-100 py-4">
+          {/* 月份選單 */}
+          {monthOptions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide md:border-r border-stone-200 pr-4">
+              {monthOptions.map((month: string) => (
+                <button key={month} onClick={() => setSelectedMonth(month)} className={`px-5 py-2 rounded-full font-bold text-sm tracking-widest shrink-0 transition-colors ${selectedMonth === month ? 'bg-emerald-700 text-white shadow-md' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+                  {month}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* 服務分類選單 */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {[
+              { id: 'all', label: '全部紀錄' },
+              { id: 'lamp', label: '點燈' },
+              { id: 'burning', label: '代燒' },
+              { id: 'booking', label: '問事' },
+              { id: 'campaign', label: '特辦活動' }
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setSelectedServiceType(tab.id)} className={`px-4 py-2 rounded-xl font-bold text-sm tracking-widest shrink-0 transition-colors border ${selectedServiceType === tab.id ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'}`}>
+                {tab.label}
+              </button>
             ))}
           </div>
-        )}
+        </div>
 
+        {/* 統計看板 */}
         {selectedMonth && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-6 border-b border-stone-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
-              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">本月已入帳總額</p>
+              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">已入帳總額</p>
               <p className="text-2xl font-bold text-emerald-700">${totalIncomeCompleted.toLocaleString()}</p>
             </div>
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
@@ -527,7 +572,7 @@ const handleCopyUrl = (id: string, title: string) => {
               <p className="text-2xl font-bold text-amber-600">${totalIncomePending.toLocaleString()}</p>
             </div>
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
-              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">本月各服務次數</p>
+              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">本月服務總次數</p>
               <div className="text-sm font-bold text-stone-700 space-y-1 mt-2">
                 <p>點燈: <span className="text-[#A61D24]">{serviceCounts.lamp}</span> 次</p>
                 <p>代燒: <span className="text-[#A61D24]">{serviceCounts.burning}</span> 次</p>
@@ -536,33 +581,34 @@ const handleCopyUrl = (id: string, title: string) => {
               </div>
             </div>
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
-              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">本月登記總件數</p>
+              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">當前篩選件數</p>
               <p className="text-3xl font-bold text-slate-700 mt-2">{filteredOrders.length}</p>
             </div>
           </div>
         )}
 
+        {/* 資料列表 (帶滑桿與最大高度) */}
         {isLoadingOrders ? (
           <div className="text-center py-12 text-stone-400 tracking-widest font-bold">載入資料中...</div>
         ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-16 bg-stone-50 rounded-2xl border border-dashed border-stone-200 text-stone-500 font-bold tracking-widest">所選月份尚無紀錄</div>
+          <div className="text-center py-16 bg-stone-50 rounded-2xl border border-dashed border-stone-200 text-stone-500 font-bold tracking-widest">目前分類尚無紀錄</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-stone-200 rounded-xl relative shadow-sm scrollbar-hide">
             <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-stone-50 text-stone-500 font-bold tracking-widest border-y border-stone-200">
+              <thead className="bg-stone-100 text-stone-600 font-bold tracking-widest sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="p-4 rounded-tl-xl">建立日期</th>
+                  <th className="p-4">建立日期</th>
                   <th className="p-4">類別</th>
                   <th className="p-4">信眾姓名</th>
                   <th className="p-4">報名明細 / 後五碼</th>
                   <th className="p-4">金額</th>
                   <th className="p-4 text-center">狀態</th>
-                  <th className="p-4 rounded-tr-xl text-right">操作</th>
+                  <th className="p-4 text-right">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-stone-100 bg-white">
                 {filteredOrders.map((order: any) => (
-                  <tr key={order.id} className="hover:bg-stone-50/50 transition-colors group">
+                  <tr key={order.id} className="hover:bg-stone-50/80 transition-colors group">
                     <td className="p-4 text-stone-500">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
                     <td className="p-4 font-bold text-[#1A432D]">{order.service_type}</td>
                     <td className="p-4 font-bold text-stone-800">{order.user_name}</td>
