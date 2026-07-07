@@ -457,9 +457,27 @@ export default function AdminDashboard() {
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-slate-700 pl-3">6. 頁尾聯絡資訊管理</h2>
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
-          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">宮廟實體地址</label><input value={address} onChange={e=>setAddress(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/></div>
-          <div><label className="block text-xs font-bold text-stone-500 mb-2">服務電話或提示</label><input value={phone} onChange={e=>setPhone(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/></div>
-          <div><label className="block text-xs font-bold text-stone-500 mb-2">官方 LINE 連結網址</label><input value={lineUrl} onChange={e=>setLineUrl(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/></div>
+          
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-stone-500 mb-2">宮廟實體地址</label>
+            <input value={address} onChange={e=>setAddress(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
+          </div>
+          
+          <div className="md:col-span-2">
+            <label className="block text-xs font-bold text-stone-500 mb-2">電話或自訂提示文案 (顯示於地址下方)</label>
+            <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="例：服務請洽 LINE 官方客服" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-500 mb-2">官方 LINE 連結網址</label>
+            <input value={lineUrl} onChange={e=>setLineUrl(e.target.value)} placeholder="https://lin.ee/..." className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-stone-500 mb-2">官方 IG 連結網址</label>
+            <input value={igUrl} onChange={e=>setIgUrl(e.target.value)} placeholder="https://instagram.com/..." className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
+          </div>
+
           <div className="md:col-span-2 border-t border-stone-200 pt-6 mt-2">
             <div className="flex items-center justify-between mb-6 bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
                <div>
