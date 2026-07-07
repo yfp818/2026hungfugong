@@ -181,6 +181,8 @@ export default function AdminDashboard() {
     }
 
     setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setEditFcId(null); setFcSplash(false);
+    // ✨ 關鍵防呆：發布或儲存後，強制把帳戶清空回預設值
+    setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : "");
     fetchData();
     router.refresh(); 
   };
@@ -288,7 +290,7 @@ export default function AdminDashboard() {
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
           <div>
             <label className="block text-xs font-bold text-stone-500 mb-2">指定匯款對帳帳戶</label>
-            <select value={fcBankId} onChange={e=>setFcBankId(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none font-bold text-stone-700">
+            <select value={fcBankId|| ""} onChange={e=>setFcBankId(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none font-bold text-stone-700">
               {campaignBanks.map((b: any) => <option key={b.id} value={b.id}>{b.account_alias}</option>)}
             </select>
           </div>
@@ -327,9 +329,13 @@ export default function AdminDashboard() {
               {editFcId ? "儲存活動更新" : "發布並推播至首頁焦點"}
             </button>
             {editFcId && (
-              <button onClick={() => { setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); }} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
-                取消編輯
-              </button>
+              <button onClick={() => { 
+  setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); 
+  setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); 
+  setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); 
+}} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
+  取消編輯
+</button>
             )}
           </div>
         </div>
@@ -351,12 +357,12 @@ export default function AdminDashboard() {
                 <button onClick={() => handleCopyUrl(fc.id)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製網址</button>
                 <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">📊 下載報表</button>
                 <button onClick={() => {
-                  setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); setFcBankId(fc.bank_account_id); setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false);
-                  setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }} className="text-xs font-bold bg-stone-100 text-stone-600 hover:bg-purple-50 hover:text-purple-700 px-4 py-2 rounded-lg transition-colors">編輯</button>
-                <button onClick={async()=>{if(confirm("確定刪除此限定活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); router.refresh();}}} className="text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors">刪除</button>
-              </div>
+  setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); 
+  setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false);
+  setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); 
+  setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}} className="text-xs font-bold bg-stone-100 text-stone-600 hover:bg-purple-50 hover:text-purple-700 px-4 py-2 rounded-lg transition-colors">編輯</button>              </div>
             </div>
           ))}
         </div>
