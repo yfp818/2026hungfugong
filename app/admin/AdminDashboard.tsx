@@ -217,12 +217,14 @@ export default function AdminDashboard() {
   };
 
 const handleCopyUrl = (id: string, title: string) => {
-    const url = `${window.location.origin}/campaign/${id}`;
-    // ✨ 這裡自訂您想要的 LINE 宣傳排版
+    // ✨ 這裡已經為您換上「皇府宮祈福系統」專屬的 LIFF 任意門網址！
+    const liffBaseUrl = "https://liff.line.me/2010604926-zQQVEwEM"; 
+    const url = `${liffBaseUrl}/campaign/${id}`;
+    
     const shareText = `【${title}】熱烈報名中！\n👉 點此前往專屬報名網址：\n${url}`;
 
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(shareText).then(() => alert("已複製報名文案！可以直接貼上 LINE 群組了。"));
+      navigator.clipboard.writeText(shareText).then(() => alert("已複製報名文案！可以直接貼上 LINE 或 IG 了。"));
     } else {
       const textArea = document.createElement("textarea");
       textArea.value = shareText;
@@ -232,7 +234,7 @@ const handleCopyUrl = (id: string, title: string) => {
       textArea.select();
       try {
         document.execCommand('copy');
-        alert("已複製報名文案！可以直接貼上 LINE 群組了。");
+        alert("已複製報名文案！可以直接貼上 LINE 或 IG 了。");
       } catch (error) {
         prompt("請手動複製以下文案：", shareText);
       } finally {
