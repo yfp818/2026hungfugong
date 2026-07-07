@@ -26,7 +26,6 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     
   const [optionQuantities, setOptionQuantities] = useState<number[]>(new Array(campaignOptions.length).fill(0));
 
-  // 🌟 修復 1：明確定義 totalPrice 迴圈變數
   const totalPrice = campaignOptions.reduce((sum: number, opt: any, idx: number) => sum + (opt.price * optionQuantities[idx]), 0);
 
   useEffect(() => {
@@ -65,7 +64,6 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
     const bankString = campaign.campaign_bank_accounts ? `${campaign.campaign_bank_accounts.bank_name} | 帳號: ${campaign.campaign_bank_accounts.account_number}` : "";
 
-    // 🌟 修復 2：明確定義 selectedDetails 迴圈變數 (opt: any, idx: number)
     const selectedDetails = campaignOptions
       .map((opt: any, idx: number) => optionQuantities[idx] > 0 ? `${opt.title} x${optionQuantities[idx]} ($${opt.price * optionQuantities[idx]})` : null)
       .filter(Boolean)
@@ -82,8 +80,9 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     setShowRedirectModal(true);
   };
 
-  // 🌟 修復 3：明確定義 displayPrice 迴圈變數 (o: any)
-  const displayPrice = campaignOptions.length > 1 ? `$${Math.min(...campaignOptions.map((o: any) => o.price))} 起` : `$${campaignOptions[0].price}`;
+  // ✨ 改進：為了讓「價格數字」跟「起」可以分開排版，精準抓取最低金額
+  const minPrice = Math.min(...campaignOptions.map((o: any) => o.price));
+  const hasMultipleOptions = campaignOptions.length > 1;
 
   return (
     <div className="w-full bg-white relative border-b border-stone-200/60">
@@ -98,7 +97,7 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
               </div>
             )}
             
-            <div className="flex-1 space-y-4 text-center md:text-left">
+            <div className="flex-1 space-y-4 text-center md:text-left w-full">
               <span className="inline-flex items-center gap-2 bg-[#A61D24] text-white text-xs font-bold px-4 py-1.5 rounded-full tracking-widest uppercase">
                 本月限定快閃特辦活動
               </span>
@@ -106,7 +105,19 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
               <p className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaign.description}</p>
               
               <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4 border-t border-stone-200/60">
-                <p className="text-2xl font-black text-[#A61D24] font-mono">{displayPrice}</p>
+                
+                {/* ✨ 質感深灰排版：主次分明，突顯右側按鈕 */}
+                <div className="flex items-baseline justify-center sm:justify-start gap-1">
+                  <span className="text-3xl font-black text-stone-700 font-mono tracking-tight">
+                    ${minPrice}
+                  </span>
+                  {hasMultipleOptions && (
+                    <span className="text-sm font-bold text-stone-500 tracking-widest">
+                      起
+                    </span>
+                  )}
+                </div>
+
                 {session ? (
                   <button onClick={() => setIsOpen(true)} className="w-full sm:w-auto bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-sm shadow-md transition-all">
                     立即線上報名
@@ -136,7 +147,6 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
             
             <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
               <h4 className="text-xs font-bold text-stone-500 tracking-widest mb-3">請選擇欲報名之方案與數量</h4>
-              {/* 🌟 修復 4：明確定義 map 迴圈變數 (opt: any, idx: number) */}
               {campaignOptions.map((opt: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-lg border border-stone-100 shadow-sm">
                   <div>
