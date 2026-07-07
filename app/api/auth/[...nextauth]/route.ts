@@ -1,22 +1,17 @@
-import NextAuth from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import LineProvider from "next-auth/providers/line";
 
-const handler = NextAuth({
+// 將設定獨立宣告並匯出 (export)，這是破關的最關鍵！
+export const authOptions: AuthOptions = {
   providers: [
     LineProvider({
-      // 💡 微調 1：對齊您 .env 裡面的變數名稱 (CLIENT)
       clientId: process.env.LINE_CLIENT_ID || "",
       clientSecret: process.env.LINE_CLIENT_SECRET || "",
-      // 強制要求 LINE 提供 openid、個人檔案與 Email
       authorization: {
         params: { scope: "profile openid email" },
       },
     }),
   ],
-  // 💡 微調 2：指定登入大門為我們做好的 /admin
-  pages: {
-    signIn: '/admin',
-  },
   session: {
     strategy: "jwt",
   },
@@ -35,6 +30,7 @@ const handler = NextAuth({
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

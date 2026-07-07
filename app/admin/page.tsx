@@ -1,21 +1,20 @@
 import { getServerSession } from "next-auth";
-import Link from "next/link";
-import AdminDashboard from "./AdminDashboard"; // 載入我們剛剛改名的控制面板
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // 載入鑰匙
+import AdminDashboard from "./AdminDashboard";
+import LoginButton from "./LoginButton"; // 載入剛剛做的按鈕
 
-// 強制伺服器每次都即時驗證，絕不快取
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  // 1. 在安全的伺服器端抓取使用者的登入資訊
-  const session = await getServerSession();
+  // 💡 修正 1：把 authOptions 交給伺服器，它才解得開您的登入狀態！
+  const session = await getServerSession(authOptions);
   
-  // 2. 設定您的後台白名單信箱
+  // 請確認這裡有您的 LINE 綁定信箱
   const adminEmails = [
     "yfp818@gmail.com", 
     "vip_818@me.com" 
   ];
 
-  // 3. 防護機制：如果沒登入，或是登入的信箱不在白名單內，就擋在門外
   if (!session || !session.user?.email || !adminEmails.includes(session.user.email)) {
     return (
       <div className="min-h-screen bg-[#FAF7F0] flex items-center justify-center p-6 relative overflow-hidden">
@@ -32,16 +31,14 @@ export default async function AdminPage() {
               {session?.user?.name ? `目前登入：${session.user.name}` : "請使用授權帳號登入"}
             </p>
             {session?.user?.email && !adminEmails.includes(session.user.email) && (
-              <p className="text-red-500 text-xs font-bold tracking-widest">⚠️ 此帳號無管理權限</p>
+              <p className="text-red-500 text-xs font-bold tracking-widest bg-red-50 py-2 rounded-lg mt-2">
+                ⚠️ 此帳號無管理權限：{session.user.email}
+              </p>
             )}
           </div>
           
-          {/* 這裡會自動串接您之前寫好的 NextAuth LINE/Google 登入機制 */}
-          <Link href="/api/auth/signin" className="block">
-            <button className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white py-4 rounded-xl font-bold tracking-widest transition-transform hover:scale-[1.02] shadow-md">
-              LINE / 信箱 安全登入
-            </button>
-          </Link>
+          {/* 💡 修正 2：使用剛剛做好的客戶端按鈕，取代原本會死結的 Link */}
+          <LoginButton />
           
           <p className="text-xs text-stone-300 tracking-widest">© 2026 皇府宮 All Rights Reserved.</p>
         </div>
@@ -49,6 +46,5 @@ export default async function AdminPage() {
     );
   }
 
-  // 4. 只有驗證通過的超級管理員，才能看見這個畫面
   return <AdminDashboard />;
 }
