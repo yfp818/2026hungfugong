@@ -20,10 +20,19 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
     <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
-        {/* 左側 Logo */}
-        <Link href="/" className={`text-xl md:text-2xl font-bold text-[#1A432D] tracking-widest ${fontClassName}`}>
-          皇府宮
-        </Link>
+       <Link href="/" className="flex items-center gap-3 group">
+  {/* 🌟 您的專屬小 LOGO */}
+  <img 
+    src="/logo.png" 
+    alt="皇府宮 Logo" 
+    className="w-10 h-10 object-contain rounded-full shadow-sm group-hover:scale-105 transition-transform"
+  />
+  
+  {/* 原本的文字 */}
+  <span className="text-xl md:text-2xl font-bold tracking-widest text-[#1A432D]">
+    皇府宮
+  </span>
+</Link>
 
         {/* 電腦版選單 */}
         <nav className="hidden md:flex items-center gap-8">
