@@ -10,7 +10,6 @@ export const authOptions: AuthOptions = {
         params: { 
           scope: "profile openid email",
           // 這是唯一新增的一行：強制在手機瀏覽器內登入，避免跳轉到 LINE App 導致 Cookie 遺失
-          disable_ios_auto_login: "true" 
         },
       },
     }),
