@@ -192,7 +192,7 @@ export default async function Home() {
         </section>
       )}
 
-      {/* ================= 區塊五：頁尾 ================= */}
+  {/* ================= 區塊五：頁尾 ================= */}
       <footer id="footer" className="bg-[#1A432D] text-white border-t-[8px] border-[#D89F3C]">
         <div className={`mx-auto px-6 py-16 md:py-24 grid grid-cols-1 gap-12 lg:gap-16 transition-all duration-500 ${
           footerData.showBankInfo ? 'max-w-7xl lg:grid-cols-3' : 'max-w-5xl md:grid-cols-2'
@@ -211,6 +211,7 @@ export default async function Home() {
               </p>
             </div>
             
+            {/* 🌟 已經對接好的 LINE 與 IG 按鈕 */}
             <div className="flex gap-4 pt-6">
               {/* 🟢 官方 LINE 按鈕 */}
               {footerData.lineUrl && (
@@ -242,6 +243,7 @@ export default async function Home() {
                 </a>
               )}
             </div>
+          </div>
 
           <div className="w-full h-64 md:h-[320px] rounded-2xl overflow-hidden border border-white/20 shadow-2xl relative group">
             <iframe 
