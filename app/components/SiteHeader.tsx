@@ -48,7 +48,11 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
               信眾中心
             </Link>
           ) : (
-            <button onClick={() => signIn("line")} className="bg-[#1A432D] hover:bg-[#122F20] text-white px-6 py-2 rounded-full text-sm font-bold tracking-widest transition-all">
+            <button 
+              // ✨ 這裡加上了 callbackUrl
+              onClick={() => signIn("line", { callbackUrl: "/member" })} 
+              className="bg-[#1A432D] hover:bg-[#122F20] text-white px-6 py-2 rounded-full text-sm font-bold tracking-widest transition-all"
+            >
               登入 / 註冊
             </button>
           )}
@@ -88,7 +92,11 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
                 前往信眾中心
               </Link>
             ) : (
-              <button onClick={() => { signIn("line"); setIsMenuOpen(false); }} className="w-full bg-[#1A432D] text-white px-4 py-3.5 rounded-xl text-sm font-bold tracking-widest shadow-md">
+              <button 
+                // ✨ 這裡也加上了 callbackUrl
+                onClick={() => { signIn("line", { callbackUrl: "/member" }); setIsMenuOpen(false); }} 
+                className="w-full bg-[#1A432D] text-white px-4 py-3.5 rounded-xl text-sm font-bold tracking-widest shadow-md"
+              >
                 LINE 快速登入
               </button>
             )}
