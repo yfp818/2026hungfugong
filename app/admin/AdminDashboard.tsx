@@ -26,7 +26,6 @@ export default function AdminDashboard() {
   const [addNewsCategory, setAddNewsCategory] = useState("news");
   const [addNewsPreviewUrl, setAddNewsPreviewUrl] = useState(""); 
   const [addNewsImageFile, setAddNewsImageFile] = useState<File|null>(null);
-  // ✨ 新增：活動報名連結的狀態管理
   const [addNewsActionUrl, setAddNewsActionUrl] = useState(""); 
   
   const [servicesList, setServicesList] = useState<any[]>([]); 
@@ -72,6 +71,17 @@ export default function AdminDashboard() {
   const [editFcId, setEditFcId] = useState<string|null>(null);
   const [fcSplash, setFcSplash] = useState(false); 
 
+  // ✨ 新增：獨立專款專案 (如玉皇上帝) 狀態管理
+  const [spList, setSpList] = useState<any[]>([]);
+  const [spOrdersList, setSpOrdersList] = useState<any[]>([]);
+  const [spTitle, setSpTitle] = useState("");
+  const [spDesc, setSpDesc] = useState("");
+  const [spBankInfo, setSpBankInfo] = useState("");
+  const [spPreviewUrl, setSpPreviewUrl] = useState("");
+  const [spImageFile, setSpImageFile] = useState<File|null>(null);
+  const [spOptions, setSpOptions] = useState<any[]>([{ title: "隨喜認捐", price: 0 }]);
+  const [editSpId, setEditSpId] = useState<string|null>(null);
+
   async function fetchData() {
     const { data: intro } = await supabase.from("site_content").select("*").eq("id", "homepage_intro").single();
     if (intro) { setTitle(intro.title || ""); setContent(intro.content || ""); setPreviewUrl(intro.image_url || ""); setBgOpacity(intro.bg_opacity || 40); }
@@ -105,6 +115,12 @@ export default function AdminDashboard() {
     const { data: fcData } = await supabase.from("flash_campaigns").select("*, campaign_bank_accounts(*)").order("created_at", { ascending: false });
     if (fcData) setFlashCampaignsList(fcData);
 
+    // ✨ 新增：抓取獨立專案與獨立認捐訂單
+    const { data: spData } = await supabase.from("special_projects").select("*").order("created_at", { ascending: false });
+    if (spData) setSpList(spData);
+    const { data: spoData } = await supabase.from("special_project_orders").select("*, special_projects(title)").order("created_at", { ascending: false });
+    if (spoData) setSpOrdersList(spoData);
+
     setIsLoadingOrders(false);
   }
   
@@ -112,8 +128,10 @@ export default function AdminDashboard() {
     fetchData(); 
   }, []);
 
-  const monthOptions = Array.from(new Set(ordersList.map((o: any) => {
-    const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  // ✨ 合併一般訂單與獨立專案訂單的日期來產生月份選項
+  const allOrderDates = [...ordersList.map(o => o.created_at), ...spOrdersList.map(o => o.created_at)];
+  const monthOptions = Array.from(new Set(allOrderDates.map((dateStr: string) => {
+    const d = new Date(dateStr); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }))).sort().reverse();
 
   useEffect(() => { if (monthOptions.length > 0 && !selectedMonth) setSelectedMonth(monthOptions[0]); }, [monthOptions]);
@@ -132,8 +150,17 @@ export default function AdminDashboard() {
     return true;
   });
 
-  const totalIncomeCompleted = filteredOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
-  const totalIncomePending = filteredOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price) || 0), 0);
+  // ✨ 獨立專案的月份篩選
+  const filteredSpOrders = spOrdersList.filter((o: any) => {
+    const d = new Date(o.created_at);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
+  });
+
+  const isShowingSpOrders = selectedServiceType === 'special_project';
+  const currentDisplayOrders = isShowingSpOrders ? filteredSpOrders : filteredOrders;
+
+  const totalIncomeCompleted = currentDisplayOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
+  const totalIncomePending = currentDisplayOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
   
   const serviceCounts = {
     lamp: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '當月點燈' || o.service_type === 'lamp'); }).length,
@@ -153,43 +180,26 @@ export default function AdminDashboard() {
       url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; 
     } 
     
-    // ✨ 新增：儲存時一併寫入 action_url
     if (editNewsId) { 
       await supabase.from("news_events").update({ 
-        title: addNewsTitle, 
-        content: addNewsContent, 
-        image_url: url, 
-        category: addNewsCategory,
-        action_url: addNewsActionUrl 
+        title: addNewsTitle, content: addNewsContent, image_url: url, category: addNewsCategory, action_url: addNewsActionUrl 
       }).eq("id", editNewsId); 
     } else { 
       await supabase.from("news_events").insert([{ 
-        title: addNewsTitle, 
-        content: addNewsContent, 
-        image_url: url, 
-        category: addNewsCategory,
-        action_url: addNewsActionUrl 
+        title: addNewsTitle, content: addNewsContent, image_url: url, category: addNewsCategory, action_url: addNewsActionUrl 
       }]); 
     } 
     
-    alert("發布成功。"); 
-    setEditNewsId(null); 
-    setAddNewsTitle(""); 
-    setAddNewsContent(""); 
-    setAddNewsPreviewUrl(""); 
-    setAddNewsCategory("news"); 
-    setAddNewsActionUrl(""); // ✨ 清空連結狀態
-    fetchData(); 
-    setIsAddingNews(false); 
-    router.refresh(); 
+    alert("發布成功。"); setEditNewsId(null); setAddNewsTitle(""); setAddNewsContent(""); setAddNewsPreviewUrl(""); setAddNewsCategory("news"); setAddNewsActionUrl(""); fetchData(); setIsAddingNews(false); router.refresh(); 
   };
   
   const handleSaveService = async () => { setIsAddingSrv(true); if (editSrvId) await supabase.from("blessing_services").update({ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }).eq("id", editSrvId); else await supabase.from("blessing_services").insert([{ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }]); alert("祈福項目已儲存。"); setEditSrvId(null); setSrvTitle(""); setSrvDesc(""); setSrvAction(""); fetchData(); setIsAddingSrv(false); router.refresh(); };
   
   const handleSaveFooter = async () => { setIsSavingFooter(true); const footerJsonString = JSON.stringify({ address, phone, lineUrl, igUrl, bankName, bankAccount, showBankInfo }); await supabase.from("site_content").upsert({ id: "site_footer", title: "頁尾聯絡資訊", content: footerJsonString }); alert("頁尾更新成功."); setIsSavingFooter(false); router.refresh(); };
   
-  const toggleOrderStatus = async (id: string, currentStatus: string) => { try { const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'; const { error } = await supabase.from("service_orders").update({ status: newStatus }).eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("狀態更新失敗：" + err.message); } };
-  const deleteOrder = async (id: string) => { if(confirm("確定要刪除這筆紀錄嗎？此動作無法復原。")) { try { const { error } = await supabase.from("service_orders").delete().eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("刪除失敗：" + err.message); } } };
+  // ✨ 切換狀態與刪除，支援兩種不同的資料表
+  const toggleOrderStatus = async (id: string, currentStatus: string, isSp: boolean = false) => { try { const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'; const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).update({ status: newStatus }).eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("狀態更新失敗：" + err.message); } };
+  const deleteOrder = async (id: string, isSp: boolean = false) => { if(confirm("確定要刪除這筆紀錄嗎？此動作無法復原。")) { try { const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).delete().eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("刪除失敗：" + err.message); } } };
 
   const handleAddCampaignBank = async () => {
     if(!cbName || !cbNum) return alert("請填寫完整的銀行與帳號名稱");
@@ -248,15 +258,53 @@ export default function AdminDashboard() {
     } catch (err: any) { alert("儲存發生錯誤: " + err.message); } finally { setIsAddingProduct(false); }
   };
 
+  // ✨ 獨立專案管理功能
+  const updateSpOption = (index: number, field: string, value: any) => { const newOptions = [...spOptions]; newOptions[index] = { ...newOptions[index], [field]: value }; setSpOptions(newOptions); };
+  const addSpOption = () => { setSpOptions([...spOptions, { title: "", price: 0 }]); };
+  const removeSpOption = (index: number) => { setSpOptions(spOptions.filter((_, i) => i !== index)); };
+
+  const handleSaveSpecialProject = async () => {
+    if (!spTitle || !spBankInfo) return alert("請輸入專案標題與專屬匯款帳戶資訊");
+    const validOptions = spOptions.filter((o: any) => o.title.trim() !== "");
+    if(validOptions.length === 0) return alert("請至少填寫一個認捐方案名稱");
+
+    let url = spPreviewUrl;
+    if (spImageFile) {
+      const name = `sp_${Date.now()}`;
+      await supabase.storage.from('images').upload(name, spImageFile);
+      url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl;
+    }
+
+    if (editSpId) {
+      const { error } = await supabase.from("special_projects").update({ title: spTitle, description: spDesc, bank_info: spBankInfo, image_url: url, options: validOptions }).eq("id", editSpId);
+      if (error) alert("更新失敗：" + error.message); else alert("專案更新成功！");
+    } else {
+      const { error } = await supabase.from("special_projects").insert([{ title: spTitle, description: spDesc, bank_info: spBankInfo, image_url: url, options: validOptions }]);
+      if (error) alert("發布失敗：" + error.message); else alert("獨立專案發布成功！");
+    }
+    setSpTitle(""); setSpDesc(""); setSpBankInfo(""); setSpPreviewUrl(""); setSpImageFile(null); setSpOptions([{ title: "隨喜認捐", price: 0 }]); setEditSpId(null);
+    fetchData();
+  };
+
+  // ✨ 匯出 Excel (支援兩種訂單)
   const exportToCSV = () => {
-    if (filteredOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
-    const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "生日生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
-    const csvContent = [ headers.join(","), ...filteredOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.service_type || "", order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || 0 ].join(",")) ].join("\n");
+    if (currentDisplayOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
+    const isSp = selectedServiceType === 'special_project';
+    const headers = ["建立時間", "服務/專案名稱", "信眾姓名", "聯絡電話", "生日生辰", "地址", "明細/方案", "匯款後五碼", "狀態", "金額"];
+    
+    const csvContent = [ headers.join(","), ...currentDisplayOrders.map((order: any) => [ 
+      new Date(order.created_at).toLocaleString('zh-TW'), 
+      isSp ? (order.special_projects?.title || "") : (order.service_type || ""), 
+      order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, 
+      `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", 
+      order.status === 'completed' ? '已處理' : '待處理', order.total_price || order.amount || 0 
+    ].join(",")) ].join("\n");
+    
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); 
     
-    const typeNames: Record<string, string> = { all: "全部", lamp: "點燈", burning: "代燒", booking: "問事", campaign: "特辦活動" };
-    link.setAttribute("download", `皇府宮_${selectedMonth}_${typeNames[selectedServiceType]}紀錄.csv`); 
+    const typeNames: Record<string, string> = { all: "全部", lamp: "點燈", burning: "代燒", booking: "問事", campaign: "特辦活動", special_project: "獨立專款專用" };
+    link.setAttribute("download", `皇府宮_${selectedMonth}_${typeNames[selectedServiceType]}_名單.csv`); 
     
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
@@ -271,28 +319,16 @@ export default function AdminDashboard() {
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  const handleCopyUrl = (id: string, title: string) => {
-    const liffBaseUrl = "https://liff.line.me/2010604926-zQQVEwEM"; 
-    const url = `${liffBaseUrl}/campaign/${id}`;
+  const handleCopyUrl = (id: string, title: string, isSp: boolean = false) => {
+    // ✨ 專屬獨立網址
+    const url = isSp ? `${window.location.origin}/project/${id}` : `https://liff.line.me/2010604926-zQQVEwEM/campaign/${id}`;
     const shareText = `【${title}】熱烈報名中！\n👉 點此前往專屬報名網址：\n${url}`;
 
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(shareText).then(() => alert("已複製報名文案！可以直接貼上 LINE 或 IG 了。"));
+      navigator.clipboard.writeText(shareText).then(() => alert("已複製專屬連結！可以直接貼上 LINE 或 IG 了。"));
     } else {
-      const textArea = document.createElement("textarea");
-      textArea.value = shareText;
-      textArea.style.position = "absolute";
-      textArea.style.left = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        alert("已複製報名文案！可以直接貼上 LINE 或 IG 了。");
-      } catch (error) {
-        prompt("請手動複製以下文案：", shareText);
-      } finally {
-        textArea.remove();
-      }
+      const textArea = document.createElement("textarea"); textArea.value = shareText; textArea.style.position = "absolute"; textArea.style.left = "-999999px"; document.body.appendChild(textArea); textArea.select();
+      try { document.execCommand('copy'); alert("已複製專屬連結！"); } catch (error) { prompt("請手動複製以下文案：", shareText); } finally { textArea.remove(); }
     }
   };
 
@@ -342,9 +378,9 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 3. 限時快閃活動發布 (包含編輯模式) */}
+      {/* 3. 限時快閃活動發布 */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
-        <h2 className="text-xl font-bold border-l-4 border-purple-900 pl-3 text-purple-900">3. 限時快閃活動發布 (首頁焦點特區)</h2>
+        <h2 className="text-xl font-bold border-l-4 border-purple-900 pl-3 text-purple-900">3. 限時快閃活動發布 (合併結帳系統)</h2>
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
           <div>
             <label className="block text-xs font-bold text-stone-500 mb-2">指定匯款對帳帳戶</label>
@@ -357,71 +393,39 @@ export default function AdminDashboard() {
           
           <div className="md:col-span-2 border-t border-stone-200 pt-4">
             <div className="flex justify-between items-center mb-3">
-              <label className="block text-sm font-bold text-stone-700">設定活動方案與價格 (最多 4 種)</label>
-              {fcOptions.length < 4 && (
-                <button onClick={addFcOption} className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1.5 rounded-lg hover:bg-purple-200">＋ 新增方案</button>
-              )}
+              <label className="block text-sm font-bold text-stone-700">設定活動方案與價格</label>
+              <button onClick={addFcOption} className="text-xs font-bold text-purple-700 bg-purple-100 px-3 py-1.5 rounded-lg">＋ 新增方案</button>
             </div>
             <div className="space-y-3">
               {fcOptions.map((opt: any, idx: number) => (
                 <div key={idx} className="flex gap-3 items-center">
-                  <input value={opt.title} onChange={e=>updateFcOption(idx, "title", e.target.value)} placeholder="方案名稱 (例: 一日燈)" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none"/>
+                  <input value={opt.title} onChange={e=>updateFcOption(idx, "title", e.target.value)} placeholder="方案名稱" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none"/>
                   <input type="number" value={opt.price} onChange={e=>updateFcOption(idx, "price", Number(e.target.value))} placeholder="金額" className="w-32 border border-stone-200 p-3 rounded-xl outline-none"/>
-                  {fcOptions.length > 1 && (
-                    <button onClick={() => removeFcOption(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 font-bold">×</button>
-                  )}
+                  {fcOptions.length > 1 && <button onClick={() => removeFcOption(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold">×</button>}
                 </div>
               ))}
             </div>
           </div>
 
           <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">上傳活動海報圖片</label><input type="file" onChange={e=>{if(e.target.files?.[0]){setFcImageFile(e.target.files[0]); setFcPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-xs text-stone-500 mt-1"/></div>
-          
-          <div className="md:col-span-2 flex items-center gap-3 bg-white p-4 rounded-xl border border-stone-200">
-            <input type="checkbox" id="splashToggle" checked={fcSplash} onChange={e => setFcSplash(e.target.checked)} className="w-5 h-5 accent-purple-700 cursor-pointer" />
-            <label htmlFor="splashToggle" className="text-sm font-bold text-stone-700 cursor-pointer select-none">啟用「首頁全螢幕前導(Landing)畫面」強力曝光</label>
-          </div>
-          
+          <div className="md:col-span-2 flex items-center gap-3 bg-white p-4 rounded-xl border border-stone-200"><input type="checkbox" id="splashToggle" checked={fcSplash} onChange={e => setFcSplash(e.target.checked)} className="w-5 h-5 accent-purple-700" /><label htmlFor="splashToggle" className="text-sm font-bold text-stone-700 select-none">啟用「首頁全螢幕前導(Landing)畫面」強力曝光</label></div>
           <div className="md:col-span-2 flex gap-3">
-            <button onClick={handleAddFlashCampaign} className="flex-1 bg-purple-900 hover:bg-purple-950 text-white py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
-              {editFcId ? "儲存活動更新" : "發布並推播至首頁焦點"}
-            </button>
-            {editFcId && (
-              <button onClick={() => { 
-                setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); 
-                setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); 
-                setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); 
-              }} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">
-                取消編輯
-              </button>
-            )}
+            <button onClick={handleAddFlashCampaign} className="flex-1 bg-purple-900 hover:bg-purple-950 text-white py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">{editFcId ? "儲存活動更新" : "發布並推播至首頁焦點"}</button>
+            {editFcId && <button onClick={() => { setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); }} className="px-6 bg-stone-200 hover:bg-stone-300 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">取消編輯</button>}
           </div>
         </div>
-        
         <div className="space-y-4">
           {flashCampaignsList.map((fc: any) => (
             <div key={fc.id} className="p-5 bg-white border border-stone-200 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-shadow">
               <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${fc.is_active ? 'bg-purple-700' : 'bg-stone-400'}`}>{fc.is_active ? '推播中' : '已結束'}</span>
-                  {fc.show_splash && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">含前導頁</span>}
-                  <h4 className="font-bold text-stone-800 text-lg">{fc.title}</h4>
-                </div>
+                <div className="flex flex-wrap items-center gap-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${fc.is_active ? 'bg-purple-700' : 'bg-stone-400'}`}>{fc.is_active ? '推播中' : '已結束'}</span>{fc.show_splash && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">含前導頁</span>}<h4 className="font-bold text-stone-800 text-lg">{fc.title}</h4></div>
                 <p className="text-xs text-stone-500 font-mono">方案: {fc.options && Array.isArray(fc.options) ? fc.options.map((o:any) => `${o.title}($${o.price})`).join('、') : `$${fc.price}`}</p>
-                <p className="text-xs text-stone-400">對帳帳戶: {fc.campaign_bank_accounts?.account_alias}</p>
               </div>
-              
               <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-                <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製文案</button>
-                <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">📊 下載報表</button>
-                <button onClick={() => {
-                  setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); 
-                  setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false);
-                  setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); 
-                  setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }} className="text-xs font-bold bg-stone-100 text-stone-600 hover:bg-purple-50 hover:text-purple-700 px-4 py-2 rounded-lg transition-colors">編輯</button>
-                <button onClick={async()=>{if(confirm("確定刪除此限定活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); router.refresh();}}} className="text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors">刪除</button>
+                <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製連結</button>
+                <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg transition-colors">📊 報表</button>
+                <button onClick={() => {setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false); setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-xs font-bold bg-stone-100 text-stone-600 px-4 py-2 rounded-lg">編輯</button>
+                <button onClick={async()=>{if(confirm("確定刪除此活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); router.refresh();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
               </div>
             </div>
           ))}
@@ -439,45 +443,24 @@ export default function AdminDashboard() {
             </select>
             <input value={addNewsTitle} onChange={e=>setAddNewsTitle(e.target.value)} placeholder="請輸入標題" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
           </div>
-          
-          {/* ✨ 新增：活動報名連結輸入框 */}
           <div>
-            <input 
-              value={addNewsActionUrl} 
-              onChange={e => setAddNewsActionUrl(e.target.value)} 
-              placeholder="專屬活動報名連結 (選填，例：/lamps 或是 https://...)" 
-              className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors font-medium text-stone-600"
-            />
-            <p className="text-xs text-stone-500 mt-2 ml-1 font-bold tracking-widest">💡 提示：若填寫此欄位，文章底部將自動產生「前往報名」實體按鈕。</p>
+            <input value={addNewsActionUrl} onChange={e => setAddNewsActionUrl(e.target.value)} placeholder="專屬活動報名連結 (選填，例：/lamps)" className="w-full border border-stone-200 p-3 rounded-xl outline-none font-medium"/>
           </div>
-
-          <textarea value={addNewsContent} onChange={e=>setAddNewsContent(e.target.value)} placeholder="內文支援換行" className="w-full border border-stone-200 p-4 rounded-xl h-32 outline-none focus:border-[#D89F3C] transition-colors"/>
+          <textarea value={addNewsContent} onChange={e=>setAddNewsContent(e.target.value)} placeholder="內文支援換行" className="w-full border border-stone-200 p-4 rounded-xl h-32 outline-none focus:border-[#D89F3C]"/>
           <input type="file" onChange={e => {if(e.target.files?.[0]){setAddNewsImageFile(e.target.files[0]); setAddNewsPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm text-stone-500"/>
-          
-          <button onClick={handleSaveNews} disabled={isAddingNews} className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-5 rounded-xl font-bold tracking-widest transition-colors shadow-sm">{editNewsId?"儲存公告更新":"正式發布公告"}</button>
+          <button onClick={handleSaveNews} disabled={isAddingNews} className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-5 rounded-xl font-bold tracking-widest">{editNewsId?"儲存公告更新":"正式發布公告"}</button>
         </div>
-        
         <div className="space-y-3">
           {newsList.map((n: any) => (
             <div key={n.id} className="flex flex-col md:flex-row md:items-center justify-between border border-stone-100 p-4 rounded-xl gap-4 hover:shadow-sm transition-shadow bg-white">
               <div className="flex items-center">
                 <span className={`text-xs px-3 py-1 rounded-full mr-4 text-white font-bold shrink-0 ${n.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>{n.category === 'event' ? '重點活動' : '一般公告'}</span>
                 <span className="font-bold text-[#1A432D] line-clamp-1">{n.title}</span>
-                {/* ✨ 新增：列表提示是否有綁定連結 */}
                 {n.action_url && <span className="ml-3 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">含報名鈕</span>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {/* ✨ 編輯時同步讀取 action_url */}
-                <button onClick={()=>{
-                  setEditNewsId(n.id); 
-                  setAddNewsTitle(n.title); 
-                  setAddNewsContent(n.content); 
-                  setAddNewsPreviewUrl(n.image_url); 
-                  setAddNewsCategory(n.category || 'news');
-                  setAddNewsActionUrl(n.action_url || "");
-                  window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
-                }} className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors">編輯</button>
-                <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("news_events").delete().eq("id",n.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">刪除</button>
+                <button onClick={()=>{ setEditNewsId(n.id); setAddNewsTitle(n.title); setAddNewsContent(n.content); setAddNewsPreviewUrl(n.image_url); setAddNewsCategory(n.category || 'news'); setAddNewsActionUrl(n.action_url || ""); window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });}} className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50">編輯</button>
+                <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("news_events").delete().eq("id",n.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100">刪除</button>
               </div>
             </div>
           ))}
@@ -488,26 +471,17 @@ export default function AdminDashboard() {
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-[#1A432D] pl-3">5. 祈福專區按鈕設定 (首頁連結)</h2>
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-4 border border-stone-200">
-          <div>
-             <label className="block text-xs font-bold text-stone-500 mb-2">按鈕標題文字</label>
-             <input value={srvTitle} onChange={e=>setSrvTitle(e.target.value)} placeholder="例：代燒專區" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#1A432D] transition-colors"/>
-          </div>
-          <div>
-             <label className="block text-xs font-bold text-stone-500 mb-2">對應連結網址</label>
-             <input value={srvLink} onChange={e=>setSrvLink(e.target.value)} placeholder="例：/burning" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#1A432D] transition-colors"/>
-          </div>
-          <button onClick={handleSaveService} disabled={isAddingSrv} className="bg-[#1A432D] hover:bg-[#122F20] text-white md:col-span-2 py-5 rounded-xl font-bold tracking-widest transition-colors">{editSrvId?"儲存更新":"新增按鈕"}</button>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">按鈕標題文字</label><input value={srvTitle} onChange={e=>setSrvTitle(e.target.value)} placeholder="例：代燒專區" className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">對應連結網址</label><input value={srvLink} onChange={e=>setSrvLink(e.target.value)} placeholder="例：/burning" className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <button onClick={handleSaveService} disabled={isAddingSrv} className="bg-[#1A432D] hover:bg-[#122F20] text-white md:col-span-2 py-5 rounded-xl font-bold tracking-widest">{editSrvId?"儲存更新":"新增按鈕"}</button>
         </div>
         <div className="space-y-3">
           {servicesList.map((s: any) => (
-            <div key={s.id} className="flex justify-between items-center border border-stone-100 p-4 rounded-xl hover:shadow-sm transition-shadow">
-              <div className="flex flex-col">
-                <span className="font-bold text-[#1A432D] text-lg">{s.title}</span>
-                <span className="text-xs text-stone-400 mt-1">連結至：{s.link_url}</span>
-              </div>
+            <div key={s.id} className="flex justify-between items-center border border-stone-100 p-4 rounded-xl">
+              <div className="flex flex-col"><span className="font-bold text-[#1A432D] text-lg">{s.title}</span><span className="text-xs text-stone-400 mt-1">連結至：{s.link_url}</span></div>
               <div className="flex gap-2">
-                <button onClick={()=>{setEditSrvId(s.id); setSrvTitle(s.title); setSrvLink(s.link_url)}} className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors">編輯</button>
-                <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("blessing_services").delete().eq("id",s.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">刪除</button>
+                <button onClick={()=>{setEditSrvId(s.id); setSrvTitle(s.title); setSrvLink(s.link_url)}} className="px-4 py-2 border rounded-lg text-sm font-bold text-stone-600">編輯</button>
+                <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("blessing_services").delete().eq("id",s.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold">刪除</button>
               </div>
             </div>
           ))}
@@ -518,35 +492,16 @@ export default function AdminDashboard() {
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-slate-700 pl-3">6. 頁尾聯絡資訊管理</h2>
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
-          
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-stone-500 mb-2">宮廟實體地址</label>
-            <input value={address} onChange={e=>setAddress(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
-          </div>
-          
-          <div className="md:col-span-2">
-            <label className="block text-xs font-bold text-stone-500 mb-2">電話或自訂提示文案 (顯示於地址下方)</label>
-            <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="例：服務請洽 LINE 官方客服" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-500 mb-2">官方 LINE 連結網址</label>
-            <input value={lineUrl} onChange={e=>setLineUrl(e.target.value)} placeholder="https://lin.ee/..." className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-stone-500 mb-2">官方 IG 連結網址</label>
-            <input value={igUrl} onChange={e=>setIgUrl(e.target.value)} placeholder="https://instagram.com/..." className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-slate-700 transition-colors"/>
-          </div>
-
+          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">宮廟實體地址</label><input value={address} onChange={e=>setAddress(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">電話或自訂提示文案</label><input value={phone} onChange={e=>setPhone(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">官方 LINE 連結網址</label><input value={lineUrl} onChange={e=>setLineUrl(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">官方 IG 連結網址</label><input value={igUrl} onChange={e=>setIgUrl(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
           <div className="md:col-span-2 border-t border-stone-200 pt-6 mt-2">
             <div className="flex items-center justify-between mb-6 bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
-               <div>
-                  <p className="font-bold text-slate-800 tracking-widest">開放匯款與捐獻帳戶資訊</p>
-               </div>
+               <div><p className="font-bold text-slate-800 tracking-widest">開放匯款與捐獻帳戶資訊</p></div>
                <label className="relative inline-flex items-center cursor-pointer">
                  <input type="checkbox" checked={showBankInfo} onChange={e=>setShowBankInfo(e.target.checked)} className="sr-only peer"/>
-                 <div className="w-14 h-7 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-700"></div>
+                 <div className="w-14 h-7 bg-stone-200 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-700"></div>
                </label>
             </div>
             {showBankInfo && (
@@ -564,50 +519,38 @@ export default function AdminDashboard() {
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-amber-700 pl-3 text-amber-900">7. 點燈與代燒品項管理</h2>
         <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-6 border border-stone-200">
-          <div>
-            <label className="block text-xs font-bold text-stone-500 mb-2">類別項目</label>
-            <select value={pCategory} onChange={e=>setPCategory(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white outline-none focus:border-amber-700 transition-colors font-bold text-stone-700">
-              <option value="lamp">當月點燈祈福</option>
-              <option value="burning">代燒服務項目</option>
-            </select>
-          </div>
-          <div><label className="block text-xs font-bold text-stone-500 mb-2">品項名稱</label><input value={pTitle} onChange={e=>setPTitle(e.target.value)} placeholder="例：元神燈 / 祈福蓮花" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-amber-700 transition-colors"/></div>
-          <div><label className="block text-xs font-bold text-stone-500 mb-2">結帳金額 (新台幣)</label><input type="number" value={pPrice} onChange={e=>setPPrice(Number(e.target.value))} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-amber-700 transition-colors"/></div>
-          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">品項簡介說明</label><input value={pDesc} onChange={e=>setPDesc(e.target.value)} placeholder="會呈現在前台選購卡片上" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-amber-700 transition-colors"/></div>
-          <div><label className="block text-xs font-bold text-stone-500 mb-2">上傳實體照片</label><input id="product-image-upload" type="file" onChange={e => {if(e.target.files?.[0]){setPImageFile(e.target.files[0]); setPPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm text-stone-500"/></div>
-          <button onClick={handleSaveProduct} disabled={isAddingProduct} className="bg-amber-700 hover:bg-amber-800 text-white md:col-span-3 py-5 rounded-xl font-bold tracking-widest transition-colors shadow-sm">{editPId ? "儲存修改項目" : "新增品項至前台選單"}</button>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">類別項目</label><select value={pCategory} onChange={e=>setPCategory(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl bg-white font-bold"><option value="lamp">當月點燈祈福</option><option value="burning">代燒服務項目</option></select></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">品項名稱</label><input value={pTitle} onChange={e=>setPTitle(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">結帳金額 (新台幣)</label><input type="number" value={pPrice} onChange={e=>setPPrice(Number(e.target.value))} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">品項簡介說明</label><input value={pDesc} onChange={e=>setPDesc(e.target.value)} className="w-full border border-stone-200 p-3 rounded-xl outline-none"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">上傳實體照片</label><input type="file" onChange={e => {if(e.target.files?.[0]){setPImageFile(e.target.files[0]); setPPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm"/></div>
+          <button onClick={handleSaveProduct} disabled={isAddingProduct} className="bg-amber-700 hover:bg-amber-800 text-white md:col-span-3 py-5 rounded-xl font-bold">{editPId ? "儲存修改項目" : "新增品項至前台選單"}</button>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {productsList.map((p: any) => (
-            <div key={p.id} className="bg-white border border-stone-200 p-5 rounded-2xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div key={p.id} className="bg-white border border-stone-200 p-5 rounded-2xl flex flex-col justify-between shadow-sm">
               <div>
-                <div className="flex justify-between items-start mb-4">
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full tracking-widest ${p.category === 'lamp' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>{p.category === 'lamp' ? '當月點燈' : '代燒服務'}</span>
-                  <span className="text-[#A61D24] font-bold text-lg">${p.price}</span>
-                </div>
-                {p.image_url && <div className="w-full h-40 bg-stone-100 rounded-xl overflow-hidden mb-4"><img src={p.image_url} alt={p.title} className="w-full h-full object-cover" /></div>}
-                <h4 className="font-bold text-xl text-stone-800 tracking-wider mb-2">{p.title}</h4>
-                <p className="text-stone-500 text-sm leading-relaxed line-clamp-2">{p.description}</p>
+                <div className="flex justify-between items-start mb-4"><span className={`text-xs font-bold px-3 py-1 rounded-full ${p.category === 'lamp' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>{p.category === 'lamp' ? '當月點燈' : '代燒服務'}</span><span className="text-[#A61D24] font-bold text-lg">${p.price}</span></div>
+                {p.image_url && <div className="w-full h-40 bg-stone-100 rounded-xl overflow-hidden mb-4"><img src={p.image_url} className="w-full h-full object-cover" /></div>}
+                <h4 className="font-bold text-xl text-stone-800 mb-2">{p.title}</h4>
+                <p className="text-stone-500 text-sm line-clamp-2">{p.description}</p>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-stone-100">
-                <button onClick={()=>{setEditPId(p.id); setPTitle(p.title); setPPrice(p.price); setPDesc(p.description || ""); setPCategory(p.category); setPPreviewUrl(p.image_url || "");}} className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm tracking-widest rounded-xl transition-colors">編輯</button>
-                <button onClick={async()=>{if(confirm("確定要刪除此品項嗎？")){const { error } = await supabase.from("blessing_products").delete().eq("id", p.id); if (error) alert("刪除失敗：" + error.message); else fetchData();}}} className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-sm tracking-widest rounded-xl transition-colors">刪除</button>
+                <button onClick={()=>{setEditPId(p.id); setPTitle(p.title); setPPrice(p.price); setPDesc(p.description || ""); setPCategory(p.category); setPPreviewUrl(p.image_url || "");}} className="w-full py-2.5 bg-stone-100 text-stone-700 font-bold text-sm rounded-xl">編輯</button>
+                <button onClick={async()=>{if(confirm("確定刪除嗎？")){await supabase.from("blessing_products").delete().eq("id", p.id); fetchData();}}} className="w-full py-2.5 bg-red-50 text-red-600 font-bold text-sm rounded-xl">刪除</button>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 8. 服務與預約紀錄管理 */}
+      {/* 8. 服務與預約紀錄管理 (✨ 加入專案獨立切換) */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-xl font-bold border-l-4 border-emerald-700 pl-3 text-emerald-900">8. 服務與預約紀錄管理</h2>
-          <div className="flex gap-3">
-            <button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold tracking-widest rounded-xl transition-colors shadow-sm">
-              匯出當前名單 (Excel)
-            </button>
-          </div>
+          <button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold tracking-widest rounded-xl shadow-sm">
+            匯出當前名單 (Excel)
+          </button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 border-y border-stone-100 py-4">
@@ -622,13 +565,14 @@ export default function AdminDashboard() {
           )}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[
-              { id: 'all', label: '全部紀錄' },
+              { id: 'all', label: '全部合併訂單' },
               { id: 'lamp', label: '點燈' },
               { id: 'burning', label: '代燒' },
               { id: 'booking', label: '問事' },
-              { id: 'campaign', label: '特辦活動' }
+              { id: 'campaign', label: '特辦活動' },
+              { id: 'special_project', label: '⭐️ 獨立專款專用 (不進購物車)' } 
             ].map(tab => (
-              <button key={tab.id} onClick={() => setSelectedServiceType(tab.id)} className={`px-4 py-2 rounded-xl font-bold text-sm tracking-widest shrink-0 transition-colors border ${selectedServiceType === tab.id ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'}`}>
+              <button key={tab.id} onClick={() => setSelectedServiceType(tab.id)} className={`px-4 py-2 rounded-xl font-bold text-sm tracking-widest shrink-0 transition-colors border ${selectedServiceType === tab.id ? (tab.id === 'special_project' ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-emerald-50 border-emerald-600 text-emerald-700') : 'bg-white border-stone-200 text-stone-500 hover:bg-stone-50'}`}>
                 {tab.label}
               </button>
             ))}
@@ -646,66 +590,112 @@ export default function AdminDashboard() {
               <p className="text-2xl font-bold text-amber-600">${totalIncomePending.toLocaleString()}</p>
             </div>
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
-              <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">本月服務總次數</p>
-              <div className="text-sm font-bold text-stone-700 space-y-1 mt-2">
-                <p>點燈: <span className="text-[#A61D24]">{serviceCounts.lamp}</span> 次</p>
-                <p>代燒: <span className="text-[#A61D24]">{serviceCounts.burning}</span> 次</p>
-                <p>問事: <span className="text-[#A61D24]">{serviceCounts.booking}</span> 次</p>
-                <p>活動: <span className="text-[#A61D24]">{serviceCounts.campaign}</span> 次</p>
-              </div>
+               <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">當前列表性質</p>
+               <p className="text-sm font-bold text-stone-700 mt-2">{isShowingSpOrders ? '獨立專案直達件 (專款專戶)' : '常規合併購物車件 (公帳戶)'}</p>
             </div>
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
               <p className="text-xs text-stone-500 font-bold tracking-widest mb-1">當前篩選件數</p>
-              <p className="text-3xl font-bold text-slate-700 mt-2">{filteredOrders.length}</p>
+              <p className="text-3xl font-bold text-slate-700 mt-2">{currentDisplayOrders.length}</p>
             </div>
           </div>
         )}
 
-        {isLoadingOrders ? (
-          <div className="text-center py-12 text-stone-400 tracking-widest font-bold">載入資料中...</div>
-        ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-16 bg-stone-50 rounded-2xl border border-dashed border-stone-200 text-stone-500 font-bold tracking-widest">目前分類尚無紀錄</div>
-        ) : (
-          <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-stone-200 rounded-xl relative shadow-sm scrollbar-hide">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-stone-100 text-stone-600 font-bold tracking-widest sticky top-0 z-10 shadow-sm">
-                <tr>
-                  <th className="p-4">建立日期</th>
-                  <th className="p-4">類別</th>
-                  <th className="p-4">信眾姓名</th>
-                  <th className="p-4">報名明細 / 後五碼</th>
-                  <th className="p-4">金額</th>
-                  <th className="p-4 text-center">狀態</th>
-                  <th className="p-4 text-right">操作</th>
+        <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-stone-200 rounded-xl relative shadow-sm scrollbar-hide">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-stone-100 text-stone-600 font-bold tracking-widest sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th className="p-4">建立日期</th>
+                <th className="p-4">{isShowingSpOrders ? '專案名稱' : '類別'}</th>
+                <th className="p-4">信眾姓名</th>
+                <th className="p-4">報名明細 / 後五碼</th>
+                <th className="p-4">金額</th>
+                <th className="p-4 text-center">狀態</th>
+                <th className="p-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 bg-white">
+              {currentDisplayOrders.map((order: any) => (
+                <tr key={order.id} className="hover:bg-stone-50/80 transition-colors">
+                  <td className="p-4 text-stone-500">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                  <td className="p-4 font-bold text-[#1A432D]">{isShowingSpOrders ? order.special_projects?.title : order.service_type}</td>
+                  <td className="p-4 font-bold text-stone-800">{order.user_name}</td>
+                  <td className="p-4 text-stone-500 max-w-[200px] truncate" title={order.service_details}>
+                    {order.bank_last_5 ? <span className="text-[#A61D24] font-bold mr-2">[{order.bank_last_5}]</span> : ""}
+                    {order.service_details}
+                  </td>
+                  <td className="p-4 font-bold text-stone-700">${order.total_price || order.amount || 0}</td>
+                  <td className="p-4 text-center">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{order.status === 'completed' ? '已處理' : '待對帳'}</span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => toggleOrderStatus(order.id, order.status, isShowingSpOrders)} className="px-3 py-1.5 border rounded-lg text-xs font-bold text-stone-600 hover:bg-stone-100">切換</button>
+                      <button onClick={() => deleteOrder(order.id, isShowingSpOrders)} className="px-3 py-1.5 border border-red-100 bg-red-50 text-red-600 rounded-lg text-xs font-bold">刪除</button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredOrders.map((order: any) => (
-                  <tr key={order.id} className="hover:bg-stone-50/80 transition-colors group">
-                    <td className="p-4 text-stone-500">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
-                    <td className="p-4 font-bold text-[#1A432D]">{order.service_type}</td>
-                    <td className="p-4 font-bold text-stone-800">{order.user_name}</td>
-                    <td className="p-4 text-stone-500 max-w-[200px] truncate" title={order.service_details}>
-                      {order.bank_last_5 ? <span className="text-[#A61D24] font-bold mr-2">[{order.bank_last_5}]</span> : ""}
-                      {order.service_details}
-                    </td>
-                    <td className="p-4 font-bold text-stone-700">${order.total_price || 0}</td>
-                    <td className="p-4 text-center">
-                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold tracking-widest ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{order.status === 'completed' ? '已處理' : '待對帳'}</span>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => toggleOrderStatus(order.id, order.status)} className="px-3 py-1.5 border border-stone-200 rounded-lg text-xs font-bold text-stone-600 hover:bg-stone-100 transition-colors">切換</button>
-                        <button onClick={() => deleteOrder(order.id)} className="px-3 py-1.5 border border-red-100 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">刪除</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
+
+      {/* 9. ✨ 獨立專款專案管理 (全新加入) */}
+      <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
+        <h2 className="text-xl font-bold border-l-4 border-blue-700 pl-3 text-blue-900">9. 獨立專款專案管理 (如: 玉皇上帝金牌、建廟基金)</h2>
+        <p className="text-sm text-stone-500 font-bold mb-4 bg-blue-50 p-3 rounded-lg">💡 提示：此區塊的認捐將「繞過一般購物車」走專屬獨立通道，並提供專屬獨立網址供您分享給信眾。</p>
+        
+        <div className="bg-stone-50 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-stone-200">
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">獨立專案主標題</label><input value={spTitle} onChange={e=>setSpTitle(e.target.value)} placeholder="例: 恭迎玉皇上帝駐駕 敬獻金牌專案" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-blue-700"/></div>
+          <div><label className="block text-xs font-bold text-stone-500 mb-2">專屬獨立匯款帳戶 (將直接顯示於前台給信眾)</label><input value={spBankInfo} onChange={e=>setSpBankInfo(e.target.value)} placeholder="例: 玉山銀行 (808) 1234-5678-9012" className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-blue-700"/></div>
+          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">專案詳細緣由與說明</label><textarea value={spDesc} onChange={e=>setSpDesc(e.target.value)} placeholder="說明此專款的用途與歷史意義..." className="w-full border border-stone-200 p-3 rounded-xl h-24 outline-none focus:border-blue-700"/></div>
+          
+          <div className="md:col-span-2 border-t border-stone-200 pt-4">
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-sm font-bold text-stone-700">設定認捐方案與價格 (完全支援編輯與新增)</label>
+              <button onClick={addSpOption} className="text-xs font-bold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-200">＋ 新增方案</button>
+            </div>
+            <div className="space-y-3">
+              {spOptions.map((opt: any, idx: number) => (
+                <div key={idx} className="flex gap-3 items-center">
+                  <input value={opt.title} onChange={e=>updateSpOption(idx, "title", e.target.value)} placeholder="方案名稱 (例: 敬獻一分金牌)" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none focus:border-blue-500"/>
+                  <input type="number" value={opt.price} onChange={e=>updateSpOption(idx, "price", Number(e.target.value))} placeholder="金額 (填 0 代表讓信眾自行輸入金額或隨喜)" className="w-32 border border-stone-200 p-3 rounded-xl outline-none focus:border-blue-500"/>
+                  {spOptions.length > 1 && <button onClick={() => removeSpOption(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold">×</button>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-2"><label className="block text-xs font-bold text-stone-500 mb-2">上傳專案主視覺圖片</label><input type="file" onChange={e=>{if(e.target.files?.[0]){setSpImageFile(e.target.files[0]); setSpPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-xs text-stone-500 mt-1"/></div>
+          
+          <div className="md:col-span-2 flex gap-3">
+            <button onClick={handleSaveSpecialProject} className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm transition-colors">{editSpId ? "儲存專案更新" : "正式發布獨立專款專案"}</button>
+            {editSpId && <button onClick={() => { setEditSpId(null); setSpTitle(""); setSpDesc(""); setSpBankInfo(""); setSpPreviewUrl(""); setSpOptions([{ title: "隨喜認捐", price: 0 }]); setSpImageFile(null); }} className="px-6 bg-stone-200 text-stone-700 py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm">取消編輯</button>}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {spList.map((sp: any) => (
+            <div key={sp.id} className="p-5 bg-white border border-stone-200 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md transition-shadow">
+              <div className="space-y-2 flex-1">
+                <div className="flex flex-wrap items-center gap-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${sp.is_active ? 'bg-blue-600' : 'bg-stone-400'}`}>{sp.is_active ? '開放認捐中' : '已結案'}</span><h4 className="font-bold text-stone-800 text-lg">{sp.title}</h4></div>
+                <p className="text-xs text-stone-500 font-mono">設定方案: {sp.options && Array.isArray(sp.options) ? sp.options.map((o:any) => `${o.title}($${o.price})`).join('、') : `未設定`}</p>
+                <p className="text-xs text-stone-400">專屬帳戶: {sp.bank_info}</p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
+                <button onClick={() => handleCopyUrl(sp.id, sp.title, true)} className="text-xs font-bold bg-blue-50 text-blue-600 px-4 py-2 rounded-lg">🔗 複製專屬連結</button>
+                <button onClick={() => {
+                  setEditSpId(sp.id); setSpTitle(sp.title); setSpDesc(sp.description || ""); setSpBankInfo(sp.bank_info || ""); setSpPreviewUrl(sp.image_url || "");
+                  setSpOptions(sp.options && Array.isArray(sp.options) && sp.options.length > 0 ? sp.options : [{title: "隨喜認捐", price: 0}]); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }} className="text-xs font-bold bg-stone-100 text-stone-600 px-4 py-2 rounded-lg">編輯</button>
+                <button onClick={async()=>{if(confirm("確定刪除此專案？")){await supabase.from("special_projects").delete().eq("id",sp.id); fetchData();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      
     </div>
   );
 }
