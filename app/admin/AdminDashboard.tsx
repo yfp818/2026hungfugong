@@ -213,7 +213,7 @@ export default function AdminDashboard() {
   // ✨ 更新：匯出功能會跟隨選定的分類標籤下載
   const exportToCSV = () => {
     if (filteredOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
-    const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "農曆生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
+    const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "生日生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
     const csvContent = [ headers.join(","), ...filteredOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.service_type || "", order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); 
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
     const campaignOrders = ordersList.filter((o: any) => o.service_details && o.service_details.includes(campaignTitle));
     if (campaignOrders.length === 0) return alert("目前尚無此活動的報名紀錄，或該活動名稱無人報名。");
     
-    const headers = ["建立時間", "信眾姓名", "聯絡電話", "農曆生辰", "地址", "報名方案與明細", "匯款後五碼", "狀態", "金額"];
+    const headers = ["建立時間", "信眾姓名", "聯絡電話", "生日生辰", "地址", "報名方案與明細", "匯款後五碼", "狀態", "金額"];
     const csvContent = [ headers.join(","), ...campaignOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待對帳', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);

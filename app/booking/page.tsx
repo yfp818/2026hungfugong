@@ -66,8 +66,8 @@ export default function BookingPage() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-xs font-bold text-stone-500 tracking-widest">農曆生辰 <span className="text-red-500">*</span></label>
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：農曆 75年 8月 15日 吉時" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                <label className="text-xs font-bold text-stone-500 tracking-widest">生日生辰 <span className="text-red-500">*</span></label>
+                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：國曆 75年 8月 15日 吉時" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
               </div>
 
               <div className="space-y-3">
