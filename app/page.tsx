@@ -10,6 +10,15 @@ import AOSProvider from "@/components/AOSProvider";
 import FlashCampaignSection from "@/components/FlashCampaignSection";
 import CampaignSplash from "@/components/CampaignSplash"; 
 
+// ✨ 新增：過濾排版符號的魔法濾網，專門給首頁預覽卡片使用
+const stripMarkdown = (text: string) => {
+  if (!text) return "";
+  return text
+    .replace(/#{1,3}\s/g, "")      // 隱藏大中小標題的 # 符號
+    .replace(/\*\*(.*?)\*\*/g, "$1") // 隱藏粗體的 ** 符號，但保留裡面的文字
+    .replace(/-\s/g, "");          // 隱藏列表的 - 符號
+};
+
 export default async function Home() {
   const { data: introData } = await supabase.from("site_content").select("*").eq("id", "homepage_intro").single();
   const displayTitle = introData?.title || "相信就會看見";
@@ -50,7 +59,6 @@ export default async function Home() {
     } catch (e) { console.error("解析頁尾資訊失敗", e); }
   }
 
-  // ✨ 註解移到 return 外面就安全了！最外層大背景已加入 dark:bg-[#121212]
   return (
     <main className="min-h-screen bg-[#FAF7F0] dark:bg-[#121212] selection:bg-[#A61D24] selection:text-white transition-colors duration-500">
       
@@ -146,7 +154,12 @@ export default async function Home() {
                     <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-white/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
                       <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
                       <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] dark:text-stone-100 mb-6 tracking-wide leading-snug hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
-                      <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{news.content}</p>
+                      
+                      {/* ✨ 套用濾網：讓預覽區文字乾淨無暇 */}
+                      <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">
+                        {stripMarkdown(news.content)}
+                      </p>
+
                       <div className="flex justify-end pt-2">
                         <Link href={`/news/${news.id}`} className="text-sm font-medium tracking-widest text-stone-400 hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors group-hover:translate-x-1 duration-300">閱讀全文 →</Link>
                       </div>
