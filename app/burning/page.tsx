@@ -183,7 +183,7 @@ export default function BurningServicePage() {
 
                 <div className="space-y-5">
                   <input required value={name} onChange={e=>setName(e.target.value)} placeholder="信眾姓名" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
-                  <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="農曆出生年月日 (自行填寫)" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
+                  <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日 (自行填寫)" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                   <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="請填寫完整居住地址" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                 </div>
 

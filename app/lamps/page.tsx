@@ -186,7 +186,7 @@ export default function LampsPage() {
                   <input required value={name} onChange={e=>setName(e.target.value)} placeholder="信眾姓名" className="bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                   <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                 </div>
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="農曆出生年月日 (例: 農曆 78 年 5 月 20 日 吉時)" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
+                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日 (例: 農曆 78 年 5 月 20 日 吉時)" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                 <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:ring-2 focus:ring-[#A61D24] transition-all font-medium"/>
                 
                 <label className="flex items-center gap-3 cursor-pointer mt-2 w-max">
