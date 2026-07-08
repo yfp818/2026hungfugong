@@ -41,7 +41,6 @@ export default function SpecialProjectPage() {
     fetchProject();
   }, [projectId]);
 
-  // 如果使用者有登入，嘗試帶入 LINE 的名稱
   useEffect(() => {
     if (session?.user?.name && !name) setName(session.user.name);
   }, [session]);
@@ -51,7 +50,6 @@ export default function SpecialProjectPage() {
     if (!project) return;
 
     const selectedOption = project.options[selectedOptIdx];
-    // ✨ 如果後台設定 0 元，就抓取信眾自填的金額
     const finalAmount = selectedOption.price > 0 ? selectedOption.price : Number(customAmount);
 
     if (finalAmount <= 0) return alert("請輸入有效的認捐金額。");
@@ -90,7 +88,7 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // ✨ 成功畫面：完全獨立，不進購物車
+  // 成功登記的畫面
   if (isSuccess) return (
     <main className="min-h-screen bg-[#FAF7F0] pt-24 pb-16 px-6 flex items-center justify-center">
       <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#D89F3C]/30 text-center relative p-10">
@@ -117,9 +115,8 @@ export default function SpecialProjectPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF7F0] pt-24 pb-16 px-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-[2.5rem] shadow-xl border-2 border-[#D89F3C]/20 overflow-hidden">
+      <div className="max-w-3xl mx-auto bg-white rounded-[2.5rem] shadow-xl border-2 border-[#D89F3C]/20 overflow-hidden relative z-10">
         
-        {/* 頂部主視覺 */}
         {project.image_url && (
           <div className="w-full h-64 md:h-96 relative bg-stone-100">
             <img src={project.image_url} alt={project.title} className="w-full h-full object-cover" />
@@ -141,8 +138,7 @@ export default function SpecialProjectPage() {
 
           <div className="w-full h-[1px] bg-stone-200 mb-10"></div>
 
-          {/* 專案專屬表單 */}
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-10">
             
             {/* 1. 選擇方案 */}
             <div className="space-y-4">
@@ -162,49 +158,52 @@ export default function SpecialProjectPage() {
                 ))}
               </div>
 
-              {/* ✨ 如果選到 0元的方案，自動跳出輸入框讓信眾填寫金額 */}
+              {/* ✨ 隨喜金額輸入框 (清晰修復版) */}
               {project.options[selectedOptIdx].price === 0 && (
-                <div className="animate-in fade-in slide-in-from-top-4 mt-4 bg-white border-2 border-[#D89F3C]/40 p-5 rounded-2xl flex items-center gap-4">
-                  <span className="font-bold text-stone-600 tracking-widest whitespace-nowrap">護持金額 $</span>
-                  <input type="number" required min="1" value={customAmount} onChange={e=>setCustomAmount(e.target.value)} placeholder="請輸入金額" className="w-full text-xl font-bold text-[#A61D24] outline-none bg-transparent placeholder:text-stone-300"/>
+                <div className="animate-in fade-in slide-in-from-top-4 mt-4 bg-white border-2 border-[#D89F3C] shadow-sm p-5 rounded-2xl flex items-center gap-4 transition-all">
+                  <span className="font-bold text-stone-800 tracking-widest whitespace-nowrap">護持金額 $</span>
+                  <input type="number" required min="1" value={customAmount} onChange={e=>setCustomAmount(e.target.value)} placeholder="請輸入金額" className="w-full text-xl font-bold text-[#A61D24] outline-none bg-transparent placeholder:text-stone-400 placeholder:font-medium"/>
                 </div>
               )}
             </div>
 
-            {/* 2. 專屬匯款資訊 */}
+            {/* 2. 專屬匯款資訊 (✨ 玉皇金底、玉帝白字) */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第二步：請匯款至專屬對帳戶</h3>
-              <div className="bg-[#1A432D] text-[#D89F3C] p-6 rounded-2xl shadow-inner tracking-wider">
-                <p className="text-xs text-white/60 mb-2 font-bold">本專案不與購物車合併，請獨立匯款至以下指定帳戶：</p>
-                <p className="text-xl md:text-2xl font-mono font-bold select-all">{project.bank_info}</p>
+              <div className="bg-gradient-to-br from-[#D89F3C] to-[#c48d2e] text-white p-8 rounded-2xl shadow-lg tracking-wider relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl -translate-y-10 translate-x-10"></div>
+                <p className="text-sm text-white/90 mb-3 font-bold drop-shadow-sm relative z-10">本專案不與購物車合併，請獨立匯款至：</p>
+                <p className="text-2xl md:text-3xl font-mono font-bold select-all drop-shadow-md relative z-10">{project.bank_info}</p>
               </div>
             </div>
 
-            {/* 3. 填寫資料 */}
+            {/* 3. 填寫資料 (✨ 純白底加粗邊框，超清晰版) */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第三步：填寫登記資料</h3>
               
               {!session && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between">
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between shadow-sm">
                   <p className="text-sm font-bold text-amber-800 tracking-widest">登入 LINE 可快速帶入資料</p>
-                  <button type="button" onClick={() => signIn("line")} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-widest">立即登入</button>
+                  <button type="button" onClick={() => signIn("line")} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-widest shadow-sm hover:bg-amber-700 transition-colors">立即登入</button>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <input required value={name} onChange={e=>setName(e.target.value)} placeholder="信眾姓名" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] font-medium"/>
-                <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] font-medium"/>
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] font-medium"/>
-                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] font-medium"/>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                <input required value={name} onChange={e=>setName(e.target.value)} placeholder="信眾姓名" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                
+                {/* 銀行後五碼特別凸顯 */}
                 <div className="md:col-span-2 relative">
-                   <input required value={bankLast5} onChange={e=>setBankLast5(e.target.value)} placeholder="您剛剛匯款的帳號後五碼" maxLength={5} className="w-full bg-blue-50/50 border-2 border-blue-200 p-4 rounded-xl outline-none focus:border-blue-500 font-bold text-blue-900 placeholder:text-blue-300 placeholder:font-normal"/>
-                   <span className="absolute right-4 top-4 text-xs font-bold text-blue-400">供財務對帳</span>
+                   <input required value={bankLast5} onChange={e=>setBankLast5(e.target.value)} placeholder="您剛剛匯款的帳號後五碼" maxLength={5} className="w-full bg-amber-50/50 border-2 border-amber-200 p-5 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/20 font-bold text-amber-900 placeholder:text-amber-400 placeholder:font-medium shadow-sm transition-all text-lg"/>
+                   <span className="absolute right-5 top-5 text-sm font-bold text-amber-600/60 bg-amber-100/50 px-2 py-0.5 rounded">供財務對帳</span>
                 </div>
               </div>
             </div>
 
             <div className="pt-6 border-t border-stone-100 flex flex-col gap-4">
-              <button disabled={isSubmitting} type="submit" className="w-full bg-[#1A432D] hover:bg-[#122F20] text-[#D89F3C] py-6 rounded-2xl font-bold text-lg tracking-widest shadow-lg transition-all disabled:opacity-50">
+              <button disabled={isSubmitting} type="submit" className="w-full bg-[#1A432D] hover:bg-[#122F20] text-[#D89F3C] py-6 rounded-2xl font-bold text-lg tracking-widest shadow-lg transition-all disabled:opacity-50 hover:-translate-y-1">
                 {isSubmitting ? "資料處理中..." : "確認資料無誤，立即送出登記"}
               </button>
             </div>

@@ -10,13 +10,13 @@ import AOSProvider from "@/components/AOSProvider";
 import FlashCampaignSection from "@/components/FlashCampaignSection";
 import CampaignSplash from "@/components/CampaignSplash"; 
 
-// ✨ 新增：過濾排版符號的魔法濾網，專門給首頁預覽卡片使用
+// 過濾排版符號的魔法濾網
 const stripMarkdown = (text: string) => {
   if (!text) return "";
   return text
-    .replace(/#{1,3}\s/g, "")      // 隱藏大中小標題的 # 符號
-    .replace(/\*\*(.*?)\*\*/g, "$1") // 隱藏粗體的 ** 符號，但保留裡面的文字
-    .replace(/-\s/g, "");          // 隱藏列表的 - 符號
+    .replace(/#{1,3}\s/g, "")      
+    .replace(/\*\*(.*?)\*\*/g, "$1") 
+    .replace(/-\s/g, "");          
 };
 
 export default async function Home() {
@@ -40,6 +40,10 @@ export default async function Home() {
 
   const { data: servicesData } = await supabase.from("blessing_services").select("*").order("created_at", { ascending: true });
   const dynamicServices = servicesData || [];
+
+  // ✨ 新增：抓取目前正在「開放中」的獨立專款專案
+  const { data: spData } = await supabase.from("special_projects").select("*").eq("is_active", true).order("created_at", { ascending: false });
+  const specialProjects = spData || [];
 
   const { data: footerDataRaw } = await supabase.from("site_content").select("*").eq("id", "site_footer").single();
   let footerData = {
@@ -154,12 +158,7 @@ export default async function Home() {
                     <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-white/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
                       <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
                       <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] dark:text-stone-100 mb-6 tracking-wide leading-snug hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
-                      
-                      {/* ✨ 套用濾網：讓預覽區文字乾淨無暇 */}
-                      <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">
-                        {stripMarkdown(news.content)}
-                      </p>
-
+                      <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{stripMarkdown(news.content)}</p>
                       <div className="flex justify-end pt-2">
                         <Link href={`/news/${news.id}`} className="text-sm font-medium tracking-widest text-stone-400 hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors group-hover:translate-x-1 duration-300">閱讀全文 →</Link>
                       </div>
@@ -174,7 +173,7 @@ export default async function Home() {
 
       {/* ================= 區塊四：祈福專區 ================= */}
       {dynamicServices.length > 0 && (
-        <section id="services" className="pb-32 pt-24 w-full bg-white dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
+        <section id="services" className="pb-24 pt-24 w-full bg-white dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#A61D24] dark:text-[#D89F3C] mb-4 transition-colors`}>祈 福 專 區</h2>
             <p className="text-lg tracking-widest text-stone-500 dark:text-stone-400 font-medium">點亮心燈 照慧平安</p>
@@ -189,6 +188,48 @@ export default async function Home() {
                   <span className="text-[#D89F3C] text-2xl z-10 relative group-hover:translate-x-2 transition-transform duration-300">→</span>
                 </div>
               </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ================= 區塊 4.5：獨立專款專案 (✨ 全新專屬顯示區) ================= */}
+      {specialProjects.length > 0 && (
+        <section id="special-projects" className="pb-32 w-full bg-white dark:bg-[#121212] transition-colors duration-500 relative overflow-hidden">
+          {/* 帝王金裝飾背景 */}
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D89F3C]/5 via-transparent to-transparent pointer-events-none"></div>
+
+          <div className="text-center mb-16 relative z-10" data-aos="fade-up">
+            <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#D89F3C] mb-4 drop-shadow-sm`}>專 款 專 案</h2>
+            <p className="text-lg tracking-widest text-stone-500 font-bold">功德無量 福報延綿</p>
+          </div>
+
+          <div className="max-w-5xl mx-auto px-6 space-y-12 relative z-10">
+            {specialProjects.map((sp: any, index: number) => (
+              <div key={sp.id} data-aos="fade-up" data-aos-delay={index * 100} className="bg-gradient-to-br from-[#FAF7F0] to-white dark:from-[#2A2A2A] dark:to-[#1A1A1A] rounded-[2.5rem] p-6 md:p-10 shadow-xl border border-[#D89F3C]/30 flex flex-col md:flex-row gap-8 items-center group hover:border-[#D89F3C]/60 transition-all duration-500">
+
+                {sp.image_url && (
+                  <div className="w-full md:w-2/5 aspect-[4/3] rounded-[1.5rem] overflow-hidden shrink-0 relative shadow-md">
+                     <img src={sp.image_url} alt={sp.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                     <div className="absolute top-4 left-4 bg-[#A61D24] text-white text-xs font-bold px-4 py-1.5 rounded-full tracking-widest shadow-lg">獨立專戶辦理</div>
+                  </div>
+                )}
+
+                <div className="flex-1 flex flex-col justify-center h-full w-full">
+                  <h3 className={`${notoSerif.className} text-2xl md:text-3xl font-bold text-[#1A432D] dark:text-stone-100 mb-4 tracking-wide leading-snug`}>{sp.title}</h3>
+                  <p className="text-stone-500 dark:text-stone-400 leading-relaxed mb-8 line-clamp-3 text-justify font-medium">{sp.description}</p>
+
+                  <div className="mt-auto">
+                    <Link href={`/project/${sp.id}`} className="block">
+                      <Button className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-7 rounded-2xl font-bold tracking-widest text-lg shadow-lg transition-all hover:-translate-y-1 flex items-center justify-center gap-2">
+                        前往專屬認捐網頁
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+
+              </div>
             ))}
           </div>
         </section>
