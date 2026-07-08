@@ -58,7 +58,10 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
 
   const handleConfirmAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (totalPrice === 0) return alert("請至少選擇一種活動方案與數量。");
+    
+    // ✨ 修復：改為計算「總數量」。只要有選數量，0 元也能過關！
+    const totalQuantity = optionQuantities.reduce((sum, qty) => sum + qty, 0);
+    if (totalQuantity === 0) return alert("請至少選擇一種活動方案與數量。");
 
     updateSharedInfo({ userName: name, userPhone: phone, birthDate, address });
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
@@ -80,10 +83,6 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
     setShowRedirectModal(true);
   };
 
-  // ✨ 改進：為了讓「價格數字」跟「起」可以分開排版，精準抓取最低金額
-  const minPrice = Math.min(...campaignOptions.map((o: any) => o.price));
-  const hasMultipleOptions = campaignOptions.length > 1;
-
   return (
     <div className="w-full bg-white relative border-b border-stone-200/60">
       <div className="max-w-4xl mx-auto px-6 py-12">
@@ -104,30 +103,17 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
               <h3 className="text-2xl md:text-3xl font-bold text-[#1A432D] tracking-wide">{campaign.title}</h3>
               <p className="text-stone-600 text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaign.description}</p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-between pt-4 gap-4 border-t border-stone-200/60">
-                
-                {/* ✨ 質感深灰排版：主次分明，突顯右側按鈕 */}
-                <div className="flex items-baseline justify-center sm:justify-start gap-1">
-                  <span className="text-3xl font-black text-stone-700 font-mono tracking-tight">
-                    ${minPrice}
-                  </span>
-                  {hasMultipleOptions && (
-                    <span className="text-sm font-bold text-stone-500 tracking-widest">
-                      起
-                    </span>
-                  )}
-                </div>
-
-                {session ? (
-                  <button onClick={() => setIsOpen(true)} className="w-full sm:w-auto bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-sm shadow-md transition-all">
-                    立即線上報名
-                  </button>
-                ) : (
-                  <button onClick={() => signIn("line")} className="w-full sm:w-auto bg-stone-200 hover:bg-stone-300 text-stone-700 px-8 py-4 rounded-xl font-bold tracking-widest text-sm transition-all">
-                    登入 LINE 開始登記
-                  </button>
-                )}
-              </div>
+              <div className="pt-4 border-t border-stone-200/60 w-full mt-2">
+  {session ? (
+    <button onClick={() => setIsOpen(true)} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-md transition-all">
+      立即線上報名
+    </button>
+  ) : (
+    <button onClick={() => signIn("line")} className="w-full bg-stone-200 hover:bg-stone-300 text-stone-700 px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all">
+      登入 LINE 開始登記
+    </button>
+  )}
+</div>
             </div>
           </div>
         </div>
