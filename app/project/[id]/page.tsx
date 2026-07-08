@@ -119,7 +119,7 @@ export default function SpecialProjectPage() {
         </div>
         
         <button onClick={() => router.push("/")} className="w-full bg-[#1A432D] text-[#D89F3C] py-4 rounded-xl font-bold tracking-widest hover:bg-[#122F20] transition-colors">
-          功德圓滿，返回首頁
+          功德圓滿，記得截圖
         </button>
       </div>
     </main>
