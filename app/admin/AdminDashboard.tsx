@@ -26,6 +26,8 @@ export default function AdminDashboard() {
   const [addNewsCategory, setAddNewsCategory] = useState("news");
   const [addNewsPreviewUrl, setAddNewsPreviewUrl] = useState(""); 
   const [addNewsImageFile, setAddNewsImageFile] = useState<File|null>(null);
+  // ✨ 新增：活動報名連結的狀態管理
+  const [addNewsActionUrl, setAddNewsActionUrl] = useState(""); 
   
   const [servicesList, setServicesList] = useState<any[]>([]); 
   const [editSrvId, setEditSrvId] = useState<string|null>(null);
@@ -54,7 +56,6 @@ export default function AdminDashboard() {
   const [editPId, setEditPId] = useState<string|null>(null);
 
   const [selectedMonth, setSelectedMonth] = useState<string>("");
-  // ✨ 新增：紀錄管理的專案分類狀態
   const [selectedServiceType, setSelectedServiceType] = useState<string>("all");
 
   const [campaignBanks, setCampaignBankAccounts] = useState<any[]>([]);
@@ -117,7 +118,6 @@ export default function AdminDashboard() {
 
   useEffect(() => { if (monthOptions.length > 0 && !selectedMonth) setSelectedMonth(monthOptions[0]); }, [monthOptions]);
 
-  // ✨ 更新：過濾器現在同時支援「月份」與「專案分類」
   const filteredOrders = ordersList.filter((o: any) => {
     const d = new Date(o.created_at);
     const isMonthMatch = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
@@ -144,7 +144,45 @@ export default function AdminDashboard() {
 
   const handleSaveHero = async () => { setIsSavingHero(true); let url = previewUrl; if (imageFile) { const name = `hero_${Date.now()}`; await supabase.storage.from('images').upload(name, imageFile); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; } await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); alert("主視覺更新成功。"); setIsSavingHero(false); router.refresh(); };
   
-  const handleSaveNews = async () => { setIsAddingNews(true); let url = addNewsPreviewUrl; if (addNewsImageFile) { const name = `news_${Date.now()}`; await supabase.storage.from('images').upload(name, addNewsImageFile); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; } if (editNewsId) { await supabase.from("news_events").update({ title: addNewsTitle, content: addNewsContent, image_url: url, category: addNewsCategory }).eq("id", editNewsId); } else { await supabase.from("news_events").insert([{ title: addNewsTitle, content: addNewsContent, image_url: url, category: addNewsCategory }]); } alert("發布成功。"); setEditNewsId(null); setAddNewsTitle(""); setAddNewsContent(""); setAddNewsPreviewUrl(""); setAddNewsCategory("news"); fetchData(); setIsAddingNews(false); router.refresh(); };
+  const handleSaveNews = async () => { 
+    setIsAddingNews(true); 
+    let url = addNewsPreviewUrl; 
+    if (addNewsImageFile) { 
+      const name = `news_${Date.now()}`; 
+      await supabase.storage.from('images').upload(name, addNewsImageFile); 
+      url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; 
+    } 
+    
+    // ✨ 新增：儲存時一併寫入 action_url
+    if (editNewsId) { 
+      await supabase.from("news_events").update({ 
+        title: addNewsTitle, 
+        content: addNewsContent, 
+        image_url: url, 
+        category: addNewsCategory,
+        action_url: addNewsActionUrl 
+      }).eq("id", editNewsId); 
+    } else { 
+      await supabase.from("news_events").insert([{ 
+        title: addNewsTitle, 
+        content: addNewsContent, 
+        image_url: url, 
+        category: addNewsCategory,
+        action_url: addNewsActionUrl 
+      }]); 
+    } 
+    
+    alert("發布成功。"); 
+    setEditNewsId(null); 
+    setAddNewsTitle(""); 
+    setAddNewsContent(""); 
+    setAddNewsPreviewUrl(""); 
+    setAddNewsCategory("news"); 
+    setAddNewsActionUrl(""); // ✨ 清空連結狀態
+    fetchData(); 
+    setIsAddingNews(false); 
+    router.refresh(); 
+  };
   
   const handleSaveService = async () => { setIsAddingSrv(true); if (editSrvId) await supabase.from("blessing_services").update({ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }).eq("id", editSrvId); else await supabase.from("blessing_services").insert([{ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }]); alert("祈福項目已儲存。"); setEditSrvId(null); setSrvTitle(""); setSrvDesc(""); setSrvAction(""); fetchData(); setIsAddingSrv(false); router.refresh(); };
   
@@ -210,7 +248,6 @@ export default function AdminDashboard() {
     } catch (err: any) { alert("儲存發生錯誤: " + err.message); } finally { setIsAddingProduct(false); }
   };
 
-  // ✨ 更新：匯出功能會跟隨選定的分類標籤下載
   const exportToCSV = () => {
     if (filteredOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
     const headers = ["建立時間", "服務類型", "信眾姓名", "聯絡電話", "生日生辰", "地址", "服務明細", "匯款後五碼", "狀態", "金額"];
@@ -218,7 +255,6 @@ export default function AdminDashboard() {
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); 
     
-    // 動態變更檔案名稱
     const typeNames: Record<string, string> = { all: "全部", lamp: "點燈", burning: "代燒", booking: "問事", campaign: "特辦活動" };
     link.setAttribute("download", `皇府宮_${selectedMonth}_${typeNames[selectedServiceType]}紀錄.csv`); 
     
@@ -403,19 +439,44 @@ export default function AdminDashboard() {
             </select>
             <input value={addNewsTitle} onChange={e=>setAddNewsTitle(e.target.value)} placeholder="請輸入標題" className="flex-1 border border-stone-200 p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
           </div>
+          
+          {/* ✨ 新增：活動報名連結輸入框 */}
+          <div>
+            <input 
+              value={addNewsActionUrl} 
+              onChange={e => setAddNewsActionUrl(e.target.value)} 
+              placeholder="專屬活動報名連結 (選填，例：/lamps 或是 https://...)" 
+              className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors font-medium text-stone-600"
+            />
+            <p className="text-xs text-stone-500 mt-2 ml-1 font-bold tracking-widest">💡 提示：若填寫此欄位，文章底部將自動產生「前往報名」實體按鈕。</p>
+          </div>
+
           <textarea value={addNewsContent} onChange={e=>setAddNewsContent(e.target.value)} placeholder="內文支援換行" className="w-full border border-stone-200 p-4 rounded-xl h-32 outline-none focus:border-[#D89F3C] transition-colors"/>
           <input type="file" onChange={e => {if(e.target.files?.[0]){setAddNewsImageFile(e.target.files[0]); setAddNewsPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm text-stone-500"/>
-          <button onClick={handleSaveNews} disabled={isAddingNews} className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-5 rounded-xl font-bold tracking-widest transition-colors">{editNewsId?"儲存更新":"發布公告"}</button>
+          
+          <button onClick={handleSaveNews} disabled={isAddingNews} className="w-full bg-[#D89F3C] hover:bg-[#c48d2e] text-white py-5 rounded-xl font-bold tracking-widest transition-colors shadow-sm">{editNewsId?"儲存公告更新":"正式發布公告"}</button>
         </div>
+        
         <div className="space-y-3">
           {newsList.map((n: any) => (
-            <div key={n.id} className="flex flex-col md:flex-row md:items-center justify-between border border-stone-100 p-4 rounded-xl gap-4 hover:shadow-sm transition-shadow">
+            <div key={n.id} className="flex flex-col md:flex-row md:items-center justify-between border border-stone-100 p-4 rounded-xl gap-4 hover:shadow-sm transition-shadow bg-white">
               <div className="flex items-center">
                 <span className={`text-xs px-3 py-1 rounded-full mr-4 text-white font-bold shrink-0 ${n.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>{n.category === 'event' ? '重點活動' : '一般公告'}</span>
                 <span className="font-bold text-[#1A432D] line-clamp-1">{n.title}</span>
+                {/* ✨ 新增：列表提示是否有綁定連結 */}
+                {n.action_url && <span className="ml-3 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold">含報名鈕</span>}
               </div>
               <div className="flex gap-2 shrink-0">
-                <button onClick={()=>{setEditNewsId(n.id); setAddNewsTitle(n.title); setAddNewsContent(n.content); setAddNewsPreviewUrl(n.image_url); setAddNewsCategory(n.category || 'news');}} className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors">編輯</button>
+                {/* ✨ 編輯時同步讀取 action_url */}
+                <button onClick={()=>{
+                  setEditNewsId(n.id); 
+                  setAddNewsTitle(n.title); 
+                  setAddNewsContent(n.content); 
+                  setAddNewsPreviewUrl(n.image_url); 
+                  setAddNewsCategory(n.category || 'news');
+                  setAddNewsActionUrl(n.action_url || "");
+                  window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+                }} className="px-4 py-2 border border-stone-200 rounded-lg text-sm font-bold text-stone-600 hover:bg-stone-50 transition-colors">編輯</button>
                 <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("news_events").delete().eq("id",n.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">刪除</button>
               </div>
             </div>
@@ -538,7 +599,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 8. 服務與預約紀錄管理 (✨ 全新進化版) */}
+      {/* 8. 服務與預約紀錄管理 */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-xl font-bold border-l-4 border-emerald-700 pl-3 text-emerald-900">8. 服務與預約紀錄管理</h2>
@@ -549,9 +610,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 篩選器列：月份 + 專案標籤 */}
         <div className="flex flex-col md:flex-row gap-4 border-y border-stone-100 py-4">
-          {/* 月份選單 */}
           {monthOptions.length > 0 && (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide md:border-r border-stone-200 pr-4">
               {monthOptions.map((month: string) => (
@@ -561,8 +620,6 @@ export default function AdminDashboard() {
               ))}
             </div>
           )}
-          
-          {/* 服務分類選單 */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {[
               { id: 'all', label: '全部紀錄' },
@@ -578,7 +635,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 統計看板 */}
         {selectedMonth && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
             <div className="bg-stone-50 border border-stone-200 p-5 rounded-2xl">
@@ -605,7 +661,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 資料列表 (帶滑桿與最大高度) */}
         {isLoadingOrders ? (
           <div className="text-center py-12 text-stone-400 tracking-widest font-bold">載入資料中...</div>
         ) : filteredOrders.length === 0 ? (
