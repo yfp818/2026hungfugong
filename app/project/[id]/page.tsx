@@ -88,24 +88,36 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // 成功登記的畫面
+  // ✨ 成功登記的畫面 (已升級玉皇專案客製文字、截圖提示、方案明細)
   if (isSuccess) return (
     <main className="min-h-screen bg-[#FAF7F0] pt-24 pb-16 px-6 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#D89F3C]/30 text-center relative p-10">
+      <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#D89F3C]/30 text-center relative p-8 md:p-10">
+        
         <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-emerald-100">
           <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
         </div>
-        <h2 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">專案登記成功</h2>
-        <p className="text-stone-500 text-sm tracking-widest mb-8 leading-relaxed">
-          感恩大德護持！<br/>您的認捐資料已獨立送出並建檔。
+        
+        <h2 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">玉皇專案登記成功</h2>
+        <p className="text-stone-500 text-sm tracking-widest mb-6 leading-relaxed">
+          感恩大德護持<br/>您提供給玉皇的資料已獨立送出並建檔
         </p>
+
+        {/* ✨ 截圖小提示區塊 */}
+        <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-6 flex items-center justify-center gap-2 shadow-sm animate-pulse">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <span className="tracking-widest">貼心小提示：建議您截圖保存此畫面</span>
+        </div>
+
         <div className="bg-stone-50 p-5 rounded-xl text-left space-y-3 mb-8 border border-stone-100">
           <p className="text-xs font-bold text-stone-400 tracking-widest border-b pb-2">認捐明細摘要</p>
           <p className="text-sm font-bold text-stone-700">專案：{project.title}</p>
+          {/* ✨ 補上信眾選填的方案 */}
+          <p className="text-sm font-bold text-stone-700">方案：{project.options[selectedOptIdx].title}</p>
           <p className="text-sm font-bold text-stone-700">姓名：{name}</p>
           <p className="text-sm font-bold text-stone-700">後五碼：{bankLast5}</p>
           <p className="text-sm font-bold text-[#A61D24] mt-2 pt-2 border-t border-stone-200">護持金額：${project.options[selectedOptIdx].price > 0 ? project.options[selectedOptIdx].price : customAmount}</p>
         </div>
+        
         <button onClick={() => router.push("/")} className="w-full bg-[#1A432D] text-[#D89F3C] py-4 rounded-xl font-bold tracking-widest hover:bg-[#122F20] transition-colors">
           功德圓滿，返回首頁
         </button>
@@ -158,7 +170,6 @@ export default function SpecialProjectPage() {
                 ))}
               </div>
 
-              {/* ✨ 隨喜金額輸入框 (清晰修復版) */}
               {project.options[selectedOptIdx].price === 0 && (
                 <div className="animate-in fade-in slide-in-from-top-4 mt-4 bg-white border-2 border-[#D89F3C] shadow-sm p-5 rounded-2xl flex items-center gap-4 transition-all">
                   <span className="font-bold text-stone-800 tracking-widest whitespace-nowrap">護持金額 $</span>
@@ -167,7 +178,7 @@ export default function SpecialProjectPage() {
               )}
             </div>
 
-            {/* 2. 專屬匯款資訊 (✨ 玉皇金底、玉帝白字) */}
+            {/* 2. 專屬匯款資訊 */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第二步：請匯款至專屬對帳戶</h3>
               <div className="bg-gradient-to-br from-[#D89F3C] to-[#c48d2e] text-white p-8 rounded-2xl shadow-lg tracking-wider relative overflow-hidden">
@@ -177,7 +188,7 @@ export default function SpecialProjectPage() {
               </div>
             </div>
 
-            {/* 3. 填寫資料 (✨ 純白底加粗邊框，超清晰版) */}
+            {/* 3. 填寫資料 */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第三步：填寫登記資料</h3>
               
@@ -194,7 +205,6 @@ export default function SpecialProjectPage() {
                 <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
                 <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
                 
-                {/* 銀行後五碼特別凸顯 */}
                 <div className="md:col-span-2 relative">
                    <input required value={bankLast5} onChange={e=>setBankLast5(e.target.value)} placeholder="您剛剛匯款的帳號後五碼" maxLength={5} className="w-full bg-amber-50/50 border-2 border-amber-200 p-5 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/20 font-bold text-amber-900 placeholder:text-amber-400 placeholder:font-medium shadow-sm transition-all text-lg"/>
                    <span className="absolute right-5 top-5 text-sm font-bold text-amber-600/60 bg-amber-100/50 px-2 py-0.5 rounded">供財務對帳</span>
