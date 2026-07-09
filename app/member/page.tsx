@@ -285,7 +285,7 @@ export default function MemberCenter() {
                   left: 'calc(3 / 175 * 100%)', 
                   top: 'calc(70 / 300 * 100%)', 
                   width: 'calc(12 / 175 * 100%)', 
-                  height: 'calc(150 / 300 * 100%)',
+                  height: 'calc(180 / 300 * 100%)',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
@@ -298,7 +298,7 @@ export default function MemberCenter() {
 <div 
   className="absolute z-10 receipt-text text-stone-900"
   style={{ 
-    left: 'calc(95 / 175 * 100%)', 
+    left: 'calc(90 / 175 * 100%)', 
     top: 'calc(110 / 300 * 100%)', 
     width: 'calc(35 / 175 * 100%)', 
     height: 'auto',
@@ -317,7 +317,7 @@ export default function MemberCenter() {
 <div 
   className="absolute z-10 receipt-text text-stone-900"
   style={{ 
-    left: 'calc(95 / 175 * 100%)', /* 👈 已修正：對齊上方的大德 */
+    left: 'calc(90 / 175 * 100%)', /* 👈 已修正：對齊上方的大德 */
     top: 'calc(170 / 300 * 100%)', 
     width: 'calc(35 / 175 * 100%)', /* 👈 已修正：寬度與大德統一 */
     height: 'auto',
