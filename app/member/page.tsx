@@ -268,7 +268,7 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
                 style={{ 
                   left: 'calc(160 / 175 * 100%)', 
-                  top: 'calc(90 / 300 * 100%)', 
+                  top: 'calc(75 / 300 * 100%)', 
                   width: 'calc(12 / 175 * 100%)', 
                   height: 'calc(150 / 300 * 100%)',
                   writingMode: 'vertical-rl',
@@ -283,7 +283,7 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
                 style={{ 
                   left: 'calc(3 / 175 * 100%)', 
-                  top: 'calc(90 / 300 * 100%)', 
+                  top: 'calc(75 / 300 * 100%)', 
                   width: 'calc(12 / 175 * 100%)', 
                   height: 'calc(150 / 300 * 100%)',
                   writingMode: 'vertical-rl',
@@ -298,12 +298,13 @@ export default function MemberCenter() {
               <div 
                 className="absolute z-10 receipt-text text-stone-900"
                 style={{ 
-                  left: 'calc(90 / 175 * 100%)', 
-                  top: 'calc(120 / 300 * 100%)', 
-                  width: 'calc(45 / 175 * 100%)', 
-                  height: 'auto',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
+                  left: 'calc(100 / 175 * 100%)', 
+  top: 'calc(110 / 300 * 100%)', 
+  width: 'calc(35 / 175 * 100%)', 
+  height: 'auto',                               /* 讓高度自然往下長 */
+  maxHeight: 'calc(120 / 300 * 100%)',          /* 🛑 防護牆：撞到 120 毫米的極限時，強制向左換行 */
+  writingMode: 'vertical-rl',
+  textOrientation: 'upright'
                 }}
               >
                 {/* marginBottom 控制標籤與內容的距離 */}
@@ -333,10 +334,10 @@ export default function MemberCenter() {
               <div 
                 className="absolute z-10 receipt-text text-stone-900"
                 style={{ 
-                  left: 'calc(70 / 175 * 100%)', 
+                  left: 'calc(50 / 175 * 100%)', 
                   top: 'calc(110 / 300 * 100%)', 
-                  width: 'calc(30 / 175 * 100%)', 
-                  height: 'calc(140 / 300 * 100%)',
+                  width: 'calc(35 / 175 * 100%)', 
+                  height: 'calc(120 / 300 * 100%)',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
