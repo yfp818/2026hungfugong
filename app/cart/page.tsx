@@ -83,6 +83,31 @@ export default function GlobalCartPage() {
     clearCart(); 
   };
 
+  // ✨ 智慧明細濾網：把「包含數量、價錢的原始字串」，洗成最乾淨漂亮的顯示格式
+  const parseItemDetails = (item: any) => {
+    let title = "";
+    let options = "";
+
+    if (item.itemDetails.includes("特辦活動:")) {
+      const lines = item.itemDetails.split('\n');
+      const titleLine = lines.find((l: string) => l.startsWith('特辦活動:'));
+      const optLine = lines.find((l: string) => l.startsWith('報名方案:'));
+
+      title = titleLine ? titleLine.replace('特辦活動:', '').trim() : '限時特辦活動';
+      // 用正則表達式把 "x數量" 跟 "($價錢)" 完全消除
+      options = optLine ? optLine.replace('報名方案:', '').replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim() : '';
+    } else {
+      title = item.serviceType === 'lamp' ? '當月點燈祈福' : item.serviceType === 'burning' ? '代燒祈福服務' : item.serviceType === 'booking' ? '濟事問事' : '祈福項目';
+      // 將 "祝壽燈 x1 ($600)、桃花燈 x1 ($600)" 洗成 "祝壽燈、桃花燈"
+      options = item.itemDetails
+        .split('、')
+        .map((s: string) => s.split(' x')[0].trim()) 
+        .join('、');
+    }
+
+    return { title, options };
+  };
+
   return (
     <main className="min-h-screen bg-[#FAF7F0] py-16 px-4 md:px-6 flex flex-col items-center justify-center">
       
@@ -158,7 +183,6 @@ export default function GlobalCartPage() {
           </div>
 
           <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto flex">
-            {/* ✨ 讓背景圖片能夠填滿整個隨內容長高的區域 */}
             <img 
               src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
               alt="皇府宮合併法旨" 
@@ -169,27 +193,39 @@ export default function GlobalCartPage() {
               
               <div className="text-center mb-4">
                  <h2 className="text-[15px] md:text-[17px] font-bold text-[#A61D24] font-serif tracking-widest mb-1">祈福合併存根</h2>
-                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 功德圓滿</p>
+                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 神明庇佑</p>
               </div>
 
-              {/* ✨ 購物車多筆明細：加入自動捲動，避免項目太多把圖撐破 */}
+              {/* ✨ 購物車多筆明細：大德/明細/方案 的全新排版 */}
               <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[160px] scrollbar-hide">
-                {cartItems.map((item, idx) => (
-                  <div key={idx} className="border-b border-stone-200/50 pb-2 mb-2 last:border-none">
-                    <div className="flex gap-2 items-start">
-                      <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-9 text-right">大德</span>
-                      <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{item.userName}</span>
+                {cartItems.map((item, idx) => {
+                  const { title, options } = parseItemDetails(item);
+                  return (
+                    <div key={idx} className="border-b border-[#D89F3C]/30 pb-2 mb-2 last:border-none">
+                      <div className="flex gap-2 items-start">
+                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
+                        <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{item.userName}</span>
+                      </div>
+                      <div className="flex gap-2 items-start mt-1">
+                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">明細</span>
+                        <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{title}</span>
+                      </div>
+                      <div className="flex gap-2 items-start mt-1">
+                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
+                        <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{options}</span>
+                      </div>
                     </div>
-                    <div className="flex gap-2 items-start mt-1">
-                      <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-9 text-right">明細</span>
-                      <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{item.itemDetails}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+                
+                {/* ✨ 功德圓滿 結語 */}
+                <div className="text-center mt-4 mb-2">
+                  <span className="text-[10px] md:text-[11px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+                </div>
               </div>
 
               <div className="w-full max-w-[190px] border-t border-stone-300 mt-2 pt-2 text-[11px] md:text-[12px] font-serif flex gap-2 items-start">
-                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-9 text-right">核銷</span>
+                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">核銷</span>
                   <span className="font-bold text-stone-900 font-sans tracking-wider leading-snug">{bankLast5}</span>
               </div>
 
@@ -203,9 +239,8 @@ export default function GlobalCartPage() {
             </div>
           </div>
 
-          {/* 綠色 LINE 回報按鈕 */}
           <Button onClick={handleCopyReceipt} className="w-full max-w-[320px] mt-8 bg-[#06C755] hover:bg-[#05a546] text-white py-6 rounded-xl font-bold text-lg tracking-widest shadow-xl transition-transform hover:scale-[1.02]">
-            複製明細，並回報 LINE
+            一鍵複製，並打開 LINE 對帳
           </Button>
 
         </div>

@@ -16,12 +16,14 @@ export default function SpecialProjectPage() {
   
   // 表單狀態
   const [name, setName] = useState("");
+  const [targetName, setTargetName] = useState(""); // ✨ 新增：祈福/迴向對象
   const [phone, setPhone] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [birthDate, setBirthDate] = useState(""); // ✨ 恢復：單純的國曆出生年月日
   const [address, setAddress] = useState("");
   const [selectedOptIdx, setSelectedOptIdx] = useState(0);
   const [customAmount, setCustomAmount] = useState("");
   const [bankLast5, setBankLast5] = useState("");
+  const [memo, setMemo] = useState(""); // ✨ 新增：祈福心願
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -56,6 +58,10 @@ export default function SpecialProjectPage() {
     if (!bankLast5 || bankLast5.length < 4) return alert("請輸入您的匯款帳號後五碼，以便財務對帳。");
 
     setIsSubmitting(true);
+    
+    // ✨ 智慧打包：如果信眾有填迴向對象或心願，自動串接到明細中供管理員看
+    const finalDetails = `認捐方案: ${selectedOption.title}${targetName ? `\n祈福/迴向對象: ${targetName}` : ""}${memo ? `\n祈福心願/備註: ${memo}` : ""}`;
+
     const { error } = await supabase.from("special_project_orders").insert([{
       project_id: project.id,
       user_name: name,
@@ -64,7 +70,7 @@ export default function SpecialProjectPage() {
       address: address,
       amount: finalAmount,
       bank_last_5: bankLast5,
-      service_details: `認捐方案: ${selectedOption.title}`
+      service_details: finalDetails
     }]);
 
     setIsSubmitting(false);
@@ -88,7 +94,7 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // ✨ 成功登記的畫面 (神尊圖騰法旨風格 - 終極質感版)
+  // 成功畫面 (神尊圖騰法旨風格)
   if (isSuccess) return (
     <main className="min-h-screen bg-[#FAF7F0] pt-12 pb-16 px-4 flex items-center justify-center">
       <div className="w-full max-w-md relative flex flex-col items-center">
@@ -101,21 +107,23 @@ export default function SpecialProjectPage() {
         <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
           <img 
             src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
-            alt="玉皇專案憑證" 
+            alt="專案憑證" 
             className="w-full h-auto block" 
           />
 
-          {/* 稍微放寬一點空間，並讓整體往上一點點 */}
           <div className="absolute top-[32%] bottom-[15%] left-[18%] right-[18%] flex flex-col justify-center items-center">
             
-            {/* 標題區 (稍微加大字體) */}
             <div className="text-center mb-5 md:mb-6">
                <h2 className="text-[16px] md:text-[18px] font-bold text-[#A61D24] font-serif tracking-widest mb-1">專案護持存根</h2>
                <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 功德圓滿</p>
             </div>
 
-            {/* 明細內容區 (增加間距 space-y-2，標籤改為印泥深紅色) */}
             <div className="w-full max-w-[190px] space-y-2 md:space-y-3 text-[11px] md:text-[12px] font-serif">
+              <div className="flex gap-3 items-start">
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">大德</span>
+                {/* ✨ 智慧顯示：如果有填寫迴向對象，小票上就印對象的名字！否則印填單人 */}
+                <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{targetName || name}</span>
+              </div>
               <div className="flex gap-3 items-start">
                 <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">專案</span>
                 <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.title}</span>
@@ -125,16 +133,11 @@ export default function SpecialProjectPage() {
                 <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.options[selectedOptIdx].title}</span>
               </div>
               <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">姓名</span>
-                <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{name}</span>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">後五碼</span>
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">核銷</span>
                 <span className="font-bold text-stone-900 font-sans tracking-wider line-clamp-1 leading-snug">{bankLast5}</span>
               </div>
             </div>
 
-            {/* 金額區 (字體稍微放大) */}
             <div className="text-center mt-6">
                <span className="block text-[10px] md:text-[11px] font-bold text-[#A61D24]/80 tracking-widest font-serif mb-1">護持功德金</span>
                <span className="text-2xl md:text-3xl font-bold text-[#A61D24] font-mono leading-none block drop-shadow-sm">
@@ -228,11 +231,22 @@ export default function SpecialProjectPage() {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                <input required value={name} onChange={e=>setName(e.target.value)} placeholder="信眾姓名" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                {/* ✨ 姓名與對象拆分，更清晰 */}
+                <input required value={name} onChange={e=>setName(e.target.value)} placeholder="填單聯絡人姓名" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <input value={targetName} onChange={e=>setTargetName(e.target.value)} placeholder="祈福對象姓名 (若同左請留白)" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
                 
+                <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                
+                {/* ✨ 恢復單純的出生年月日 */}
+                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                
+                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="md:col-span-2 w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                
+                {/* ✨ 祈福心願多行文字框 */}
+                <div className="md:col-span-2">
+                  <textarea value={memo} onChange={e=>setMemo(e.target.value)} placeholder="祈福心願 / 備註留言 (選填，例如：祈求玉帝保佑家人平安健康)" rows={3} className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all resize-none"></textarea>
+                </div>
+
                 <div className="md:col-span-2 relative">
                    <input required value={bankLast5} onChange={e=>setBankLast5(e.target.value)} placeholder="您剛剛匯款的帳號後五碼" maxLength={5} className="w-full bg-amber-50/50 border-2 border-amber-200 p-5 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/20 font-bold text-amber-900 placeholder:text-amber-400 placeholder:font-medium shadow-sm transition-all text-lg"/>
                    <span className="absolute right-5 top-5 text-sm font-bold text-amber-600/60 bg-amber-100/50 px-2 py-0.5 rounded">供財務對帳</span>
