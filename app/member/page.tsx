@@ -232,9 +232,10 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極直書疏文排版 (五點絕對鎖定) */}
+            {/* 💡 終極直書佈局 (混合橫豎交錯與五點絕對鎖定) */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
               
+              {/* 圖片做為基底，撐開高度，決定真實比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
@@ -245,64 +246,70 @@ export default function MemberCenter() {
                 .receipt-safe-zone, .receipt-safe-zone * {
                   font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
                 }
-                .vert-rl { writing-mode: vertical-rl; }
+                .vert-rl { 
+                  writing-mode: vertical-rl;
+                  text-orientation: upright;
+                }
               `}</style>
 
               {/* ✨ 外層安全區設定 */}
               <div 
                 className="absolute receipt-safe-zone text-stone-900"
-                style={{ top: '28%', bottom: '15%', left: '14%', right: '14%' }}
+                style={{ top: '25%', bottom: '15%', left: '14%', right: '14%' }}
               >
                 
-                {/* 1. 頂部水平鎖定 (祈福印記) */}
-                <div className="absolute top-0 left-0 w-full flex flex-col items-center justify-center z-10">
+                {/* 1. 頂部水平鎖定 (祈福印記標題) */}
+                <div className="absolute top-0 left-0 w-full flex flex-col items-center justify-center z-20 text-center">
                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                {/* 2. 底部水平鎖定 (功德圓滿) */}
-                <div className="absolute bottom-0 left-0 w-full flex justify-center items-end z-10">
+                {/* 2. 底部水平鎖定 (- 功德 圓滿 -) */}
+                <div className="absolute bottom-0 left-0 w-full flex justify-center items-end z-20 text-center pb-1">
                    <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">
                      - 功德 圓滿 -
                    </span>
                 </div>
 
-                {/* 3. 右側邊框鎖定 (天運歲次) */}
-                <div className="absolute right-0 top-[45px] bottom-[25px] vert-rl flex justify-start items-center">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
+                {/* 3. 右側邊框鎖定 (天運歲次直書) */}
+                <div className="absolute right-0 top-[60px] bottom-[30px] vert-rl flex justify-start items-center z-10">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none">
                     天運歲次 登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
                   </span>
                 </div>
 
-                {/* 4. 左側邊框鎖定 (祈求平安順心) */}
-                <div className="absolute left-0 top-[45px] bottom-[25px] vert-rl flex justify-start items-center">
-                  <span className="text-[9px] md:text-[10px] font-bold text-stone-500 tracking-widest">
+                {/* 4. 左側邊框鎖定 (祈求平安順心直書) */}
+                <div className="absolute left-0 top-[60px] bottom-[30px] vert-rl flex justify-start items-center z-10">
+                  <span className="text-[9px] md:text-[10px] font-bold text-stone-500 tracking-widest leading-none">
                     祈求 平安順心 萬事如意
                   </span>
                 </div>
 
                 {/* 5. 中央動態明細區 (大德、項目、方案直書換行) */}
-                {/* 避開左右兩側的法語空間，並設定 vert-rl */}
-                <div className="absolute right-[22px] md:right-[26px] left-[20px] md:left-[24px] top-[50px] bottom-[25px] vert-rl text-[11px] md:text-[12px]">
+                {/* ✨ 絕對鎖定中央空間，避開左右兩側的法語空間 */}
+                <div 
+                  className="absolute vert-rl text-[11px] md:text-[12px] scrollbar-hide overflow-y-auto right-[30px] md:right-[36px] left-[26px] md:left-[32px]"
+                  style={{ top: '60px', bottom: '30px' }}
+                >
                     
                     {/* 第一直行：大德 */}
-                    <div className="ml-3 md:ml-4 flex items-center" style={{ flexDirection: 'row' }}>
-                       <span className="font-bold text-[#A61D24] tracking-widest mb-3 shrink-0">大德</span>
-                       <span className="font-bold leading-snug text-stone-800">{selectedOrder.user_name}</span>
+                    <div className="ml-3 md:ml-4 flex items-center">
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
+                        <span className="font-bold text-stone-900 leading-snug mt-2">{selectedOrder.user_name}</span>
                     </div>
                     
                     {/* 第二直行：項目 */}
-                    <div className="ml-3 md:ml-4 flex items-center" style={{ flexDirection: 'row' }}>
-                       <span className="font-bold text-[#A61D24] tracking-widest mb-3 shrink-0">項目</span>
-                       <span className="font-bold leading-snug text-stone-800">{selectedOrder.service_type}</span>
+                    <div className="ml-3 md:ml-4 flex items-center">
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
+                        <span className="font-bold text-stone-900 leading-snug mt-2">{selectedOrder.service_type}</span>
                     </div>
                     
-                    {/* 第三直行：方案 (字數過長會自動往左產生第四行、第五行) */}
-                    <div className="flex items-start h-full" style={{ flexDirection: 'row' }}>
-                       <span className="font-bold text-[#A61D24] tracking-widest mb-3 shrink-0">方案</span>
-                       <span className="font-bold leading-snug text-stone-800 break-all whitespace-pre-wrap" style={{ lineHeight: '1.6' }}>
-                          {formatServiceDetails(selectedOrder.service_details)}
-                       </span>
+                    {/* 第三直行與向左蔓延：方案 (字數過長會自動往左產生第四行、第五行) */}
+                    <div className="flex items-start h-full">
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
+                        <span className="font-bold text-stone-900 leading-snug break-all whitespace-pre-wrap mt-2" style={{ lineHeight: '1.6' }}>
+                            {formatServiceDetails(selectedOrder.service_details)}
+                        </span>
                     </div>
                     
                 </div>
