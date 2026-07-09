@@ -253,7 +253,7 @@ export default function MemberCenter() {
               <div 
                 className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
                 style={{ 
-                  left: 'calc(42.5 / 175 * 100%)', 
+                  left: 'calc(44.5 / 175 * 100%)', 
                   top: 'calc(90 / 300 * 100%)', 
                   width: 'calc(90 / 175 * 100%)', 
                   height: 'calc(20 / 300 * 100%)' 
@@ -283,7 +283,7 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
                 style={{ 
                   left: 'calc(3 / 175 * 100%)', 
-                  top: 'calc(75 / 300 * 100%)', 
+                  top: 'calc(70 / 300 * 100%)', 
                   width: 'calc(12 / 175 * 100%)', 
                   height: 'calc(150 / 300 * 100%)',
                   writingMode: 'vertical-rl',
@@ -293,80 +293,81 @@ export default function MemberCenter() {
                 <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
-              {/* T4: Body Right - 大德 (X: 120, Y: 110, W: 30) */}
-              {/* 高度設定為 auto，讓文字向下延伸 */}
-              <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(100 / 175 * 100%)', 
-  top: 'calc(110 / 300 * 100%)', 
-  width: 'calc(35 / 175 * 100%)', 
-  height: 'auto',                               /* 讓高度自然往下長 */
-  maxHeight: 'calc(120 / 300 * 100%)',          /* 🛑 防護牆：撞到 120 毫米的極限時，強制向左換行 */
-  writingMode: 'vertical-rl',
-  textOrientation: 'upright'
-                }}
-              >
-                {/* marginBottom 控制標籤與內容的距離 */}
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
-                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
-              </div>
-
-              {/* T6: Body Sub - 項目 (X: 120, Y: 160, W: 30) */}
-              {/* 高度設定為 auto，讓文字向下延伸 */}
-              <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(90 / 175 * 100%)', 
-                  top: 'calc(170 / 300 * 100%)', 
-                  width: 'calc(45 / 175 * 100%)', 
-                  height: 'auto',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
-                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
-              </div>
-
-              {/* T5: Body Left - 方案 (X: 70, Y: 110, W: 30) */}
-              {/* 設定 maxHeight 約佔畫面一半(140mm)，迫使文字觸底時向左換行 */}
-              <div 
+              {/* T4: Body Right - 大德 (X: 105, Y: 110, W: 35) */}
+{/* 高度設定為 auto，加上 maxHeight 防護牆，並向左退拉開與右龍距離 */}
+<div 
   className="absolute z-10 receipt-text text-stone-900"
   style={{ 
-    left: 'calc(50 / 175 * 100%)', 
+    left: 'calc(105 / 175 * 100%)', 
     top: 'calc(110 / 300 * 100%)', 
     width: 'calc(35 / 175 * 100%)', 
-    height: 'auto',                               /* 讓高度自然往下長 */
-    maxHeight: 'calc(120 / 300 * 100%)',          /* 🛑 換行防護牆：撞到底部安全界線時強制向左換行 */
+    height: 'auto',
+    maxHeight: 'calc(120 / 300 * 100%)', 
     writingMode: 'vertical-rl',
     textOrientation: 'upright'
   }}
-              >
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
-                <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
-                  {formatServiceDetails(selectedOrder.service_details)}
-                </span>
-              </div>
+>
+  {/* marginBottom 控制標籤與內容的距離 */}
+  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
+  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
+</div>
 
-              {/* T7: Footer (X: 62.5, Y: 230, W: 50, H: 10) */}
-              <div 
-                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-                style={{ 
-                  left: 'calc(62.5 / 175 * 100%)', 
-                  top: 'calc(240 / 300 * 100%)', 
-                  width: 'calc(50 / 175 * 100%)', 
-                  height: 'calc(10 / 300 * 100%)' 
-                }}
-              >
-                <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
-              </div>
+{/* T6: Body Sub - 項目 (X: 105, Y: 170, W: 35) */}
+{/* 🛑 校正重點：left 必須與大德 (105) 完全一樣，width 也統一，這樣項目才會在大德的正下方！ */}
+<div 
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(105 / 175 * 100%)', /* 👈 已修正：對齊上方的大德 */
+    top: 'calc(170 / 300 * 100%)', 
+    width: 'calc(35 / 175 * 100%)', /* 👈 已修正：寬度與大德統一 */
+    height: 'auto',
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
+  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
+</div>
 
-            </div>
-            
-          </div>
-        </div>
-      )}
-    </div>
-  );
+{/* T5: Body Left - 方案 (X: 75, Y: 110, W: 35) */}
+{/* 🛑 校正重點：left 往右推到 75，這樣視覺上才會剛好在「印」字的下方 */}
+<div 
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(75 / 175 * 100%)', /* 👈 已修正：對齊頂部「印」字下方 */
+    top: 'calc(110 / 300 * 100%)', 
+    width: 'calc(35 / 175 * 100%)', 
+    height: 'auto',                               
+    maxHeight: 'calc(120 / 300 * 100%)',          
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
+  <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
+    {formatServiceDetails(selectedOrder.service_details)}
+  </span>
+</div>
+
+{/* T7: Footer (X: 62.5, Y: 240, W: 50, H: 10) */}
+{/* 底部功德圓滿維持不動，目前的參數很完美 */}
+<div 
+  className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+  style={{ 
+    left: 'calc(62.5 / 175 * 100%)', 
+    top: 'calc(240 / 300 * 100%)', 
+    width: 'calc(50 / 175 * 100%)', 
+    height: 'calc(10 / 300 * 100%)' 
+  }}
+>
+  <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+</div>
+
+</div>
+
+</div>
+</div>
+)}
+</div>
+);
 }
