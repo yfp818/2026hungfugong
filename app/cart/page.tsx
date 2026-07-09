@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Camera } from "lucide-react"; // ✨ 使用高質感線條圖示
+import { Camera } from "lucide-react"; 
 
 export default function GlobalCartPage() {
   const { data: session } = useSession();
@@ -84,7 +84,6 @@ export default function GlobalCartPage() {
     clearCart(); 
   };
 
-  // ✨ 智慧明細濾網 (過濾生硬字眼，只留3個方案)
   const parseItemDetails = (item: any) => {
     const serviceName = item.serviceType === 'booking' ? '濟事問事' : item.serviceType === 'lamp' ? '當月點燈' : '代燒服務';
 
@@ -98,7 +97,9 @@ export default function GlobalCartPage() {
 
     let optionsArray = rawString.split('、').map((s: string) => s.trim()).filter(Boolean);
     const limitedOptions = optionsArray.slice(0, 3).join('、');
-    const finalOptions = optionsArray.length > 3 ? limitedOptions + ' 等' : limitedOptions;
+    
+    // 💡 移除「等」前面的空格，避免被當成獨立單字而產生斷層換行
+    const finalOptions = optionsArray.length > 3 ? limitedOptions + '等' : limitedOptions;
 
     return { serviceName, finalOptions };
   };
@@ -106,7 +107,6 @@ export default function GlobalCartPage() {
   return (
     <main className="min-h-screen bg-[#FAF7F0] py-16 px-4 md:px-6 flex flex-col items-center justify-center">
       
-      {/* 步驟一：購物車清單 */}
       {step === 1 && (
         <div className="max-w-3xl w-full bg-white rounded-[2rem] shadow-xl border border-stone-200/60 overflow-hidden">
           <div className="bg-[#1A432D] p-10 text-center border-b-[6px] border-[#D89F3C]">
@@ -134,7 +134,6 @@ export default function GlobalCartPage() {
                               {item.serviceType === 'booking' ? '問事' : item.serviceType === 'lamp' ? '點燈' : '代燒'}
                             </span>
                           </div>
-                          {/* 購物車列表稍微清理生硬標題，但保留數量與金額供確認 */}
                           <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">
                             {item.itemDetails.replace(/特辦活動:?\s*/g, '').replace(/報名方案:?\s*/g, '')}
                           </p>
@@ -176,7 +175,6 @@ export default function GlobalCartPage() {
       {step === 2 && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
           
-          {/* ✨ 隱形斗篷魔法：法旨一出現，全域的紅色購物車按鈕自動隱藏！ */}
           <style>{`#global-cart-btn { display: none !important; }`}</style>
 
           <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
@@ -184,51 +182,59 @@ export default function GlobalCartPage() {
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
 
-          <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto flex">
+          {/* 💡 改變架構：將圖片設為相對基底，高度完全由圖片原比例鎖定 */}
+          <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+            
+            {/* 圖片撐開比例 */}
             <img 
               src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
               alt="祈福印記" 
-              className="absolute inset-0 w-full h-full object-fill rounded-xl" 
+              className="w-full h-auto object-contain rounded-xl block" 
             />
 
-            {/* ✨ 排版優化：pt-[36%] 把內容往上拉，避開底部蓮花 */}
-            <div className="relative z-10 w-full pt-[36%] pb-[25%] px-[18%] flex flex-col items-center">
+            {/* 內容絕對疊加：滿版覆蓋圖片 */}
+            <div className="absolute inset-0 z-10 w-full flex flex-col pt-[35%] pb-[21%] px-[18%]">
               
-              <div className="text-center mb-5">
+              <div className="text-center mb-3 shrink-0">
                  <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
                  <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* ✨ 明細區：完全拔除所有 border 線條，保持純粹疏文感 */}
-              <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[190px] scrollbar-hide">
+              {/* 明細區：利用 flex-1 填滿空間，把底部文字往下推 */}
+              <div className="w-full text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 scrollbar-hide">
                 {cartItems.map((item, idx) => {
                   const { serviceName, finalOptions } = parseItemDetails(item);
                   return (
-                    <div key={idx} className="pb-3 mb-2">
+                    <div key={idx} className="pb-2 mb-2">
                       <div className="flex gap-2 items-start">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
                         <span className="font-bold text-stone-900 leading-snug">{item.userName}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
                         <span className="font-bold text-stone-900 leading-snug">{serviceName}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        <span className="font-bold text-stone-900 leading-snug break-words">{finalOptions}</span>
+                        {/* 💡 加上 break-all，強制滿 13 字折行，不留白 */}
+                        <span className="font-bold text-stone-900 leading-snug break-all">{finalOptions}</span>
                       </div>
                     </div>
                   );
                 })}
+              </div>
 
-                {/* 底部疏文結尾：無上方分隔線 */}
-                <div className="text-center mt-3 mb-2 flex flex-col items-center justify-center gap-1.5">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
-                    天運歲次 登記吉日
-                  </span>
-                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest">祈求 平安順心 萬事如意</span>
-                  <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] mt-1">- 功德 圓滿 -</span>
-                </div>
+              {/* 💡 底部結尾：永遠被釘在 pb-[21%] 的位置 (剛好在蓮花正上方)，並壓縮文字間距 */}
+              <div className="shrink-0 text-center flex flex-col items-center justify-center pt-1">
+                <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5">
+                  天運歲次 登記吉日
+                </span>
+                <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
+                  祈求 平安順心 萬事如意
+                </span>
+                <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] leading-none">
+                  - 功德 圓滿 -
+                </span>
               </div>
 
             </div>

@@ -19,7 +19,6 @@ export default function MemberCenter() {
   useEffect(() => {
     async function fetchMemberData() {
       if (session?.user?.email) {
-        // 1. 抓取用戶基本資料
         const { data: userProfile } = await supabase
           .from("user_contacts")
           .select("*")
@@ -30,7 +29,6 @@ export default function MemberCenter() {
           setProfile({ phone: userProfile.phone || "", address: userProfile.address || "" });
         }
 
-        // 2. 抓取歷史報名紀錄
         const { data: historyOrders } = await supabase
           .from("service_orders")
           .select("*")
@@ -59,13 +57,17 @@ export default function MemberCenter() {
 
   const formatServiceDetails = (details: string) => {
     if (!details) return "";
-    return details
+    let rawString = details
       .replace(/特辦活動:?\s*/g, '')
       .replace(/報名方案:?\s*/g, '')
       .replace(/認捐方案:?\s*/g, '')
       .replace(/\s*x\d+/g, '')
       .replace(/\s*\(\$\d+\)/g, '')
       .trim();
+
+    let optionsArray = rawString.split('、').map((s: string) => s.trim()).filter(Boolean);
+    const limitedOptions = optionsArray.slice(0, 3).join('、');
+    return optionsArray.length > 3 ? limitedOptions + '等' : limitedOptions;
   };
 
   if (status === "loading") {
@@ -230,47 +232,55 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            <div className="relative w-full drop-shadow-2xl mx-auto flex">
+            {/* 💡 同步購物車的絕對定位架構 */}
+            <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+              
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
-                className="absolute inset-0 w-full h-full object-fill rounded-xl" 
+                className="w-full h-auto object-contain rounded-xl block" 
               />
               
-              {/* ✨ 排版與線條完美優化 */}
-              <div className="relative z-10 w-full pt-[36%] pb-[25%] px-[18%] flex flex-col items-center">
+              <div className="absolute inset-0 z-10 w-full flex flex-col pt-[35%] pb-[21%] px-[18%]">
                 
-                <div className="text-center mb-5">
+                <div className="text-center mb-3 shrink-0">
                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[190px] scrollbar-hide">
-                    <div className="pb-3 mb-2">
+                <div className="w-full text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 scrollbar-hide">
+                    <div className="pb-2 mb-2">
                       <div className="flex gap-2 items-start">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
                         <span className="font-bold text-stone-900 leading-snug">{selectedOrder.user_name}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
                         <span className="font-bold text-stone-900 leading-snug">{selectedOrder.service_type}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        <span className="font-bold text-stone-900 leading-snug break-words">
+                        {/* 💡 加上 break-all */}
+                        <span className="font-bold text-stone-900 leading-snug break-all">
                           {formatServiceDetails(selectedOrder.service_details)}
                         </span>
                       </div>
                     </div>
-
-                    <div className="text-center mt-3 mb-2 flex flex-col items-center justify-center gap-1.5">
-                      <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
-                        登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
-                      </span>
-                      <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest">祈求 平安順心 萬事如意</span>
-                      <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] mt-2">- 功德 圓滿 -</span>
-                    </div>
                 </div>
+
+                {/* 💡 底部釘死，緊湊間距 */}
+                <div className="shrink-0 text-center flex flex-col items-center justify-center pt-1">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5">
+                    登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
+                  </span>
+                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
+                    祈求 平安順心 萬事如意
+                  </span>
+                  <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] leading-none">
+                    - 功德 圓滿 -
+                  </span>
+                </div>
+
               </div>
             </div>
             

@@ -8,15 +8,56 @@ import { Button } from "@/components/ui/button";
 export default function BookingPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { addToCart, updateSharedInfo, sharedInfo } = useCart();
   
-  const [name, setName] = useState(sharedInfo.userName || "");
-  const [phone, setPhone] = useState(sharedInfo.userPhone || "");
-  const [birthDate, setBirthDate] = useState(sharedInfo.birthDate || "");
-  const [address, setAddress] = useState(sharedInfo.address || "");
+  // ✨ 引入 contacts 與 selfProfile 供名冊功能使用
+  const { addToCart, updateSharedInfo, sharedInfo, contacts, selfProfile } = useCart();
+  
+  // ✨ 加入 targetName (問事對象)
+  const [name, setName] = useState("");
+  const [targetName, setTargetName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [address, setAddress] = useState("");
   const [question, setQuestion] = useState("");
   
+  // ✨ 加入名冊選擇狀態
+  const [selectedContactId, setSelectedContactId] = useState("self");
+  const [saveToContacts, setSaveToContacts] = useState(true);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
+
+  useEffect(() => {
+    // 預設帶入本人聯絡資訊
+    if (selfProfile && !name) {
+      setName(selfProfile.userName); 
+      setPhone(selfProfile.userPhone);
+      if (selectedContactId === "self") {
+        setBirthDate(selfProfile.birthDate); 
+        setAddress(selfProfile.address);
+      }
+    }
+  }, [selfProfile, name, selectedContactId]);
+
+  // ✨ 智慧名冊切換邏輯
+  const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    setSelectedContactId(selectedId);
+
+    if (selectedId === "new") {
+      setTargetName(""); setBirthDate(""); setAddress(""); 
+    } else if (selectedId === "self") {
+      setTargetName(""); // 留白代表同聯絡人
+      if (selfProfile) {
+        setBirthDate(selfProfile.birthDate); setAddress(selfProfile.address);
+      }
+    } else {
+      const contact = contacts.find(c => c.id === selectedId);
+      if (contact) {
+        setTargetName(contact.contact_name); // 將親友帶入問事對象
+        setBirthDate(contact.birth_date); 
+        setAddress(contact.address);
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +66,21 @@ export default function BookingPage() {
     updateSharedInfo({ userName: name, userPhone: phone, birthDate: birthDate, address: address });
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
 
-    addToCart({
-      id: safeId, serviceType: "booking", userName: name, userPhone: phone,
-      birthDate: birthDate, address: address, itemDetails: `濟事問事：${question}`, price: 0
-    });
+    // ✨ 最終寫入購物車的大德名字：若有填問事對象就用對象，否則用聯絡人
+    const finalTargetName = targetName || name;
 
+    addToCart({
+      id: safeId, 
+      serviceType: "booking", 
+      userName: finalTargetName, // 這會成為小票上的「大德」
+      userPhone: phone,
+      birthDate: birthDate, 
+      address: address, 
+      itemDetails: `濟事問事\n問事內容: ${question}`, // 這會成為小票上的「方案」
+      price: 0
+    }, saveToContacts);
+
+    setQuestion(""); // 送出後清空問題
     setShowRedirectModal(true);
   };
 
@@ -37,7 +88,7 @@ export default function BookingPage() {
 
   return (
     <main className="min-h-screen bg-[#FAF7F0] py-16 px-6 flex items-center justify-center selection:bg-[#A61D24] selection:text-white">
-      <div className="max-w-2xl w-full bg-white rounded-[2rem] shadow-xl overflow-hidden border border-stone-100 relative">
+      <div className="max-w-3xl w-full bg-white rounded-[2rem] shadow-xl overflow-hidden border border-stone-100 relative">
         
         <div className="bg-[#1A432D] p-10 text-center relative border-b-[6px] border-[#D89F3C]">
           <h1 className="text-3xl font-bold tracking-[0.3em] text-white">預約濟事問事</h1>
@@ -54,40 +105,72 @@ export default function BookingPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-700">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-3">
-                   <label className="text-xs font-bold text-stone-500 tracking-widest">信眾姓名 <span className="text-red-500">*</span></label>
-                   <input required value={name} onChange={e=>setName(e.target.value)} className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
-                 </div>
-                 <div className="space-y-3">
-                   <label className="text-xs font-bold text-stone-500 tracking-widest">聯絡電話 <span className="text-red-500">*</span></label>
-                   <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="09XX-XXX-XXX" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
-                 </div>
+              
+              {/* ✨ 升級的雙欄位與名冊選擇區 */}
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200/60 pb-4">
+                  <h3 className="font-bold text-xl text-[#1A432D] tracking-widest border-l-4 border-[#A61D24] pl-3">問事資料填寫</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-stone-500 tracking-widest">載入名冊：</span>
+                    <select value={selectedContactId} onChange={handleContactChange} className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-bold text-[#1A432D] outline-none focus:border-[#A61D24] bg-stone-50">
+                      <option value="self">👑 本人預設資料</option>
+                      <option value="new">➕ 手動輸入新對象</option>
+                      {contacts.length > 0 && (
+                        <optgroup label="已儲存親友">
+                          {contacts.map(c => <option key={c.id} value={c.id}>{c.contact_name}</option>)}
+                        </optgroup>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">聯絡人姓名 <span className="text-red-500">*</span></label>
+                    <input required value={name} onChange={e=>setName(e.target.value)} placeholder="請填寫聯絡人" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">問事對象 <span className="text-stone-400 font-normal">(選填)</span></label>
+                    <input value={targetName} onChange={e=>setTargetName(e.target.value)} placeholder="若同聯絡人請留白" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">聯絡電話 <span className="text-red-500">*</span></label>
+                    <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="09XX-XXX-XXX" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">生日生辰 <span className="text-red-500">*</span></label>
+                    <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：國曆 75年 8月 15日 吉時" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">居住地址 <span className="text-red-500">*</span></label>
+                    <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="祈福用完整地址" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">問事內容概述 <span className="text-red-500">*</span></label>
+                    <textarea required value={question} onChange={e=>setQuestion(e.target.value)} placeholder="請簡述您想請教帝君的問題（如事業、健康、運勢等）" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl h-32 resize-none focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium leading-relaxed"/>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-3 cursor-pointer mt-2 w-max">
+                  <input type="checkbox" checked={saveToContacts} onChange={e=>setSaveToContacts(e.target.checked)} className="w-4 h-4 accent-[#A61D24]"/>
+                  <span className="text-sm font-bold text-stone-600 tracking-widest">同步儲存此對象至我的常用名冊</span>
+                </label>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-stone-500 tracking-widest">生日生辰 <span className="text-red-500">*</span></label>
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：國曆 75年 8月 15日 吉時" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
+              <div className="pt-4">
+                <Button type="submit" className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-7 rounded-xl text-lg tracking-[0.2em] font-bold shadow-lg transition-transform active:scale-95">
+                  加入預約清單
+                </Button>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-stone-500 tracking-widest">居住地址 <span className="text-red-500">*</span></label>
-                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="祈福用完整地址" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium"/>
-              </div>
-
-              <div className="space-y-3 pb-2">
-                <label className="text-xs font-bold text-stone-500 tracking-widest">問事內容概述 <span className="text-red-500">*</span></label>
-                <textarea required value={question} onChange={e=>setQuestion(e.target.value)} placeholder="請簡述您想請教帝君的問題（如事業、健康、運勢等）" className="w-full bg-stone-50 border border-stone-200 p-4 rounded-xl h-32 resize-none focus:ring-2 focus:ring-[#A61D24] outline-none transition-all font-medium leading-relaxed"/>
-              </div>
-
-              <Button type="submit" className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-7 rounded-xl text-lg tracking-[0.2em] font-bold shadow-lg transition-transform active:scale-95">
-                加入預約清單
-              </Button>
             </form>
           )}
         </div>
 
-        {/* 🌟 重新設計的高質感引導彈窗 */}
         {showRedirectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm transition-all">
             <div className="bg-[#FAF7F0] border-2 border-white p-8 rounded-[2rem] max-w-sm w-full shadow-2xl space-y-8 text-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
@@ -100,8 +183,9 @@ export default function BookingPage() {
 
               <div className="space-y-3 relative z-10">
                 <h3 className="text-2xl font-bold text-[#1A432D] tracking-widest">已加入預約清單</h3>
+                {/* ✨ 彈窗成功顯示問事對象 */}
                 <p className="text-stone-500 text-sm tracking-widest leading-relaxed">
-                  是否需要順道為自己或家人安排當月點燈祈福或代燒服務？<br/>(可合併結帳對帳)
+                  您剛才為「<span className="text-[#1A432D] font-bold">{targetName || name}</span>」登記的項目已暫存。<br/>是否需要順道安排當月點燈或代燒服務？
                 </p>
               </div>
 
@@ -115,7 +199,7 @@ export default function BookingPage() {
                   加購代燒服務
                 </button>
                 <button onClick={() => router.push("/cart")} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-4 rounded-xl font-bold tracking-widest shadow-lg mt-2 transition-all">
-                  前往結帳對帳 →
+                  前往預約清單送出 →
                 </button>
               </div>
 
