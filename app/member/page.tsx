@@ -249,35 +249,46 @@ export default function MemberCenter() {
                 }
               `}</style>
 
-              {/* ✨ 真・絕對定位：直接綁定圖片比例的 29% ~ 17% 作為安全邊界 */}
+             {/* 💡 終極完美陣型：置中鎖定 + 保證字體顯示 */}
+            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
+              
+              <img 
+                src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
+                alt="祈福印記" 
+                className="w-full h-auto block pointer-events-none select-none" 
+              />
+
+              <style>{`
+                .receipt-safe-zone, .receipt-safe-zone * {
+                  font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
+                }
+              `}</style>
+
               <div 
                 className="absolute flex flex-col receipt-safe-zone text-stone-900"
-                style={{
-                  top: '29%',    // 完美避開上方神獸牙齒
-                  bottom: '17%', // 完美避開下方蓮花
-                  left: '16%',   // 完美避開左側龍身
-                  right: '16%'   // 完美避開右側龍身
-                }}
+                style={{ top: '29%', bottom: '17%', left: '16%', right: '16%' }}
               >
                 
-                <div className="text-center shrink-0 mb-2">
+                <div className="text-center shrink-0 mb-3">
                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                {/* 明細區：自動填滿剩餘空間，過長自動捲動，絕不撐開外框 */}
-                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide pr-1">
-                    <div className="pb-1">
+                {/* ✨ 修正點：加上 items-center 讓電腦版也能完美置中 */}
+                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
+                    {/* ✨ 修正點：加上 w-fit 限制寬度，配合父層置中 */}
+                    <div className="pb-1 w-fit max-w-full">
                       <div className="flex gap-2 items-start mb-1.5">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
+                        {/* ✨ 修正點：拔除透明度寫法，改為純色，並強制兩端對齊 */}
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
                         <span className="font-bold leading-snug">{selectedOrder.user_name}</span>
                       </div>
                       <div className="flex gap-2 items-start mb-1.5">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
                         <span className="font-bold leading-snug">{selectedOrder.service_type}</span>
                       </div>
                       <div className="flex gap-2 items-start mb-1.5">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
                         <span className="font-bold leading-snug break-all whitespace-pre-wrap">
                           {formatServiceDetails(selectedOrder.service_details)}
                         </span>
@@ -285,9 +296,8 @@ export default function MemberCenter() {
                     </div>
                 </div>
 
-                {/* 底部文字：永遠被推到安全區的最下方 (bottom 17% 處) */}
                 <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-2">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-1.5">
                     登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
                   </span>
                   <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
