@@ -329,21 +329,34 @@ export default function MemberCenter() {
   <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
 </div>
 
-{/* T5: Body Left - 方案 (X: 75, Y: 110, W: 35) */}
-{/* 🛑 校正重點：left 往右推到 75，這樣視覺上才會剛好在「印」字的下方 */}
+{/* T5-A: Body Left - 方案標題 (獨立固定在上方) */}
 <div 
-  className="absolute z-10 receipt-text text-stone-900"
+  className="absolute z-10 receipt-text text-[#A61D24]"
   style={{ 
-    left: 'calc(75 / 175 * 100%)', /* 👈 已修正：對齊頂部「印」字下方 */
+    left: 'calc(75 / 175 * 100%)', 
     top: 'calc(110 / 300 * 100%)', 
     width: 'calc(35 / 175 * 100%)', 
-    height: 'auto',                               
-    maxHeight: 'calc(120 / 300 * 100%)',          
+    height: 'auto',
     writingMode: 'vertical-rl',
     textOrientation: 'upright'
   }}
 >
-  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
+  <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
+</div>
+
+{/* T5-B: Body Left - 方案黑字內容 (獨立區塊，起始點往下壓) */}
+<div 
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(40 / 175 * 100%)', /* 👈 往左延伸寬度 (70)，爭取足夠的換行空間，但最右側依然對齊 110 */
+    top: 'calc(128 / 300 * 100%)', /* 👈 往下推移 18mm，完美讓出上方「方案」的空間 */
+    width: 'calc(70 / 175 * 100%)', 
+    height: 'auto',                               
+    maxHeight: 'calc(102 / 300 * 100%)', /* 👈 因為起始點下降了 18mm，所以最大高度減去 18，確保依然在蓮花上方停住 */
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
   <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
     {formatServiceDetails(selectedOrder.service_details)}
   </span>
