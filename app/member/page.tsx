@@ -232,7 +232,7 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 乾淨的單一排版區塊 */}
+            {/* 💡 終極直書排版 (Traditional Vertical Layout) */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
               
               <img 
@@ -247,51 +247,58 @@ export default function MemberCenter() {
                 }
               `}</style>
 
+              {/* ✨ 神奇魔法：writingMode: 'vertical-rl' 啟動由右至左直書 */}
               <div 
-                className="absolute flex flex-col receipt-safe-zone text-stone-900"
-                style={{ top: '29%', bottom: '17%', left: '16%', right: '16%' }}
+                className="absolute receipt-safe-zone text-stone-900 flex flex-col justify-between items-center"
+                style={{ 
+                  top: '25%', bottom: '15%', left: '15%', right: '15%', 
+                  writingMode: 'vertical-rl' 
+                }}
               >
                 
-                <div className="text-center shrink-0 mb-3">
-                   <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
-                   <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
+                {/* 1. 標題區 (位於最右側) */}
+                <div className="flex flex-col items-center justify-center h-full">
+                   <h2 className="text-[18px] md:text-[20px] font-bold text-[#A61D24] tracking-[0.2em] leading-none m-0">祈福印記</h2>
+                   {/* 直書中，ml (margin-left) 代表往左邊推一行 */}
+                   <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold ml-2 leading-none m-0">- 大德護持 善神擁護 -</p>
                 </div>
 
-                {/* ✨ 取消外層的 flex items-center */}
-                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide">
-                    
-                    {/* 💡 終極對齊鐵框：用 w-[220px] mx-auto 取代 w-fit */}
-                    <div className="pb-1 w-[220px] mx-auto">
-                      
-                      <div className="flex gap-3 items-start mb-2">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
-                        {/* 💡 加上 flex-1 與 text-left，讓文字靠左對齊，撞到邊界自動完美換行 */}
-                        <span className="font-bold leading-snug flex-1 text-left">{selectedOrder.user_name}</span>
-                      </div>
-                      
-                      <div className="flex gap-3 items-start mb-2">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
-                        <span className="font-bold leading-snug flex-1 text-left">{selectedOrder.service_type}</span>
-                      </div>
-                      
-                      <div className="flex gap-3 items-start mb-2">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
-                        <span className="font-bold leading-snug flex-1 text-left break-words whitespace-pre-wrap">
-                          {formatServiceDetails(selectedOrder.service_details)}
-                        </span>
-                      </div>
-                      
-                    </div>
+                {/* 2. 明細區 (位於中間) - 完全依照您的天才建議！ */}
+                <div className="flex flex-col gap-4 items-start h-[85%] pt-3">
+                   
+                   {/* 第一直行：大德 與 項目 (上下接續) */}
+                   <div className="flex flex-row items-start gap-6">
+                     <div className="flex flex-row items-start">
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0">大德</span>
+                        {/* 直書中，mt (margin-top) 代表往下推 */}
+                        <span className="font-bold leading-snug mt-2">{selectedOrder.user_name}</span>
+                     </div>
+                     <div className="flex flex-row items-start">
+                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0">項目</span>
+                        <span className="font-bold leading-snug mt-2">{selectedOrder.service_type}</span>
+                     </div>
+                   </div>
+
+                   {/* 第二直行：方案 (從右向左自動換行) */}
+                   <div className="flex flex-row items-start max-h-full">
+                      <span className="font-bold text-[#A61D24] tracking-widest shrink-0">方案</span>
+                      {/* 當文字到底部時，會自動像傳統書法一樣向左換行 */}
+                      <span className="font-bold leading-snug mt-2 whitespace-normal break-all" style={{ lineHeight: '1.8' }}>
+                        {formatServiceDetails(selectedOrder.service_details)}
+                      </span>
+                   </div>
+
                 </div>
 
-                <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-1.5">
+                {/* 3. 結尾區 (位於最左側) */}
+                <div className="flex flex-col items-center justify-center h-full">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none m-0">
                     登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
                   </span>
-                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
+                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest ml-2 leading-none m-0">
                     祈求 平安順心 萬事如意
                   </span>
-                  <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] leading-none">
+                  <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] ml-3 leading-none m-0">
                     - 功德 圓滿 -
                   </span>
                 </div>
