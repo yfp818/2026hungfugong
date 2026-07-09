@@ -332,15 +332,16 @@ export default function MemberCenter() {
               {/* T5: Body Left - 方案 (X: 70, Y: 110, W: 30) */}
               {/* 設定 maxHeight 約佔畫面一半(140mm)，迫使文字觸底時向左換行 */}
               <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(50 / 175 * 100%)', 
-                  top: 'calc(110 / 300 * 100%)', 
-                  width: 'calc(35 / 175 * 100%)', 
-                  height: 'calc(120 / 300 * 100%)',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(50 / 175 * 100%)', 
+    top: 'calc(110 / 300 * 100%)', 
+    width: 'calc(35 / 175 * 100%)', 
+    height: 'auto',                               /* 讓高度自然往下長 */
+    maxHeight: 'calc(120 / 300 * 100%)',          /* 🛑 換行防護牆：撞到底部安全界線時強制向左換行 */
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
               >
                 <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
                 <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
