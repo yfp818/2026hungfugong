@@ -254,7 +254,7 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
                 style={{ 
                   left: 'calc(44.5 / 175 * 100%)', 
-                  top: 'calc(90 / 300 * 100%)', 
+                  top: 'calc(85 / 300 * 100%)', 
                   width: 'calc(90 / 175 * 100%)', 
                   height: 'calc(20 / 300 * 100%)' 
                 }}
