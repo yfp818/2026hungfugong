@@ -254,9 +254,9 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
                 style={{ 
                   left: 'calc(42.5 / 175 * 100%)', 
-                  top: 'calc(10 / 300 * 100%)', 
+                  top: 'calc(80 / 300 * 100%)', 
                   width: 'calc(90 / 175 * 100%)', 
-                  height: 'calc(20 / 300 * 100%)' 
+                  height: 'calc(95 / 300 * 100%)' 
                 }}
               >
                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
@@ -275,7 +275,7 @@ export default function MemberCenter() {
                   textOrientation: 'upright'
                 }}
               >
-                <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
+                <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
               </div>
 
               {/* T3: Left Column (X: 3, Y: 75, W: 12, H: 150) */}
@@ -290,7 +290,7 @@ export default function MemberCenter() {
                   textOrientation: 'upright'
                 }}
               >
-                <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
+                <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
               {/* T4: Body Right - 大德 (X: 120, Y: 110, W: 30) */}
@@ -301,7 +301,7 @@ export default function MemberCenter() {
                   left: 'calc(120 / 175 * 100%)', 
                   top: 'calc(110 / 300 * 100%)', 
                   width: 'calc(30 / 175 * 100%)', 
-                  height: 'auto',
+                  height: 'calc(10 / 300 * 100%)',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
@@ -319,7 +319,7 @@ export default function MemberCenter() {
                   left: 'calc(120 / 175 * 100%)', 
                   top: 'calc(160 / 300 * 100%)', 
                   width: 'calc(30 / 175 * 100%)', 
-                  height: 'auto',
+                  height: 'calc(10 / 300 * 100%)',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
@@ -352,12 +352,12 @@ export default function MemberCenter() {
                 className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
                 style={{ 
                   left: 'calc(62.5 / 175 * 100%)', 
-                  top: 'calc(230 / 300 * 100%)', 
+                  top: 'calc(240 / 300 * 100%)', 
                   width: 'calc(50 / 175 * 100%)', 
                   height: 'calc(10 / 300 * 100%)' 
                 }}
               >
-                <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+                <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
               </div>
 
             </div>
