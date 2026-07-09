@@ -232,78 +232,134 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極絕對鎖定 (完全依據陳世碼先生 175x300 座標規範圖精準換算) */}
+            {/* 💡 終極絕對鎖定防禦陣型 (依據陳世碼先生 175x300 座標規範圖，使用純粹的 left/top calc 公式) */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
+              {/* 底圖，撐開整體高寬比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
                 className="w-full h-auto block pointer-events-none select-none relative z-0" 
               />
 
+              {/* 確保直立中文字顯示正常 */}
               <style>{`
                 .receipt-text {
                   font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
                 }
-                .v-text {
-                  writing-mode: vertical-rl;
-                  text-orientation: upright;
-                }
-                .v-label {
-                  display: inline-block;
-                  margin-bottom: 0.8rem;
-                }
               `}</style>
 
-              {/* T1: Top Header (X: 42.5, Y: 10, W: 90, H: 20) => Left: 24.28%, Top: 3.33%, W: 51.42%, H: 6.66% */}
-              <div className="absolute z-10 receipt-text flex flex-col items-center justify-center"
-                   style={{ left: '24.28%', top: '3.33%', width: '51.42%', height: '6.66%' }}>
+              {/* T1: Top Header (X: 42.5, Y: 10, W: 90, H: 20) */}
+              <div 
+                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+                style={{ 
+                  left: 'calc(42.5 / 175 * 100%)', 
+                  top: 'calc(10 / 300 * 100%)', 
+                  width: 'calc(90 / 175 * 100%)', 
+                  height: 'calc(20 / 300 * 100%)' 
+                }}
+              >
                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* T2: Right Column (X: 160, Y: 75, W: 12, H: 150) => Left: 91.42%, Top: 25.00%, W: 6.85%, H: 50.00% */}
-              <div className="absolute z-10 receipt-text v-text text-[#A61D24] flex items-center justify-center"
-                   style={{ left: '91.42%', top: '25.00%', width: '6.85%', height: '50.00%' }}>
+              {/* T2: Right Column (X: 160, Y: 75, W: 12, H: 150) */}
+              <div 
+                className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
+                style={{ 
+                  left: 'calc(160 / 175 * 100%)', 
+                  top: 'calc(75 / 300 * 100%)', 
+                  width: 'calc(12 / 175 * 100%)', 
+                  height: 'calc(150 / 300 * 100%)',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
                 <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
               </div>
 
-              {/* T3: Left Column (X: 3, Y: 75, W: 12, H: 150) => Left: 1.71%, Top: 25.00%, W: 6.85%, H: 50.00% */}
-              <div className="absolute z-10 receipt-text v-text text-[#A61D24] flex items-center justify-center"
-                   style={{ left: '1.71%', top: '25.00%', width: '6.85%', height: '50.00%' }}>
+              {/* T3: Left Column (X: 3, Y: 75, W: 12, H: 150) */}
+              <div 
+                className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
+                style={{ 
+                  left: 'calc(3 / 175 * 100%)', 
+                  top: 'calc(75 / 300 * 100%)', 
+                  width: 'calc(12 / 175 * 100%)', 
+                  height: 'calc(150 / 300 * 100%)',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
                 <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
-              {/* T4: Body (Right) - 大德 (X: 120, Y: 110, W: 30) => Left: 68.57%, Top: 36.66%, W: 17.14% */}
-              {/* 高度不限制，讓名字自然延伸 */}
-              <div className="absolute z-10 receipt-text v-text text-stone-900"
-                   style={{ left: '68.57%', top: '36.66%', width: '17.14%' }}>
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-label">大德</span>
+              {/* T4: Body Right - 大德 (X: 120, Y: 110, W: 30) */}
+              {/* 高度設定為 auto，讓文字向下延伸 */}
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(120 / 175 * 100%)', 
+                  top: 'calc(110 / 300 * 100%)', 
+                  width: 'calc(30 / 175 * 100%)', 
+                  height: 'auto',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                {/* marginBottom 控制標籤與內容的距離 */}
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
                 <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
               </div>
 
-              {/* T6: Body (Sub) - 項目 (X: 120, Y: 160, W: 30) => Left: 68.57%, Top: 53.33%, W: 17.14% */}
-              <div className="absolute z-10 receipt-text v-text text-stone-900"
-                   style={{ left: '68.57%', top: '53.33%', width: '17.14%' }}>
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-label">項目</span>
+              {/* T6: Body Sub - 項目 (X: 120, Y: 160, W: 30) */}
+              {/* 高度設定為 auto，讓文字向下延伸 */}
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(120 / 175 * 100%)', 
+                  top: 'calc(160 / 300 * 100%)', 
+                  width: 'calc(30 / 175 * 100%)', 
+                  height: 'auto',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
                 <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
               </div>
 
-              {/* T5: Body (Left) - 方案 (X: 70, Y: 110, W: 30) => Left: 40.00%, Top: 36.66%, W: 17.14% */}
-              {/* 高度限制到 35% 防止過長超出底線，寬度 17.14% 確保它能在內部自動換行 */}
-              <div className="absolute z-10 receipt-text v-text text-stone-900"
-                   style={{ left: '40.00%', top: '36.66%', width: '17.14%', maxHeight: '35%' }}>
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-label">方案</span>
-                <span className="font-bold text-[11px] md:text-[12px] leading-loose tracking-widest whitespace-pre-wrap break-all">
+              {/* T5: Body Left - 方案 (X: 70, Y: 110, W: 30) */}
+              {/* 設定 maxHeight 約佔畫面一半(140mm)，迫使文字觸底時向左換行 */}
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(70 / 175 * 100%)', 
+                  top: 'calc(110 / 300 * 100%)', 
+                  width: 'calc(30 / 175 * 100%)', 
+                  height: 'calc(140 / 300 * 100%)',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
+                <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
                   {formatServiceDetails(selectedOrder.service_details)}
                 </span>
               </div>
 
-              {/* T7: Footer (X: 62.5, Y: 230, W: 50, H: 10) => Left: 35.71%, Top: 76.66%, W: 28.57%, H: 3.33% */}
-              <div className="absolute z-10 receipt-text flex items-center justify-center text-center"
-                   style={{ left: '35.71%', top: '76.66%', width: '28.57%', height: '3.33%' }}>
+              {/* T7: Footer (X: 62.5, Y: 230, W: 50, H: 10) */}
+              <div 
+                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+                style={{ 
+                  left: 'calc(62.5 / 175 * 100%)', 
+                  top: 'calc(230 / 300 * 100%)', 
+                  width: 'calc(50 / 175 * 100%)', 
+                  height: 'calc(10 / 300 * 100%)' 
+                }}
+              >
                 <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
               </div>
+
             </div>
             
           </div>
