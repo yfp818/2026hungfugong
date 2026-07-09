@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Camera } from "lucide-react"; // ✨ 引入專業線條圖示取代 Emoji
 
 export default function GlobalCartPage() {
   const { data: session } = useSession();
@@ -83,32 +84,25 @@ export default function GlobalCartPage() {
     clearCart(); 
   };
 
-  // ✨ 智慧明細濾網 (升級版：只留前三個方案)
+  // ✨ 同步最新智慧過濾器 (結合「只留 3 個方案」的邏輯)
   const parseItemDetails = (item: any) => {
-    let title = "";
-    let optionsArray: string[] = [];
+    const serviceName = item.serviceType === 'booking' ? '濟事問事' : item.serviceType === 'lamp' ? '當月點燈' : '代燒服務';
 
-    if (item.itemDetails.includes("特辦活動:")) {
-      const lines = item.itemDetails.split('\n');
-      const titleLine = lines.find((l: string) => l.startsWith('特辦活動:'));
-      const optLine = lines.find((l: string) => l.startsWith('報名方案:'));
+    // 1. 先把生硬的標題、數量、金額全部洗掉，並把換行轉成頓號
+    let rawString = item.itemDetails
+      .replace(/特辦活動:?\s*/g, '')
+      .replace(/報名方案:?\s*/g, '')
+      .replace(/\n/g, '、')
+      .replace(/\s*x\d+/g, '')
+      .replace(/\s*\(\$\d+\)/g, '')
+      .trim();
 
-      title = titleLine ? titleLine.replace('特辦活動:', '').trim() : '限時特辦活動';
-      const optString = optLine ? optLine.replace('報名方案:', '').replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim() : '';
-      optionsArray = optString.split('、').map((s: string) => s.trim()).filter(Boolean);
-    } else {
-      title = item.serviceType === 'lamp' ? '當月點燈祈福' : item.serviceType === 'burning' ? '代燒祈福服務' : item.serviceType === 'booking' ? '濟事問事' : '祈福項目';
-      optionsArray = item.itemDetails
-        .split('、')
-        .map((s: string) => s.split(' x')[0].trim()) 
-        .filter(Boolean);
-    }
-
-    // ✨ 規則：只留下三個方案，超過則加上「等」字
+    // 2. 切割成陣列，執行「最多只留三個方案」的規則
+    let optionsArray = rawString.split('、').map((s: string) => s.trim()).filter(Boolean);
     const limitedOptions = optionsArray.slice(0, 3).join('、');
-    const options = optionsArray.length > 3 ? limitedOptions + ' 等' : limitedOptions;
+    const finalOptions = optionsArray.length > 3 ? limitedOptions + ' 等' : limitedOptions;
 
-    return { title, options };
+    return { serviceName, finalOptions };
   };
 
   return (
@@ -141,7 +135,10 @@ export default function GlobalCartPage() {
                               {item.serviceType === 'booking' ? '問事' : item.serviceType === 'lamp' ? '點燈' : '代燒'}
                             </span>
                           </div>
-                          <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">{item.itemDetails}</p>
+                          {/* 購物車列表稍微清理生硬標題，但保留數量與金額供確認 */}
+                          <p className="text-stone-600 text-sm leading-relaxed whitespace-pre-wrap">
+                            {item.itemDetails.replace(/特辦活動:?\s*/g, '').replace(/報名方案:?\s*/g, '')}
+                          </p>
                         </div>
                         <div className="flex flex-col items-end justify-between h-full min-h-[60px]">
                           <span className="font-bold text-stone-800">${item.price}</span>
@@ -176,13 +173,13 @@ export default function GlobalCartPage() {
         </div>
       )}
 
-      {/* ✨ 購物車專屬：神尊圖騰法旨小票成功畫面 (純粹疏文風) */}
+      {/* ✨ 購物車專屬：神尊圖騰祈福印記成功畫面 */}
       {step === 2 && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
           
-          <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-sm animate-pulse w-full max-w-[320px]">
-            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            <span className="tracking-widest">貼心小提示：請先截圖保存此祈福印記</span>
+          <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
+             <Camera size={14} className="shrink-0" />
+             <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
 
           <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto flex">
@@ -194,36 +191,39 @@ export default function GlobalCartPage() {
 
             <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
               
+              {/* ✨ 補回大德護持副標題 */}
               <div className="text-center mb-5">
                  <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* ✨ 購物車多筆明細：大德/明細/方案 */}
+              {/* ✨ 購物車多筆明細：大德/項目/方案 */}
               <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
                 {cartItems.map((item, idx) => {
-                  const { title, options } = parseItemDetails(item);
+                  const { serviceName, finalOptions } = parseItemDetails(item);
                   return (
-                    <div key={idx} className="border-b border-[#D89F3C]/30 pb-2 mb-2 last:border-none">
+                    <div key={idx} className="border-b border-[#D89F3C]/30 pb-3 mb-2 last:border-none">
                       <div className="flex gap-2 items-start">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
                         <span className="font-bold text-stone-900 leading-snug">{item.userName}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">明細</span>
-                        <span className="font-bold text-stone-900 leading-snug">{title}</span>
+                      <div className="flex gap-2 items-start mt-1.5">
+                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
+                        <span className="font-bold text-stone-900 leading-snug">{serviceName}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1">
+                      <div className="flex gap-2 items-start mt-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        {/* ✨ 移除截斷，讓文字在約12-13字處自然換行 */}
-                        <span className="font-bold text-stone-900 leading-snug break-words">{options}</span>
+                        <span className="font-bold text-stone-900 leading-snug break-words">{finalOptions}</span>
                       </div>
                     </div>
                   );
                 })}
 
-                {/* ✨ 正式疏文風底部：天運歲次與圓滿 */}
+                {/* 底部疏文結尾區 */}
                 <div className="text-center mt-6 mb-2 flex flex-col items-center justify-center gap-1.5 border-t border-[#D89F3C]/30 pt-4">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">天運歲次 登記吉日</span>
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
+                    天運歲次 登記吉日
+                  </span>
                   <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest">祈求 平安順心 萬事如意</span>
                   <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] mt-1">- 功德 圓滿 -</span>
                 </div>

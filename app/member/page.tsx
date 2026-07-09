@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-// ✨ 移除了 Emoji，引入了合適的線條圖示：FileText(文件/印記), Camera(相機/截圖), Info(提示)
 import { Calendar, History, Wallet, UserCircle, MapPin, Phone, Edit3, X, FileText, Camera, Info } from "lucide-react"; 
 
 export default function MemberCenter() {
@@ -56,6 +55,18 @@ export default function MemberCenter() {
       alert("資料已更新！這將幫助您未來填寫表單時更加快速。");
       setIsEditingProfile(false);
     }
+  };
+
+  // ✨ 智慧明細濾網：專門把資料庫裡那些生硬的標題、數量、金額洗乾淨
+  const formatServiceDetails = (details: string) => {
+    if (!details) return "";
+    return details
+      .replace(/特辦活動:?\s*/g, '')  // 消除「特辦活動:」
+      .replace(/報名方案:?\s*/g, '')  // 消除「報名方案:」
+      .replace(/認捐方案:?\s*/g, '')  // 消除「認捐方案:」
+      .replace(/\s*x\d+/g, '')        // 消除「x數量」
+      .replace(/\s*\(\$\d+\)/g, '')   // 消除「($金額)」
+      .trim();
   };
 
   if (status === "loading") {
@@ -146,7 +157,6 @@ export default function MemberCenter() {
                  <div className="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center shrink-0"><MapPin size={16} className="text-stone-400"/></div>
                  <div><p className="text-xs font-bold text-stone-400 tracking-widest mb-1">通訊地址</p><p className="font-medium text-stone-800 leading-relaxed">{profile.address || "尚未設定"}</p></div>
               </div>
-              {/* ✨ 移除燈泡 Emoji，改用純淨排版 */}
               <p className="text-[10px] text-stone-400 tracking-widest pt-2 flex items-center gap-1.5">
                 <Info size={12} className="shrink-0" />
                 設定後，未來報名各項服務將會自動帶入，節省您的時間。
@@ -176,9 +186,9 @@ export default function MemberCenter() {
                       <span className="text-xs font-bold px-3 py-1 rounded-full tracking-widest bg-stone-100 text-stone-600">{order.service_type}</span>
                       <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
                     </div>
-                    {/* 清理金額字串，讓前台列表保持乾淨 */}
+                    {/* ✨ 列表上的文字也會套用過濾器，保持乾淨 */}
                     <p className="font-bold text-stone-800 line-clamp-2 text-sm md:text-base">
-                      {order.service_details.replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim()}
+                      {formatServiceDetails(order.service_details)}
                     </p>
                     {order.bank_last_5 && <p className="text-xs font-bold text-stone-500 tracking-widest">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
                   </div>
@@ -191,10 +201,8 @@ export default function MemberCenter() {
                          onClick={() => setSelectedOrder(order)}
                          className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
                        >
-                         {/* ✨ 改用 Lucide 的文件圖示代替捲軸 Emoji */}
                          <FileText size={12} /> 祈福印記
                        </button>
-                       {/* ✨ 移除打勾跟漏斗的 Emoji，改為純粹俐落的文字標籤 */}
                        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-500 border border-stone-200'}`}>
                          {order.status === 'completed' ? '已處理圓滿' : '等待對帳中'}
                        </span>
@@ -228,7 +236,6 @@ export default function MemberCenter() {
 
             {/* 截圖提示 */}
             <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
-               {/* ✨ 改用 Lucide 相機圖示代替 Emoji */}
                <Camera size={14} className="shrink-0" />
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
@@ -242,8 +249,10 @@ export default function MemberCenter() {
               />
               <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
                 
+                {/* ✨ 標題區：補回大德護持功德圓滿 */}
                 <div className="text-center mb-5">
                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+                   <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
                 <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
@@ -258,12 +267,14 @@ export default function MemberCenter() {
                       </div>
                       <div className="flex gap-2 items-start mt-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
+                        {/* ✨ 智慧顯示：套用過濾器，只留下乾淨的祈福內容 */}
                         <span className="font-bold text-stone-900 leading-snug break-words">
-                          {selectedOrder.service_details.replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim()}
+                          {formatServiceDetails(selectedOrder.service_details)}
                         </span>
                       </div>
                     </div>
 
+                    {/* 底部疏文結尾區 */}
                     <div className="text-center mt-5 mb-1 flex flex-col items-center justify-center gap-1.5 pt-2">
                       <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
                         登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
