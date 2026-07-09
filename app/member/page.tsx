@@ -232,50 +232,65 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 同步購物車的絕對定位架構 */}
-            {/* 💡 終極防翻車架構：鎖死中央安全區，避開神獸牙齒與蓮花 */}
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto">
+            {/* 💡 終極防跑版架構：捨棄 Padding，改用四面座標鎖死安全區 */}
+            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
               
+              {/* 圖片做為基底，撐開高度，決定真實比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
-                className="w-full h-auto object-contain rounded-xl block pointer-events-none" 
+                className="w-full h-auto block pointer-events-none select-none" 
               />
-              
-              {/* ✨ 修正 1：加回 items-center，並將上方 padding 加大到 40% 避開牙齒 */}
-              <div className="absolute inset-0 z-10 w-full flex flex-col items-center pt-[40%] pb-[22%] px-[10%]">
+
+              {/* ✨ 強制字型補丁：確保手機與所有瀏覽器都能正確渲染宋體 */}
+              <style>{`
+                .receipt-safe-zone, .receipt-safe-zone * {
+                  font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
+                }
+              `}</style>
+
+              {/* ✨ 真・絕對定位：直接綁定圖片比例的 29% ~ 17% 作為安全邊界 */}
+              <div 
+                className="absolute flex flex-col receipt-safe-zone text-stone-900"
+                style={{
+                  top: '29%',    // 完美避開上方神獸牙齒
+                  bottom: '17%', // 完美避開下方蓮花
+                  left: '16%',   // 完美避開左側龍身
+                  right: '16%'   // 完美避開右側龍身
+                }}
+              >
                 
-                <div className="text-center shrink-0 mb-3">
-                   <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+                <div className="text-center shrink-0 mb-2">
+                   <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                {/* ✨ 修正 2：補回 max-w-[200px] 緊箍咒，強迫文字只能在中間空白處換行 */}
-                <div className="w-full max-w-[200px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 scrollbar-hide">
-                    <div className="pb-2">
-                      <div className="flex gap-2 items-start">
+                {/* 明細區：自動填滿剩餘空間，過長自動捲動，絕不撐開外框 */}
+                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide pr-1">
+                    <div className="pb-1">
+                      <div className="flex gap-2 items-start mb-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
-                        <span className="font-bold text-stone-900 leading-snug">{selectedOrder.user_name}</span>
+                        <span className="font-bold leading-snug">{selectedOrder.user_name}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mb-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
-                        <span className="font-bold text-stone-900 leading-snug">{selectedOrder.service_type}</span>
+                        <span className="font-bold leading-snug">{selectedOrder.service_type}</span>
                       </div>
-                      <div className="flex gap-2 items-start mt-1.5">
+                      <div className="flex gap-2 items-start mb-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        <span className="font-bold text-stone-900 leading-snug break-all whitespace-pre-wrap">
+                        <span className="font-bold leading-snug break-all whitespace-pre-wrap">
                           {formatServiceDetails(selectedOrder.service_details)}
                         </span>
                       </div>
                     </div>
                 </div>
 
-                {/* ✨ 修正 3：底部內容適度縮減間距，安全降落在蓮花正上方 */}
-                <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-2">
+                {/* 底部文字：永遠被推到安全區的最下方 (bottom 17% 處) */}
+                <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-2">
                     登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
                   </span>
-                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2.5">
+                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
                     祈求 平安順心 萬事如意
                   </span>
                   <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] leading-none">
