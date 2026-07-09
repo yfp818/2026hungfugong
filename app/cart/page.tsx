@@ -83,10 +83,10 @@ export default function GlobalCartPage() {
     clearCart(); 
   };
 
-  // ✨ 智慧明細濾網：把「包含數量、價錢的原始字串」，洗成最乾淨漂亮的顯示格式
+  // ✨ 智慧明細濾網 (升級版：只留前三個方案)
   const parseItemDetails = (item: any) => {
     let title = "";
-    let options = "";
+    let optionsArray: string[] = [];
 
     if (item.itemDetails.includes("特辦活動:")) {
       const lines = item.itemDetails.split('\n');
@@ -94,16 +94,19 @@ export default function GlobalCartPage() {
       const optLine = lines.find((l: string) => l.startsWith('報名方案:'));
 
       title = titleLine ? titleLine.replace('特辦活動:', '').trim() : '限時特辦活動';
-      // 用正則表達式把 "x數量" 跟 "($價錢)" 完全消除
-      options = optLine ? optLine.replace('報名方案:', '').replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim() : '';
+      const optString = optLine ? optLine.replace('報名方案:', '').replace(/\s*x\d+/g, '').replace(/\s*\(\$\d+\)/g, '').trim() : '';
+      optionsArray = optString.split('、').map((s: string) => s.trim()).filter(Boolean);
     } else {
       title = item.serviceType === 'lamp' ? '當月點燈祈福' : item.serviceType === 'burning' ? '代燒祈福服務' : item.serviceType === 'booking' ? '濟事問事' : '祈福項目';
-      // 將 "祝壽燈 x1 ($600)、桃花燈 x1 ($600)" 洗成 "祝壽燈、桃花燈"
-      options = item.itemDetails
+      optionsArray = item.itemDetails
         .split('、')
         .map((s: string) => s.split(' x')[0].trim()) 
-        .join('、');
+        .filter(Boolean);
     }
+
+    // ✨ 規則：只留下三個方案，超過則加上「等」字
+    const limitedOptions = optionsArray.slice(0, 3).join('、');
+    const options = optionsArray.length > 3 ? limitedOptions + ' 等' : limitedOptions;
 
     return { title, options };
   };
@@ -173,67 +176,57 @@ export default function GlobalCartPage() {
         </div>
       )}
 
-      {/* ✨ 購物車專屬：神尊圖騰法旨小票成功畫面 */}
+      {/* ✨ 購物車專屬：神尊圖騰法旨小票成功畫面 (純粹疏文風) */}
       {step === 2 && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
           
           <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-sm animate-pulse w-full max-w-[320px]">
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            <span className="tracking-widest">貼心小提示：請先截圖保存此合併憑證</span>
+            <span className="tracking-widest">貼心小提示：請先截圖保存此祈福印記</span>
           </div>
 
           <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto flex">
             <img 
               src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
-              alt="皇府宮合併法旨" 
+              alt="祈福印記" 
               className="absolute inset-0 w-full h-full object-fill rounded-xl" 
             />
 
-            <div className="relative z-10 w-full pt-[45%] pb-[25%] px-[20%] flex flex-col items-center">
+            <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
               
-              <div className="text-center mb-4">
-                 <h2 className="text-[15px] md:text-[17px] font-bold text-[#A61D24] font-serif tracking-widest mb-1">祈福合併存根</h2>
-                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 神明庇佑</p>
+              <div className="text-center mb-5">
+                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
               </div>
 
-              {/* ✨ 購物車多筆明細：大德/明細/方案 的全新排版 */}
-              <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[160px] scrollbar-hide">
+              {/* ✨ 購物車多筆明細：大德/明細/方案 */}
+              <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
                 {cartItems.map((item, idx) => {
                   const { title, options } = parseItemDetails(item);
                   return (
                     <div key={idx} className="border-b border-[#D89F3C]/30 pb-2 mb-2 last:border-none">
                       <div className="flex gap-2 items-start">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
-                        <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{item.userName}</span>
+                        <span className="font-bold text-stone-900 leading-snug">{item.userName}</span>
                       </div>
                       <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">明細</span>
-                        <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{title}</span>
+                        <span className="font-bold text-stone-900 leading-snug">{title}</span>
                       </div>
                       <div className="flex gap-2 items-start mt-1">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{options}</span>
+                        {/* ✨ 移除截斷，讓文字在約12-13字處自然換行 */}
+                        <span className="font-bold text-stone-900 leading-snug break-words">{options}</span>
                       </div>
                     </div>
                   );
                 })}
-                
-                {/* ✨ 功德圓滿 結語 */}
-                <div className="text-center mt-4 mb-2">
-                  <span className="text-[10px] md:text-[11px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+
+                {/* ✨ 正式疏文風底部：天運歲次與圓滿 */}
+                <div className="text-center mt-6 mb-2 flex flex-col items-center justify-center gap-1.5 border-t border-[#D89F3C]/30 pt-4">
+                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">天運歲次 登記吉日</span>
+                  <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest">祈求 平安順心 萬事如意</span>
+                  <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] mt-1">- 功德 圓滿 -</span>
                 </div>
-              </div>
-
-              <div className="w-full max-w-[190px] border-t border-stone-300 mt-2 pt-2 text-[11px] md:text-[12px] font-serif flex gap-2 items-start">
-                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">核銷</span>
-                  <span className="font-bold text-stone-900 font-sans tracking-wider leading-snug">{bankLast5}</span>
-              </div>
-
-              <div className="text-center mt-5">
-                 <span className="block text-[10px] md:text-[11px] font-bold text-[#A61D24]/80 tracking-widest font-serif mb-1">合併功德金</span>
-                 <span className="text-2xl md:text-3xl font-bold text-[#A61D24] font-mono leading-none block drop-shadow-sm">
-                   ${totalCartPrice}
-                 </span>
               </div>
 
             </div>
