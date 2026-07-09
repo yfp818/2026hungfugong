@@ -232,134 +232,80 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極絕對鎖定防禦陣型 (依據陳世碼先生 175x300 座標規範圖，使用純粹的 left/top calc 公式) */}
-<div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
-  
-  {/* 底圖，撐開整體高寬比例 */}
-  <img 
-    src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
-    alt="祈福印記" 
-    className="w-full h-auto block pointer-events-none select-none relative z-0" 
-  />
+            {/* T1: 頂部標題 - 下降到白底區域 */}
+<div 
+  className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+  style={{ 
+    left: 'calc(42.5 / 175 * 100%)', 
+    top: 'calc(90 / 300 * 100%)', /* 修正回 90 */
+    width: 'calc(90 / 175 * 100%)', 
+    height: 'calc(20 / 300 * 100%)' 
+  }}
+>
+  <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
+  <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
+</div>
 
-  {/* 確保直立中文字顯示正常 */}
-  <style>{`
-    .receipt-text {
-      font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
-    }
-  `}</style>
+{/* T2: 右側直行 (天運歲次) - 改用 justify-start 靠上對齊 */}
+<div 
+  className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-start" /* 改為 justify-start */
+  style={{ 
+    left: 'calc(160 / 175 * 100%)', 
+    top: 'calc(90 / 300 * 100%)', /* 微調起始高度 */
+    width: 'calc(12 / 175 * 100%)', 
+    height: 'calc(150 / 300 * 100%)',
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
+</div>
 
-  {/* T1: Top Header (X: 42.5, Y: 10, W: 90, H: 20) - 🛑 已修正：回歸頂部位置 */}
-  <div 
-    className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-    style={{ 
-      left: 'calc(42.5 / 175 * 100%)', 
-      top: 'calc(10 / 300 * 100%)', 
-      width: 'calc(90 / 175 * 100%)', 
-      height: 'calc(20 / 300 * 100%)' 
-    }}
-  >
-    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
-    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
-  </div>
+{/* T3: 左側直行 (祈求平安) - 改用 justify-start 靠上對齊 */}
+<div 
+  className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-start" /* 改為 justify-start */
+  style={{ 
+    left: 'calc(3 / 175 * 100%)', 
+    top: 'calc(90 / 300 * 100%)', /* 確保與右邊相同 */
+    width: 'calc(12 / 175 * 100%)', 
+    height: 'calc(150 / 300 * 100%)',
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
+</div>
 
-  {/* T2: Right Column (X: 160, Y: 75, W: 12, H: 150) */}
-  <div 
-    className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-    style={{ 
-      left: 'calc(160 / 175 * 100%)', 
-      top: 'calc(75 / 300 * 100%)', 
-      width: 'calc(12 / 175 * 100%)', 
-      height: 'calc(150 / 300 * 100%)',
-      writingMode: 'vertical-rl',
-      textOrientation: 'upright'
-    }}
-  >
-    <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
-  </div>
+{/* T4: 中央右側 - 大德 - 向左平移避免撞龍 */}
+<div 
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(90 / 175 * 100%)', /* 從 120 往左移到 90 */
+    top: 'calc(120 / 300 * 100%)', 
+    width: 'calc(45 / 175 * 100%)', /* 加大寬度容納長文字 */
+    height: 'auto',
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
+  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
+</div>
 
-  {/* T3: Left Column (X: 3, Y: 75, W: 12, H: 150) */}
-  <div 
-    className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-    style={{ 
-      left: 'calc(3 / 175 * 100%)', 
-      top: 'calc(75 / 300 * 100%)', 
-      width: 'calc(12 / 175 * 100%)', 
-      height: 'calc(150 / 300 * 100%)',
-      writingMode: 'vertical-rl',
-      textOrientation: 'upright'
-    }}
-  >
-    <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
-  </div>
-
-  {/* T4: Body Right - 大德 (X: 120, Y: 110, W: 30) - 🛑 已修正：寬度改回30防重疊 */}
-  {/* 高度設定為 auto，讓文字向下延伸 */}
-  <div 
-    className="absolute z-10 receipt-text text-stone-900"
-    style={{ 
-      left: 'calc(120 / 175 * 100%)', 
-      top: 'calc(110 / 300 * 100%)', 
-      width: 'calc(30 / 175 * 100%)', 
-      height: 'auto',
-      writingMode: 'vertical-rl',
-      textOrientation: 'upright'
-    }}
-  >
-    {/* marginBottom 控制標籤與內容的距離 */}
-    <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
-    <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
-  </div>
-
-  {/* T6: Body Sub - 項目 (X: 120, Y: 160, W: 30) - 🛑 已修正：寬度改回30防重疊 */}
-  {/* 高度設定為 auto，讓文字向下延伸 */}
-  <div 
-    className="absolute z-10 receipt-text text-stone-900"
-    style={{ 
-      left: 'calc(120 / 175 * 100%)', 
-      top: 'calc(160 / 300 * 100%)', 
-      width: 'calc(30 / 175 * 100%)', 
-      height: 'auto',
-      writingMode: 'vertical-rl',
-      textOrientation: 'upright'
-    }}
-  >
-    <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
-    <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
-  </div>
-
-  {/* T5: Body Left - 方案 (X: 70, Y: 110, W: 30) */}
-  {/* 設定 maxHeight 約佔畫面一半(140mm)，迫使文字觸底時向左換行 */}
-  <div 
-    className="absolute z-10 receipt-text text-stone-900"
-    style={{ 
-      left: 'calc(70 / 175 * 100%)', 
-      top: 'calc(110 / 300 * 100%)', 
-      width: 'calc(30 / 175 * 100%)', 
-      height: 'calc(140 / 300 * 100%)',
-      writingMode: 'vertical-rl',
-      textOrientation: 'upright'
-    }}
-  >
-    <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>方案</span>
-    <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
-      {formatServiceDetails(selectedOrder.service_details)}
-    </span>
-  </div>
-
-  {/* T7: Footer (X: 62.5, Y: 240, W: 50, H: 10) */}
-  <div 
-    className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-    style={{ 
-      left: 'calc(62.5 / 175 * 100%)', 
-      top: 'calc(240 / 300 * 100%)', 
-      width: 'calc(50 / 175 * 100%)', 
-      height: 'calc(10 / 300 * 100%)' 
-    }}
-  >
-    <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
-  </div>
-
+{/* T6: 中央副標 - 項目 - (如果有使用的話，同 T4 參數) */}
+<div 
+  className="absolute z-10 receipt-text text-stone-900"
+  style={{ 
+    left: 'calc(90 / 175 * 100%)', /* 從 120 往左移到 90 */
+    top: 'calc(170 / 300 * 100%)', 
+    width: 'calc(45 / 175 * 100%)', 
+    height: 'auto',
+    writingMode: 'vertical-rl',
+    textOrientation: 'upright'
+  }}
+>
+  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
+  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
 </div>
             
           </div>
