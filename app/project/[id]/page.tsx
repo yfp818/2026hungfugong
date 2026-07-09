@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useSession, signIn } from "next-auth/react";
 import ShareButton from "@/components/ShareButton";
-import { Camera } from "lucide-react"; // ✨ 引入專業線條圖示取代 Emoji
+import { Camera } from "lucide-react"; 
 
 export default function SpecialProjectPage() {
   const params = useParams();
@@ -15,16 +15,15 @@ export default function SpecialProjectPage() {
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 表單狀態
   const [name, setName] = useState("");
-  const [targetName, setTargetName] = useState(""); // 祈福對象
+  const [targetName, setTargetName] = useState(""); 
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [address, setAddress] = useState("");
   const [selectedOptIdx, setSelectedOptIdx] = useState(0);
   const [customAmount, setCustomAmount] = useState("");
   const [bankLast5, setBankLast5] = useState("");
-  const [memo, setMemo] = useState(""); // 祈福心願
+  const [memo, setMemo] = useState(""); 
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -60,7 +59,6 @@ export default function SpecialProjectPage() {
 
     setIsSubmitting(true);
     
-    // 將信眾的祈福對象與心願一併打包進服務明細中
     const finalDetails = `認捐方案: ${selectedOption.title}${targetName ? `\n祈福對象: ${targetName}` : ""}${memo ? `\n祈福心願: ${memo}` : ""}`;
 
     const { error } = await supabase.from("special_project_orders").insert([{
@@ -95,9 +93,11 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // ✨ 成功畫面：完全同步「無金額疏文風」的祈福印記
   if (isSuccess) return (
     <main className="min-h-screen bg-[#FAF7F0] pt-12 pb-16 px-4 flex items-center justify-center">
+      
+      <style>{`#global-cart-btn { display: none !important; }`}</style>
+
       <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
         
         <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
@@ -112,15 +112,16 @@ export default function SpecialProjectPage() {
             className="absolute inset-0 w-full h-full object-fill rounded-xl" 
           />
 
-          <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
+          {/* ✨ 排版與線條完美優化 */}
+          <div className="relative z-10 w-full pt-[36%] pb-[25%] px-[18%] flex flex-col items-center">
             
             <div className="text-center mb-5">
                <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
-               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 功德圓滿 -</p>
+               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
             </div>
 
-            <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
-              <div className="border-b border-[#D89F3C]/30 pb-3 mb-2">
+            <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[190px] scrollbar-hide">
+              <div className="pb-3 mb-2">
                 <div className="flex gap-2 items-start">
                   <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
                   <span className="font-bold text-stone-900 leading-snug">{targetName || name}</span>
@@ -135,8 +136,7 @@ export default function SpecialProjectPage() {
                 </div>
               </div>
 
-              {/* 底部疏文結尾區 */}
-              <div className="text-center mt-5 mb-1 flex flex-col items-center justify-center gap-1.5 pt-2">
+              <div className="text-center mt-3 mb-2 flex flex-col items-center justify-center gap-1.5">
                 <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
                   天運歲次 登記吉日
                 </span>
@@ -183,7 +183,6 @@ export default function SpecialProjectPage() {
 
           <form onSubmit={handleSubmit} className="space-y-10">
             
-            {/* 1. 選擇方案 */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第一步：選擇護持方案</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -209,7 +208,6 @@ export default function SpecialProjectPage() {
               )}
             </div>
 
-            {/* 2. 專屬匯款資訊 */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第二步：請匯款至專屬對帳戶</h3>
               <div className="bg-gradient-to-br from-[#D89F3C] to-[#c48d2e] text-white p-8 rounded-2xl shadow-lg tracking-wider relative overflow-hidden">
@@ -219,7 +217,6 @@ export default function SpecialProjectPage() {
               </div>
             </div>
 
-            {/* 3. 填寫資料 */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第三步：填寫登記資料</h3>
               
@@ -230,7 +227,6 @@ export default function SpecialProjectPage() {
                 </div>
               )}
 
-              {/* ✨ 升級：加上明確的標題 Label，讓「祈福對象」一目了然 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">聯絡人姓名</label>

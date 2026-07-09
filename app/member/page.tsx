@@ -57,15 +57,14 @@ export default function MemberCenter() {
     }
   };
 
-  // ✨ 智慧明細濾網：專門把資料庫裡那些生硬的標題、數量、金額洗乾淨
   const formatServiceDetails = (details: string) => {
     if (!details) return "";
     return details
-      .replace(/特辦活動:?\s*/g, '')  // 消除「特辦活動:」
-      .replace(/報名方案:?\s*/g, '')  // 消除「報名方案:」
-      .replace(/認捐方案:?\s*/g, '')  // 消除「認捐方案:」
-      .replace(/\s*x\d+/g, '')        // 消除「x數量」
-      .replace(/\s*\(\$\d+\)/g, '')   // 消除「($金額)」
+      .replace(/特辦活動:?\s*/g, '')
+      .replace(/報名方案:?\s*/g, '')
+      .replace(/認捐方案:?\s*/g, '')
+      .replace(/\s*x\d+/g, '')
+      .replace(/\s*\(\$\d+\)/g, '')
       .trim();
   };
 
@@ -89,7 +88,6 @@ export default function MemberCenter() {
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] pb-32">
-      {/* 頂部裝飾區塊 */}
       <div className="bg-[#1A432D] pt-24 pb-32 px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
         <div className="max-w-4xl mx-auto relative z-10 text-center text-white">
@@ -100,7 +98,6 @@ export default function MemberCenter() {
 
       <div className="max-w-4xl mx-auto px-6 -mt-20 relative z-20 space-y-8">
         
-        {/* 個人身分卡片 */}
         <div className="bg-white rounded-3xl p-6 border border-stone-200/60 shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-5">
             {session?.user?.image ? (
@@ -116,7 +113,6 @@ export default function MemberCenter() {
           <button onClick={() => signOut()} className="text-sm font-bold text-stone-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50">登出</button>
         </div>
 
-        {/* 數據總覽 */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white rounded-3xl p-6 border border-stone-200/60 shadow-sm flex flex-col items-center justify-center gap-2">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2"><History size={20} /></div>
@@ -130,7 +126,6 @@ export default function MemberCenter() {
           </div>
         </div>
 
-        {/* 快速填表聯絡資訊 */}
         <div className="bg-white rounded-3xl p-8 border border-stone-200/60 shadow-sm space-y-6">
           <div className="flex justify-between items-center border-b border-stone-100 pb-4">
              <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2">
@@ -165,7 +160,6 @@ export default function MemberCenter() {
           )}
         </div>
 
-        {/* 歷史報名紀錄 */}
         <div className="bg-white rounded-3xl p-8 border border-stone-200/60 shadow-sm space-y-6">
           <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-stone-100 pb-4">
             <Calendar className="text-[#A61D24]" size={20}/> 祈福與服務紀錄
@@ -186,7 +180,6 @@ export default function MemberCenter() {
                       <span className="text-xs font-bold px-3 py-1 rounded-full tracking-widest bg-stone-100 text-stone-600">{order.service_type}</span>
                       <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
                     </div>
-                    {/* ✨ 列表上的文字也會套用過濾器，保持乾淨 */}
                     <p className="font-bold text-stone-800 line-clamp-2 text-sm md:text-base">
                       {formatServiceDetails(order.service_details)}
                     </p>
@@ -194,8 +187,6 @@ export default function MemberCenter() {
                   </div>
                   <div className="flex justify-between md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 border-stone-100 pt-3 md:pt-0">
                      <span className="font-bold text-lg text-slate-800">${order.total_price}</span>
-                     
-                     {/* 狀態與憑證按鈕區域 */}
                      <div className="flex items-center gap-2">
                        <button
                          onClick={() => setSelectedOrder(order)}
@@ -215,20 +206,16 @@ export default function MemberCenter() {
         </div>
       </div>
 
-      {/* 法旨憑證彈出視窗 (Popup Modal) */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setSelectedOrder(null)} 
         >
-          {/* 👇 加上這行魔法：只要小票彈出來，購物車按鈕就會強制消失！ */}
-          <style>{`#global-cart-btn { display: none !important; }`}</style>
           <div 
             className="relative w-full max-w-[360px] flex flex-col items-center" 
             onClick={(e) => e.stopPropagation()} 
           >
             
-            {/* 關閉按鈕 */}
             <button 
               onClick={() => setSelectedOrder(null)} 
               className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-white/20 p-2 rounded-full backdrop-blur-md"
@@ -236,29 +223,30 @@ export default function MemberCenter() {
               <X size={20} />
             </button>
 
-            {/* 截圖提示 */}
+            <style>{`#global-cart-btn { display: none !important; }`}</style>
+
             <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
                <Camera size={14} className="shrink-0" />
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 實體小票 (正式疏文風格) */}
             <div className="relative w-full drop-shadow-2xl mx-auto flex">
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
                 className="absolute inset-0 w-full h-full object-fill rounded-xl" 
               />
-              <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
+              
+              {/* ✨ 排版與線條完美優化 */}
+              <div className="relative z-10 w-full pt-[36%] pb-[25%] px-[18%] flex flex-col items-center">
                 
-                {/* ✨ 標題區：補回大德護持功德圓滿 */}
                 <div className="text-center mb-5">
                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
-                    <div className="border-b border-[#D89F3C]/30 pb-3 mb-2">
+                <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[190px] scrollbar-hide">
+                    <div className="pb-3 mb-2">
                       <div className="flex gap-2 items-start">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
                         <span className="font-bold text-stone-900 leading-snug">{selectedOrder.user_name}</span>
@@ -269,15 +257,13 @@ export default function MemberCenter() {
                       </div>
                       <div className="flex gap-2 items-start mt-1.5">
                         <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        {/* ✨ 智慧顯示：套用過濾器，只留下乾淨的祈福內容 */}
                         <span className="font-bold text-stone-900 leading-snug break-words">
                           {formatServiceDetails(selectedOrder.service_details)}
                         </span>
                       </div>
                     </div>
 
-                    {/* 底部疏文結尾區 */}
-                    <div className="text-center mt-5 mb-1 flex flex-col items-center justify-center gap-1.5 pt-2">
+                    <div className="text-center mt-3 mb-2 flex flex-col items-center justify-center gap-1.5">
                       <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
                         登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
                       </span>
