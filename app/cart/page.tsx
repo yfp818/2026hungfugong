@@ -182,51 +182,59 @@ export default function GlobalCartPage() {
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
 
-          {/* 💡 改變架構：將圖片設為相對基底，高度完全由圖片原比例鎖定 */}
-          <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+          {/* 💡 終極完美陣型：購物車同步 */}
+          <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
             
-            {/* 圖片撐開比例 */}
             <img 
               src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
               alt="祈福印記" 
-              className="w-full h-auto object-contain rounded-xl block" 
+              className="w-full h-auto block pointer-events-none select-none" 
             />
 
-            {/* 內容絕對疊加：滿版覆蓋圖片 */}
-            <div className="absolute inset-0 z-10 w-full flex flex-col pt-[35%] pb-[21%] px-[18%]">
+            <style>{`
+              .receipt-safe-zone, .receipt-safe-zone * {
+                font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
+              }
+            `}</style>
+
+            <div 
+              className="absolute flex flex-col receipt-safe-zone text-stone-900"
+              style={{ top: '29%', bottom: '17%', left: '16%', right: '16%' }}
+            >
               
-              <div className="text-center mb-3 shrink-0">
-                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+              <div className="text-center shrink-0 mb-3">
+                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
                  <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* 明細區：利用 flex-1 填滿空間，把底部文字往下推 */}
-              <div className="w-full text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 scrollbar-hide">
-                {cartItems.map((item, idx) => {
-                  const { serviceName, finalOptions } = parseItemDetails(item);
-                  return (
-                    <div key={idx} className="pb-2 mb-2">
-                      <div className="flex gap-2 items-start">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
-                        <span className="font-bold text-stone-900 leading-snug">{item.userName}</span>
+              {/* ✨ 修正點：加入 items-center 置中 */}
+              <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
+                {/* ✨ 修正點：加入 w-fit max-w-full */}
+                <div className="pb-1 w-fit max-w-full">
+                  {cartItems.map((item, idx) => {
+                    const { serviceName, finalOptions } = parseItemDetails(item);
+                    return (
+                      <div key={idx} className="pb-2 mb-2 border-b border-stone-200/20 last:border-0">
+                        <div className="flex gap-2 items-start mb-1.5">
+                          <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
+                          <span className="font-bold leading-snug">{item.userName}</span>
+                        </div>
+                        <div className="flex gap-2 items-start mb-1.5">
+                          <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
+                          <span className="font-bold leading-snug">{serviceName}</span>
+                        </div>
+                        <div className="flex gap-2 items-start mb-1.5">
+                          <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
+                          <span className="font-bold leading-snug break-all whitespace-pre-wrap">{finalOptions}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-2 items-start mt-1">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
-                        <span className="font-bold text-stone-900 leading-snug">{serviceName}</span>
-                      </div>
-                      <div className="flex gap-2 items-start mt-1">
-                        <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                        {/* 💡 加上 break-all，強制滿 13 字折行，不留白 */}
-                        <span className="font-bold text-stone-900 leading-snug break-all">{finalOptions}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* 💡 底部結尾：永遠被釘在 pb-[21%] 的位置 (剛好在蓮花正上方)，並壓縮文字間距 */}
-              <div className="shrink-0 text-center flex flex-col items-center justify-center pt-1">
-                <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5">
+              <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
+                <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-1.5">
                   天運歲次 登記吉日
                 </span>
                 <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
