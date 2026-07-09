@@ -220,7 +220,7 @@ export default function MemberCenter() {
             
             <button 
               onClick={() => setSelectedOrder(null)} 
-              className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-white/20 p-2 rounded-full backdrop-blur-md"
+              className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-white/20 p-2 rounded-full backdrop-blur-md z-[60]"
             >
               <X size={20} />
             </button>
@@ -232,18 +232,18 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極直書佈局 (混合橫豎交錯與五點絕對鎖定) */}
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
+            {/* 💡 終極絕對鎖定防禦陣型 (七點獨立座標，完美呈現您的設計) */}
+            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
-              {/* 圖片做為基底，撐開高度，決定真實比例 */}
+              {/* 底圖，決定整體高寬比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
-                className="w-full h-auto block pointer-events-none select-none" 
+                className="w-full h-auto block pointer-events-none select-none relative z-0" 
               />
 
               <style>{`
-                .receipt-safe-zone, .receipt-safe-zone * {
+                .receipt-text {
                   font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
                 }
                 .vert-rl { 
@@ -252,71 +252,57 @@ export default function MemberCenter() {
                 }
               `}</style>
 
-              {/* ✨ 外層安全區設定 */}
-              <div 
-                className="absolute receipt-safe-zone text-stone-900"
-                style={{ top: '25%', bottom: '15%', left: '14%', right: '14%' }}
-              >
-                
-                {/* 1. 頂部水平鎖定 (祈福印記標題) */}
-                <div className="absolute top-0 left-0 w-full flex flex-col items-center justify-center z-20 text-center">
-                   <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
-                   <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
-                </div>
-
-                {/* 2. 底部水平鎖定 (- 功德 圓滿 -) */}
-                <div className="absolute bottom-0 left-0 w-full flex justify-center items-end z-20 text-center pb-1">
-                   <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">
-                     - 功德 圓滿 -
-                   </span>
-                </div>
-
-                {/* 3. 右側邊框鎖定 (天運歲次直書) */}
-                <div className="absolute right-0 top-[60px] bottom-[30px] vert-rl flex justify-start items-center z-10">
-                  <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none">
-                    天運歲次 登記吉日 {new Date(selectedOrder.created_at).toLocaleDateString('zh-TW')}
-                  </span>
-                </div>
-
-                {/* 4. 左側邊框鎖定 (祈求平安順心直書) */}
-                <div className="absolute left-0 top-[60px] bottom-[30px] vert-rl flex justify-start items-center z-10">
-                  <span className="text-[9px] md:text-[10px] font-bold text-stone-500 tracking-widest leading-none">
-                    祈求 平安順心 萬事如意
-                  </span>
-                </div>
-
-                {/* 5. 中央動態明細區 (大德、項目、方案直書換行) */}
-                {/* ✨ 絕對鎖定中央空間，避開左右兩側的法語空間 */}
-                <div 
-                  className="absolute vert-rl text-[11px] md:text-[12px] scrollbar-hide overflow-y-auto right-[30px] md:right-[36px] left-[26px] md:left-[32px]"
-                  style={{ top: '60px', bottom: '30px' }}
-                >
-                    
-                    {/* 第一直行：大德 */}
-                    <div className="ml-3 md:ml-4 flex items-center">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
-                        <span className="font-bold text-stone-900 leading-snug mt-2">{selectedOrder.user_name}</span>
-                    </div>
-                    
-                    {/* 第二直行：項目 */}
-                    <div className="ml-3 md:ml-4 flex items-center">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
-                        <span className="font-bold text-stone-900 leading-snug mt-2">{selectedOrder.service_type}</span>
-                    </div>
-                    
-                    {/* 第三直行與向左蔓延：方案 (字數過長會自動往左產生第四行、第五行) */}
-                    <div className="flex items-start h-full">
-                        <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
-                        <span className="font-bold text-stone-900 leading-snug break-all whitespace-pre-wrap mt-2" style={{ lineHeight: '1.6' }}>
-                            {formatServiceDetails(selectedOrder.service_details)}
-                        </span>
-                    </div>
-                    
-                </div>
-
+              {/* 1. 頂部橫批：祈福印記 */}
+              <div className="absolute top-[21%] left-0 w-full flex flex-col items-center justify-center z-10 receipt-text text-center">
+                 <h2 className="text-[18px] md:text-[20px] font-bold text-[#A61D24] tracking-[0.3em] mb-1">祈福印記</h2>
+                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
               </div>
+
+              {/* 2. 底部橫批：功德圓滿 */}
+              <div className="absolute bottom-[16%] left-0 w-full flex justify-center items-end z-10 receipt-text text-center">
+                 <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">
+                   - 功德 圓滿 -
+                 </span>
+              </div>
+
+              {/* 3. 右側邊法語 (紅字直書) */}
+              <div className="absolute top-[32%] right-[11%] bottom-[20%] vert-rl z-10 receipt-text text-[#A61D24]" style={{ textAlign: 'left' }}>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-[0.3em]">天運歲次登記吉日</span>
+              </div>
+
+              {/* 4. 左側邊法語 (紅字直書) */}
+              <div className="absolute top-[32%] left-[11%] bottom-[20%] vert-rl z-10 receipt-text text-[#A61D24]" style={{ textAlign: 'left' }}>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-[0.3em]">祈求平安順心萬事如意</span>
+              </div>
+
+              {/* 5. 中央專區 - 大德 */}
+              {/* 完美鎖定在 right 25% 處 */}
+              <div className="absolute top-[32%] right-[25%] bottom-[22%] vert-rl z-10 receipt-text" style={{ textAlign: 'left' }}>
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '1.2rem' }}>大德</span>
+                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-relaxed">
+                  {selectedOrder.user_name}
+                </span>
+              </div>
+
+              {/* 6. 中央專區 - 項目 */}
+              {/* 完美鎖定在 right 44% 處 */}
+              <div className="absolute top-[32%] right-[44%] bottom-[22%] vert-rl z-10 receipt-text" style={{ textAlign: 'left' }}>
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '1.2rem' }}>項目</span>
+                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-relaxed">
+                  {selectedOrder.service_type}
+                </span>
+              </div>
+
+              {/* 7. 中央專區 - 方案 */}
+              {/* 起點鎖定在 right 63%，給予 20% 的安全範圍向左換行 */}
+              <div className="absolute top-[32%] right-[63%] bottom-[22%] max-w-[20%] vert-rl z-10 receipt-text" style={{ textAlign: 'left' }}>
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '1.2rem' }}>方案</span>
+                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-loose whitespace-pre-wrap">
+                  {formatServiceDetails(selectedOrder.service_details)}
+                </span>
+              </div>
+
             </div>
-            
           </div>
         </div>
       )}
