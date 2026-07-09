@@ -106,7 +106,7 @@ export default function GlobalCartPage() {
   // 💡 將購物車可能有多筆的資料，結合成單一字串，以符合您單一固定的 T4, T6, T5 座標
   const combinedNames = Array.from(new Set(cartItems.map(item => item.userName))).join("、");
   const combinedServices = Array.from(new Set(cartItems.map(item => parseItemDetails(item).serviceName))).join("、");
-  const combinedOptions = cartItems.map(item => parseItemDetails(item).finalOptions).join("\n");
+  const combinedOptions = cartItems.map(item => parseItemDetails(item).finalOptions).join("、");
 
   return (
     <main className="min-h-screen bg-[#FAF7F0] py-16 px-4 md:px-6 flex flex-col items-center justify-center">
