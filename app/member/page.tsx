@@ -221,6 +221,8 @@ export default function MemberCenter() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
           onClick={() => setSelectedOrder(null)} 
         >
+          {/* 👇 加上這行魔法：只要小票彈出來，購物車按鈕就會強制消失！ */}
+          <style>{`#global-cart-btn { display: none !important; }`}</style>
           <div 
             className="relative w-full max-w-[360px] flex flex-col items-center" 
             onClick={(e) => e.stopPropagation()} 

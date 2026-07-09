@@ -176,7 +176,8 @@ export default function GlobalCartPage() {
       {/* ✨ 購物車專屬：神尊圖騰祈福印記成功畫面 */}
       {step === 2 && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
-          
+        {/* 👇 加上這行魔法：只要這個畫面出現，購物車按鈕就會強制消失！ */}
+          <style>{`#global-cart-btn { display: none !important; }`}</style>  
           <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
              <Camera size={14} className="shrink-0" />
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>

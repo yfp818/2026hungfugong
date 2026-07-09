@@ -8,8 +8,9 @@ export default function FloatingCartButton() {
   // 已經移除 if (cartItems.length === 0) return null; 的隱藏邏輯
   // 現在按鈕會永遠常駐在右下角
 
+  // ✨ 已經加上了 id="global-cart-btn" 作為隱形斗篷的定位點
   return (
-    <Link href="/cart" className="fixed bottom-24 right-8 z-50 bg-[#A61D24] text-white w-14 h-14 rounded-full shadow-2xl hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(166,29,36,0.5)] transition-all duration-300 flex items-center justify-center group border-2 border-white/20">
+    <Link id="global-cart-btn" href="/cart" className="fixed bottom-24 right-8 z-50 bg-[#A61D24] text-white w-14 h-14 rounded-full shadow-2xl hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(166,29,36,0.5)] transition-all duration-300 flex items-center justify-center group border-2 border-white/20">
       <div className="relative">
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         
