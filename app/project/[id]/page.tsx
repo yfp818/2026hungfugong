@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useSession, signIn } from "next-auth/react";
 import ShareButton from "@/components/ShareButton";
+import { Camera } from "lucide-react"; // ✨ 引入專業線條圖示取代 Emoji
 
 export default function SpecialProjectPage() {
   const params = useParams();
@@ -16,14 +17,14 @@ export default function SpecialProjectPage() {
   
   // 表單狀態
   const [name, setName] = useState("");
-  const [targetName, setTargetName] = useState(""); // ✨ 新增：祈福/迴向對象
+  const [targetName, setTargetName] = useState(""); // 祈福對象
   const [phone, setPhone] = useState("");
-  const [birthDate, setBirthDate] = useState(""); // ✨ 恢復：單純的國曆出生年月日
+  const [birthDate, setBirthDate] = useState("");
   const [address, setAddress] = useState("");
   const [selectedOptIdx, setSelectedOptIdx] = useState(0);
   const [customAmount, setCustomAmount] = useState("");
   const [bankLast5, setBankLast5] = useState("");
-  const [memo, setMemo] = useState(""); // ✨ 新增：祈福心願
+  const [memo, setMemo] = useState(""); // 祈福心願
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -59,8 +60,8 @@ export default function SpecialProjectPage() {
 
     setIsSubmitting(true);
     
-    // ✨ 智慧打包：如果信眾有填迴向對象或心願，自動串接到明細中供管理員看
-    const finalDetails = `認捐方案: ${selectedOption.title}${targetName ? `\n祈福/迴向對象: ${targetName}` : ""}${memo ? `\n祈福心願/備註: ${memo}` : ""}`;
+    // 將信眾的祈福對象與心願一併打包進服務明細中
+    const finalDetails = `認捐方案: ${selectedOption.title}${targetName ? `\n祈福對象: ${targetName}` : ""}${memo ? `\n祈福心願: ${memo}` : ""}`;
 
     const { error } = await supabase.from("special_project_orders").insert([{
       project_id: project.id,
@@ -94,55 +95,54 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // 成功畫面 (神尊圖騰法旨風格)
+  // ✨ 成功畫面：完全同步「無金額疏文風」的祈福印記
   if (isSuccess) return (
     <main className="min-h-screen bg-[#FAF7F0] pt-12 pb-16 px-4 flex items-center justify-center">
-      <div className="w-full max-w-md relative flex flex-col items-center">
+      <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
         
-        <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-sm animate-pulse w-full max-w-[320px]">
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          <span className="tracking-widest">貼心小提示：建議您截圖保存此法旨憑證</span>
+        <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
+           <Camera size={14} className="shrink-0" />
+           <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
         </div>
 
-        <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+        <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto flex">
           <img 
             src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
-            alt="專案憑證" 
-            className="w-full h-auto block" 
+            alt="祈福印記" 
+            className="absolute inset-0 w-full h-full object-fill rounded-xl" 
           />
 
-          <div className="absolute top-[32%] bottom-[15%] left-[18%] right-[18%] flex flex-col justify-center items-center">
+          <div className="relative z-10 w-full pt-[45%] pb-[20%] px-[20%] flex flex-col items-center">
             
-            <div className="text-center mb-5 md:mb-6">
-               <h2 className="text-[16px] md:text-[18px] font-bold text-[#A61D24] font-serif tracking-widest mb-1">專案護持存根</h2>
-               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 功德圓滿</p>
+            <div className="text-center mb-5">
+               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 功德圓滿 -</p>
             </div>
 
-            <div className="w-full max-w-[190px] space-y-2 md:space-y-3 text-[11px] md:text-[12px] font-serif">
-              <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">大德</span>
-                {/* ✨ 智慧顯示：如果有填寫迴向對象，小票上就印對象的名字！否則印填單人 */}
-                <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{targetName || name}</span>
+            <div className="w-full max-w-[190px] text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 max-h-[180px] scrollbar-hide">
+              <div className="border-b border-[#D89F3C]/30 pb-3 mb-2">
+                <div className="flex gap-2 items-start">
+                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
+                  <span className="font-bold text-stone-900 leading-snug">{targetName || name}</span>
+                </div>
+                <div className="flex gap-2 items-start mt-1.5">
+                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
+                  <span className="font-bold text-stone-900 leading-snug">{project.title}</span>
+                </div>
+                <div className="flex gap-2 items-start mt-1.5">
+                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
+                  <span className="font-bold text-stone-900 leading-snug break-words">{project.options[selectedOptIdx].title}</span>
+                </div>
               </div>
-              <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">專案</span>
-                <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.title}</span>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">方案</span>
-                <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.options[selectedOptIdx].title}</span>
-              </div>
-              <div className="flex gap-3 items-start">
-                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">核銷</span>
-                <span className="font-bold text-stone-900 font-sans tracking-wider line-clamp-1 leading-snug">{bankLast5}</span>
-              </div>
-            </div>
 
-            <div className="text-center mt-6">
-               <span className="block text-[10px] md:text-[11px] font-bold text-[#A61D24]/80 tracking-widest font-serif mb-1">護持功德金</span>
-               <span className="text-2xl md:text-3xl font-bold text-[#A61D24] font-mono leading-none block drop-shadow-sm">
-                 ${project.options[selectedOptIdx].price > 0 ? project.options[selectedOptIdx].price : customAmount}
-               </span>
+              {/* 底部疏文結尾區 */}
+              <div className="text-center mt-5 mb-1 flex flex-col items-center justify-center gap-1.5 pt-2">
+                <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest">
+                  天運歲次 登記吉日
+                </span>
+                <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest">祈求 平安順心 萬事如意</span>
+                <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] mt-2">- 功德 圓滿 -</span>
+              </div>
             </div>
 
           </div>
@@ -230,24 +230,39 @@ export default function SpecialProjectPage() {
                 </div>
               )}
 
+              {/* ✨ 升級：加上明確的標題 Label，讓「祈福對象」一目了然 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                {/* ✨ 姓名與對象拆分，更清晰 */}
-                <input required value={name} onChange={e=>setName(e.target.value)} placeholder="填單聯絡人姓名" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                <input value={targetName} onChange={e=>setTargetName(e.target.value)} placeholder="祈福對象姓名 (若同左請留白)" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">聯絡人姓名</label>
+                  <input required value={name} onChange={e=>setName(e.target.value)} placeholder="請填寫聯絡人" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                </div>
                 
-                <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="聯絡電話" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">祈福對象 <span className="text-stone-400 font-normal">(選填)</span></label>
+                  <input value={targetName} onChange={e=>setTargetName(e.target.value)} placeholder="若同聯絡人請留白" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                </div>
                 
-                {/* ✨ 恢復單純的出生年月日 */}
-                <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="出生年月日" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                
-                <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="居住完整地址" className="md:col-span-2 w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
-                
-                {/* ✨ 祈福心願多行文字框 */}
-                <div className="md:col-span-2">
-                  <textarea value={memo} onChange={e=>setMemo(e.target.value)} placeholder="祈福心願 / 備註留言 (選填，例如：祈求玉帝保佑家人平安健康)" rows={3} className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all resize-none"></textarea>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">聯絡電話</label>
+                  <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="請輸入電話" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
                 </div>
 
-                <div className="md:col-span-2 relative">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">出生年月日</label>
+                  <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：1990/01/01" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                </div>
+                
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">居住地址</label>
+                  <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="請輸入完整地址" className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                </div>
+                
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-xs font-bold text-stone-500 tracking-widest ml-1">祈福心願 / 備註留言 <span className="text-stone-400 font-normal">(選填)</span></label>
+                  <textarea value={memo} onChange={e=>setMemo(e.target.value)} placeholder="例如：祈求玉帝保佑家人平安健康" rows={3} className="w-full bg-white border-2 border-stone-200 p-4 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/10 font-bold text-stone-800 placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all resize-none"></textarea>
+                </div>
+
+                <div className="md:col-span-2 relative mt-2">
                    <input required value={bankLast5} onChange={e=>setBankLast5(e.target.value)} placeholder="您剛剛匯款的帳號後五碼" maxLength={5} className="w-full bg-amber-50/50 border-2 border-amber-200 p-5 rounded-xl outline-none focus:border-[#D89F3C] focus:ring-4 focus:ring-[#D89F3C]/20 font-bold text-amber-900 placeholder:text-amber-400 placeholder:font-medium shadow-sm transition-all text-lg"/>
                    <span className="absolute right-5 top-5 text-sm font-bold text-amber-600/60 bg-amber-100/50 px-2 py-0.5 rounded">供財務對帳</span>
                 </div>
