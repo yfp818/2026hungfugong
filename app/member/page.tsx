@@ -256,7 +256,7 @@ export default function MemberCenter() {
                   left: 'calc(42.5 / 175 * 100%)', 
                   top: 'calc(80 / 300 * 100%)', 
                   width: 'calc(90 / 175 * 100%)', 
-                  height: 'calc(95 / 300 * 100%)' 
+                  height: 'calc(80 / 300 * 100%)' 
                 }}
               >
                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
@@ -300,8 +300,8 @@ export default function MemberCenter() {
                 style={{ 
                   left: 'calc(120 / 175 * 100%)', 
                   top: 'calc(110 / 300 * 100%)', 
-                  width: 'calc(30 / 175 * 100%)', 
-                  height: 'calc(10 / 300 * 100%)',
+                  width: 'calc(55 / 175 * 100%)', 
+                  height: 'auto',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
@@ -318,8 +318,8 @@ export default function MemberCenter() {
                 style={{ 
                   left: 'calc(120 / 175 * 100%)', 
                   top: 'calc(160 / 300 * 100%)', 
-                  width: 'calc(30 / 175 * 100%)', 
-                  height: 'calc(10 / 300 * 100%)',
+                  width: 'calc(55 / 175 * 100%)', 
+                  height: 'auto',
                   writingMode: 'vertical-rl',
                   textOrientation: 'upright'
                 }}
