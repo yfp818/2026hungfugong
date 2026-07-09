@@ -88,39 +88,67 @@ export default function SpecialProjectPage() {
     </div>
   );
 
-  // ✨ 成功登記的畫面 (已升級玉皇專案客製文字、截圖提示、方案明細)
+  // ✨ 成功登記的畫面 (神尊圖騰法旨風格 - 終極質感版)
   if (isSuccess) return (
-    <main className="min-h-screen bg-[#FAF7F0] pt-24 pb-16 px-6 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#D89F3C]/30 text-center relative p-8 md:p-10">
+    <main className="min-h-screen bg-[#FAF7F0] pt-12 pb-16 px-4 flex items-center justify-center">
+      <div className="w-full max-w-md relative flex flex-col items-center">
         
-        <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-emerald-100">
-          <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-        </div>
-        
-        <h2 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">玉皇專案登記成功</h2>
-        <p className="text-stone-500 text-sm tracking-widest mb-6 leading-relaxed">
-          感恩大德護持<br/>您提供給玉皇的資料已獨立送出並建檔
-        </p>
-
-        {/* ✨ 截圖小提示區塊 */}
-        <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-6 flex items-center justify-center gap-2 shadow-sm animate-pulse">
+        <div className="bg-blue-50/80 border border-blue-100 text-blue-700 text-xs font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-sm animate-pulse w-full max-w-[320px]">
           <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          <span className="tracking-widest">貼心小提示：建議您截圖保存此畫面</span>
+          <span className="tracking-widest">貼心小提示：建議您截圖保存此法旨憑證</span>
         </div>
 
-        <div className="bg-stone-50 p-5 rounded-xl text-left space-y-3 mb-8 border border-stone-100">
-          <p className="text-xs font-bold text-stone-400 tracking-widest border-b pb-2">認捐明細摘要</p>
-          <p className="text-sm font-bold text-stone-700">專案：{project.title}</p>
-          {/* ✨ 補上信眾選填的方案 */}
-          <p className="text-sm font-bold text-stone-700">方案：{project.options[selectedOptIdx].title}</p>
-          <p className="text-sm font-bold text-stone-700">姓名：{name}</p>
-          <p className="text-sm font-bold text-stone-700">後五碼：{bankLast5}</p>
-          <p className="text-sm font-bold text-[#A61D24] mt-2 pt-2 border-t border-stone-200">護持金額：${project.options[selectedOptIdx].price > 0 ? project.options[selectedOptIdx].price : customAmount}</p>
+        <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+          <img 
+            src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
+            alt="玉皇專案憑證" 
+            className="w-full h-auto block" 
+          />
+
+          {/* 稍微放寬一點空間，並讓整體往上一點點 */}
+          <div className="absolute top-[32%] bottom-[15%] left-[18%] right-[18%] flex flex-col justify-center items-center">
+            
+            {/* 標題區 (稍微加大字體) */}
+            <div className="text-center mb-5 md:mb-6">
+               <h2 className="text-[16px] md:text-[18px] font-bold text-[#A61D24] font-serif tracking-widest mb-1">專案護持存根</h2>
+               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">大德護持 · 功德圓滿</p>
+            </div>
+
+            {/* 明細內容區 (增加間距 space-y-2，標籤改為印泥深紅色) */}
+            <div className="w-full max-w-[190px] space-y-2 md:space-y-3 text-[11px] md:text-[12px] font-serif">
+              <div className="flex gap-3 items-start">
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">專案</span>
+                <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.title}</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">方案</span>
+                <span className="font-bold text-stone-900 line-clamp-2 leading-snug">{project.options[selectedOptIdx].title}</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">姓名</span>
+                <span className="font-bold text-stone-900 line-clamp-1 leading-snug">{name}</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-11 text-right">後五碼</span>
+                <span className="font-bold text-stone-900 font-sans tracking-wider line-clamp-1 leading-snug">{bankLast5}</span>
+              </div>
+            </div>
+
+            {/* 金額區 (字體稍微放大) */}
+            <div className="text-center mt-6">
+               <span className="block text-[10px] md:text-[11px] font-bold text-[#A61D24]/80 tracking-widest font-serif mb-1">護持功德金</span>
+               <span className="text-2xl md:text-3xl font-bold text-[#A61D24] font-mono leading-none block drop-shadow-sm">
+                 ${project.options[selectedOptIdx].price > 0 ? project.options[selectedOptIdx].price : customAmount}
+               </span>
+            </div>
+
+          </div>
         </div>
-        
-        <button onClick={() => router.push("/")} className="w-full bg-[#1A432D] text-[#D89F3C] py-4 rounded-xl font-bold tracking-widest hover:bg-[#122F20] transition-colors">
-          功德圓滿，記得截圖
+
+        <button onClick={() => router.push("/")} className="w-full max-w-[320px] mt-8 bg-[#1A432D] text-[#D89F3C] py-4 rounded-xl font-bold tracking-widest hover:bg-[#122F20] transition-colors shadow-md">
+          返回首頁
         </button>
+
       </div>
     </main>
   );
