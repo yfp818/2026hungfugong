@@ -257,22 +257,30 @@ export default function MemberCenter() {
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
-                    <div className="pb-1 w-fit max-w-full">
-                      <div className="flex gap-2 items-start mb-1.5">
+                {/* ✨ 取消外層的 flex items-center */}
+                <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide">
+                    
+                    {/* 💡 終極對齊鐵框：用 w-[220px] mx-auto 取代 w-fit */}
+                    <div className="pb-1 w-[220px] mx-auto">
+                      
+                      <div className="flex gap-3 items-start mb-2">
                         <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
-                        <span className="font-bold leading-snug">{selectedOrder.user_name}</span>
+                        {/* 💡 加上 flex-1 與 text-left，讓文字靠左對齊，撞到邊界自動完美換行 */}
+                        <span className="font-bold leading-snug flex-1 text-left">{selectedOrder.user_name}</span>
                       </div>
-                      <div className="flex gap-2 items-start mb-1.5">
+                      
+                      <div className="flex gap-3 items-start mb-2">
                         <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
-                        <span className="font-bold leading-snug">{selectedOrder.service_type}</span>
+                        <span className="font-bold leading-snug flex-1 text-left">{selectedOrder.service_type}</span>
                       </div>
-                      <div className="flex gap-2 items-start mb-1.5">
+                      
+                      <div className="flex gap-3 items-start mb-2">
                         <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
-                        <span className="font-bold leading-snug break-all whitespace-pre-wrap">
+                        <span className="font-bold leading-snug flex-1 text-left break-words whitespace-pre-wrap">
                           {formatServiceDetails(selectedOrder.service_details)}
                         </span>
                       </div>
+                      
                     </div>
                 </div>
 
