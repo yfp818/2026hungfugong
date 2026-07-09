@@ -232,10 +232,9 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極絕對鎖定防禦陣型 (依據陳世碼先生座標規範圖 T1-T7 精準轉換) */}
+            {/* 💡 根據您的 T1 ~ T7 精確藍圖座標設計 */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
-              {/* 底圖，撐開整體高寬比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
                 alt="祈福印記" 
@@ -246,55 +245,53 @@ export default function MemberCenter() {
                 .receipt-text {
                   font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
                 }
-                .vert-rl { 
+                .v-text {
                   writing-mode: vertical-rl;
                   text-orientation: upright;
                 }
+                /* 產生紅字與黑字之間的安全間距 */
+                .v-title {
+                  margin-bottom: 12px;
+                }
               `}</style>
 
-              {/* T1: 頂部橫批：祈福印記 */}
-              <div className="absolute top-[21%] left-0 w-full flex flex-col items-center justify-center z-10 receipt-text text-center">
-                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] mb-1">祈福印記</h2>
-                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
+              {/* T1: Top Header (精準下移避開牙齒) */}
+              <div className="absolute top-[24%] left-0 w-full text-center z-10 receipt-text">
+                <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] mb-0.5">祈福印記</h2>
+                <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* T7: 底部橫批：功德圓滿 */}
-              <div className="absolute bottom-[11%] left-0 w-full flex justify-center items-end z-10 receipt-text text-center">
-                 <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">
-                   - 功德 圓滿 -
-                 </span>
+              {/* T7: Footer (精準上移避開蓮花) */}
+              <div className="absolute bottom-[14%] left-0 w-full text-center z-10 receipt-text">
+                <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
               </div>
 
-              {/* T2: 右側邊法語 (天運歲次) */}
-              <div className="absolute top-[36%] right-[5%] vert-rl z-10 receipt-text text-[#A61D24] text-left">
+              {/* T2: Right Column (右側外白邊) */}
+              <div className="absolute top-[32%] right-[5%] z-10 receipt-text v-text text-[#A61D24]">
                 <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
               </div>
 
-              {/* T3: 左側邊法語 (祈求平安) */}
-              <div className="absolute top-[36%] left-[5%] vert-rl z-10 receipt-text text-[#A61D24] text-left">
+              {/* T3: Left Column (左側外白邊) */}
+              <div className="absolute top-[32%] left-[5%] z-10 receipt-text v-text text-[#A61D24]">
                 <span className="font-bold text-[10px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
-              {/* T4: 中央專區 - 大德 */}
-              <div className="absolute top-[35%] right-[28%] vert-rl z-10 receipt-text text-left">
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '0.8rem' }}>大德</span>
-                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-relaxed">
-                  {selectedOrder.user_name}
-                </span>
+              {/* T4: Body Right (大德 - 對齊 T6 的 X 軸) */}
+              <div className="absolute top-[36%] right-[28%] z-10 receipt-text v-text text-stone-900">
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-title inline-block">大德</span>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
               </div>
 
-              {/* T6: 中央專區 - 項目 (座標對齊大德的下方) */}
-              <div className="absolute top-[56%] right-[28%] vert-rl z-10 receipt-text text-left">
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '0.8rem' }}>項目</span>
-                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-relaxed">
-                  {selectedOrder.service_type}
-                </span>
+              {/* T6: Body Sub (項目 - 對齊 T4 的 X 軸，Y 軸下降) */}
+              <div className="absolute top-[58%] right-[28%] z-10 receipt-text v-text text-stone-900">
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-title inline-block">項目</span>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
               </div>
 
-              {/* T5: 中央專區 - 方案 (往左靠齊，保留向左蔓延空間) */}
-              <div className="absolute top-[35%] right-[56%] bottom-[16%] max-w-[35%] vert-rl z-10 receipt-text text-left">
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.5em] inline-block" style={{ marginBottom: '0.8rem' }}>方案</span>
-                <span className="font-bold text-stone-900 text-[11px] md:text-[12px] leading-loose whitespace-pre-wrap break-words">
+              {/* T5: Body Left (方案 - 往左移動，保留換行空間) */}
+              <div className="absolute top-[36%] right-[54%] bottom-[16%] max-w-[35%] z-10 receipt-text v-text text-stone-900">
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] v-title inline-block">方案</span>
+                <span className="font-bold text-[11px] md:text-[12px] leading-[2] tracking-widest whitespace-pre-wrap break-all">
                   {formatServiceDetails(selectedOrder.service_details)}
                 </span>
               </div>
