@@ -105,42 +105,50 @@ export default function SpecialProjectPage() {
            <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
         </div>
 
-        {/* 💡 同步購物車的絕對定位架構 */}
-        <div className="relative w-full max-w-[380px] drop-shadow-2xl mx-auto">
+        {/* 💡 終極完美陣型：四面座標鎖死安全區 + 置中校正補丁 */}
+        <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
+          
           <img 
             src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
             alt="祈福印記" 
-            className="w-full h-auto object-contain rounded-xl block" 
+            className="w-full h-auto block pointer-events-none select-none" 
           />
 
-          <div className="absolute inset-0 z-10 w-full flex flex-col pt-[35%] pb-[21%] px-[18%]">
+          <style>{`
+            .receipt-safe-zone, .receipt-safe-zone * {
+              font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
+            }
+          `}</style>
+
+          <div 
+            className="absolute flex flex-col receipt-safe-zone text-stone-900"
+            style={{ top: '29%', bottom: '17%', left: '16%', right: '16%' }}
+          >
             
-            <div className="text-center mb-3 shrink-0">
-               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] font-serif tracking-[0.2em] mb-1">祈福印記</h2>
+            <div className="text-center shrink-0 mb-3">
+               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
                <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
             </div>
 
-            <div className="w-full text-[11px] md:text-[12px] font-serif flex-1 overflow-y-auto pr-1 scrollbar-hide">
-              <div className="pb-2 mb-2">
-                <div className="flex gap-2 items-start">
-                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">大德</span>
-                  <span className="font-bold text-stone-900 leading-snug">{targetName || name}</span>
+            <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
+                <div className="pb-1 w-fit max-w-full">
+                  <div className="flex gap-2 items-start mb-1.5">
+                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
+                    <span className="font-bold leading-snug">{targetName || name}</span>
+                  </div>
+                  <div className="flex gap-2 items-start mb-1.5">
+                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
+                    <span className="font-bold leading-snug">{project.title}</span>
+                  </div>
+                  <div className="flex gap-2 items-start mb-1.5">
+                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
+                    <span className="font-bold leading-snug break-all whitespace-pre-wrap">{project.options[selectedOptIdx].title}</span>
+                  </div>
                 </div>
-                <div className="flex gap-2 items-start mt-1">
-                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">項目</span>
-                  <span className="font-bold text-stone-900 leading-snug">{project.title}</span>
-                </div>
-                <div className="flex gap-2 items-start mt-1">
-                  <span className="font-bold text-[#A61D24]/80 tracking-widest shrink-0 w-8 text-right">方案</span>
-                  {/* 💡 加上 break-all */}
-                  <span className="font-bold text-stone-900 leading-snug break-all">{project.options[selectedOptIdx].title}</span>
-                </div>
-              </div>
             </div>
 
-            {/* 💡 底部釘死，緊湊間距 */}
-            <div className="shrink-0 text-center flex flex-col items-center justify-center pt-1">
-              <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5">
+            <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
+              <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-1.5">
                 天運歲次 登記吉日
               </span>
               <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">

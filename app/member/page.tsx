@@ -232,24 +232,7 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極防跑版架構：捨棄 Padding，改用四面座標鎖死安全區 */}
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
-              
-              {/* 圖片做為基底，撐開高度，決定真實比例 */}
-              <img 
-                src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
-                alt="祈福印記" 
-                className="w-full h-auto block pointer-events-none select-none" 
-              />
-
-              {/* ✨ 強制字型補丁：確保手機與所有瀏覽器都能正確渲染宋體 */}
-              <style>{`
-                .receipt-safe-zone, .receipt-safe-zone * {
-                  font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
-                }
-              `}</style>
-
-             {/* 💡 終極完美陣型：置中鎖定 + 保證字體顯示 */}
+            {/* 💡 乾淨的單一排版區塊 */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
               
               <img 
@@ -274,12 +257,9 @@ export default function MemberCenter() {
                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
                 </div>
 
-                {/* ✨ 修正點：加上 items-center 讓電腦版也能完美置中 */}
                 <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
-                    {/* ✨ 修正點：加上 w-fit 限制寬度，配合父層置中 */}
                     <div className="pb-1 w-fit max-w-full">
                       <div className="flex gap-2 items-start mb-1.5">
-                        {/* ✨ 修正點：拔除透明度寫法，改為純色，並強制兩端對齊 */}
                         <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
                         <span className="font-bold leading-snug">{selectedOrder.user_name}</span>
                       </div>
@@ -314,7 +294,6 @@ export default function MemberCenter() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
