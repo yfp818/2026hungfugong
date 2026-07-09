@@ -105,61 +105,144 @@ export default function SpecialProjectPage() {
            <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
         </div>
 
-        {/* 💡 終極完美陣型：四面座標鎖死安全區 + 置中校正補丁 */}
-        <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl">
+        {/* 💡 終極絕對鎖定防禦陣型 (套用您親自校準的 175x300 完美參數) */}
+        <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
           
           <img 
             src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
             alt="祈福印記" 
-            className="w-full h-auto block pointer-events-none select-none" 
+            className="w-full h-auto block pointer-events-none select-none relative z-0" 
           />
 
           <style>{`
-            .receipt-safe-zone, .receipt-safe-zone * {
+            .receipt-text {
               font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
             }
           `}</style>
 
+          {/* T1: Top Header */}
           <div 
-            className="absolute flex flex-col receipt-safe-zone text-stone-900"
-            style={{ top: '29%', bottom: '17%', left: '16%', right: '16%' }}
+            className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+            style={{ 
+              left: 'calc(44.5 / 175 * 100%)', 
+              top: 'calc(85 / 300 * 100%)', 
+              width: 'calc(90 / 175 * 100%)', 
+              height: 'calc(20 / 300 * 100%)' 
+            }}
           >
-            
-            <div className="text-center shrink-0 mb-3">
-               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.2em] mb-0.5">祈福印記</h2>
-               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold">- 大德護持 善神擁護 -</p>
-            </div>
-
-            <div className="w-full text-[11px] md:text-[12px] flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center">
-                <div className="pb-1 w-fit max-w-full">
-                  <div className="flex gap-2 items-start mb-1.5">
-                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>大德</span>
-                    <span className="font-bold leading-snug">{targetName || name}</span>
-                  </div>
-                  <div className="flex gap-2 items-start mb-1.5">
-                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>項目</span>
-                    <span className="font-bold leading-snug">{project.title}</span>
-                  </div>
-                  <div className="flex gap-2 items-start mb-1.5">
-                    <span className="font-bold text-[#A61D24] tracking-widest shrink-0 w-[36px] text-justify" style={{ textAlignLast: 'justify' }}>方案</span>
-                    <span className="font-bold leading-snug break-all whitespace-pre-wrap">{project.options[selectedOptIdx].title}</span>
-                  </div>
-                </div>
-            </div>
-
-            <div className="shrink-0 text-center flex flex-col items-center justify-center pt-2 mt-auto border-t border-stone-200/30">
-              <span className="text-[10px] md:text-[11px] font-bold text-stone-700 tracking-widest leading-none mb-1.5 mt-1.5">
-                天運歲次 登記吉日
-              </span>
-              <span className="text-[8px] md:text-[9px] font-bold text-stone-500 tracking-widest leading-none mb-2">
-                祈求 平安順心 萬事如意
-              </span>
-              <span className="text-[11px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em] leading-none">
-                - 功德 圓滿 -
-              </span>
-            </div>
-
+            <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
+            <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
           </div>
+
+          {/* T2: Right Column */}
+          <div 
+            className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
+            style={{ 
+              left: 'calc(160 / 175 * 100%)', 
+              top: 'calc(75 / 300 * 100%)', 
+              width: 'calc(12 / 175 * 100%)', 
+              height: 'calc(150 / 300 * 100%)',
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
+          </div>
+
+          {/* T3: Left Column */}
+          <div 
+            className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
+            style={{ 
+              left: 'calc(3 / 175 * 100%)', 
+              top: 'calc(70 / 300 * 100%)', 
+              width: 'calc(12 / 175 * 100%)', 
+              height: 'calc(180 / 300 * 100%)',
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
+          </div>
+
+          {/* T4: Body Right - 大德 */}
+          <div 
+            className="absolute z-10 receipt-text text-stone-900"
+            style={{ 
+              left: 'calc(90 / 175 * 100%)', 
+              top: 'calc(110 / 300 * 100%)', 
+              width: 'calc(35 / 175 * 100%)', 
+              height: 'auto',
+              maxHeight: 'calc(120 / 300 * 100%)', 
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
+            <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{targetName || name}</span>
+          </div>
+
+          {/* T6: Body Sub - 項目 */}
+          <div 
+            className="absolute z-10 receipt-text text-stone-900"
+            style={{ 
+              left: 'calc(90 / 175 * 100%)', 
+              top: 'calc(170 / 300 * 100%)', 
+              width: 'calc(35 / 175 * 100%)', 
+              height: 'auto',
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
+            <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{project.title}</span>
+          </div>
+
+          {/* T5-A: Body Left - 方案標題 */}
+          <div 
+            className="absolute z-10 receipt-text text-[#A61D24]"
+            style={{ 
+              left: 'calc(75 / 175 * 100%)', 
+              top: 'calc(110 / 300 * 100%)', 
+              width: 'calc(35 / 175 * 100%)', 
+              height: 'auto',
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
+          </div>
+
+          {/* T5-B: Body Left - 方案黑字內容 */}
+          <div 
+            className="absolute z-10 receipt-text text-stone-900"
+            style={{ 
+              left: 'calc(40 / 175 * 100%)', 
+              top: 'calc(128 / 300 * 100%)', 
+              width: 'calc(70 / 175 * 100%)', 
+              height: 'auto',                               
+              maxHeight: 'calc(102 / 300 * 100%)', 
+              writingMode: 'vertical-rl',
+              textOrientation: 'upright'
+            }}
+          >
+            <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
+              {project.options[selectedOptIdx].title}
+            </span>
+          </div>
+
+          {/* T7: Footer */}
+          <div 
+            className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+            style={{ 
+              left: 'calc(62.5 / 175 * 100%)', 
+              top: 'calc(240 / 300 * 100%)', 
+              width: 'calc(50 / 175 * 100%)', 
+              height: 'calc(10 / 300 * 100%)' 
+            }}
+          >
+            <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+          </div>
+
         </div>
 
         <button onClick={() => router.push("/")} className="w-full max-w-[320px] mt-8 bg-[#1A432D] text-[#D89F3C] py-4 rounded-xl font-bold tracking-widest hover:bg-[#122F20] transition-colors shadow-md">
