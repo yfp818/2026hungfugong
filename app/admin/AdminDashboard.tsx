@@ -71,7 +71,6 @@ export default function AdminDashboard() {
   const [editFcId, setEditFcId] = useState<string|null>(null);
   const [fcSplash, setFcSplash] = useState(false); 
 
-  // ✨ 新增：獨立專款專案 (如玉皇上帝) 狀態管理
   const [spList, setSpList] = useState<any[]>([]);
   const [spOrdersList, setSpOrdersList] = useState<any[]>([]);
   const [spTitle, setSpTitle] = useState("");
@@ -115,7 +114,6 @@ export default function AdminDashboard() {
     const { data: fcData } = await supabase.from("flash_campaigns").select("*, campaign_bank_accounts(*)").order("created_at", { ascending: false });
     if (fcData) setFlashCampaignsList(fcData);
 
-    // ✨ 新增：抓取獨立專案與獨立認捐訂單
     const { data: spData } = await supabase.from("special_projects").select("*").order("created_at", { ascending: false });
     if (spData) setSpList(spData);
     const { data: spoData } = await supabase.from("special_project_orders").select("*, special_projects(title)").order("created_at", { ascending: false });
@@ -128,7 +126,6 @@ export default function AdminDashboard() {
     fetchData(); 
   }, []);
 
-  // ✨ 合併一般訂單與獨立專案訂單的日期來產生月份選項
   const allOrderDates = [...ordersList.map(o => o.created_at), ...spOrdersList.map(o => o.created_at)];
   const monthOptions = Array.from(new Set(allOrderDates.map((dateStr: string) => {
     const d = new Date(dateStr); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -150,7 +147,6 @@ export default function AdminDashboard() {
     return true;
   });
 
-  // ✨ 獨立專案的月份篩選
   const filteredSpOrders = spOrdersList.filter((o: any) => {
     const d = new Date(o.created_at);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth;
@@ -162,15 +158,22 @@ export default function AdminDashboard() {
   const totalIncomeCompleted = currentDisplayOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
   const totalIncomePending = currentDisplayOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
   
-  const serviceCounts = {
-    lamp: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '當月點燈' || o.service_type === 'lamp'); }).length,
-    burning: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '代燒服務' || o.service_type === 'burning'); }).length,
-    booking: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '濟事問事' || o.service_type === 'booking'); }).length,
-    campaign: ordersList.filter((o: any) => { const d = new Date(o.created_at); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth && (o.service_type === '限時特辦活動' || o.service_type === 'campaign'); }).length,
+  // 💡 1. 修正主視覺儲存：強制重新載入
+  const handleSaveHero = async () => { 
+    setIsSavingHero(true); 
+    let url = previewUrl; 
+    if (imageFile) { 
+      const name = `hero_${Date.now()}`; 
+      await supabase.storage.from('images').upload(name, imageFile); 
+      url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; 
+    } 
+    await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); 
+    alert("主視覺更新成功。"); 
+    setIsSavingHero(false); 
+    window.location.reload(); 
   };
-
-  const handleSaveHero = async () => { setIsSavingHero(true); let url = previewUrl; if (imageFile) { const name = `hero_${Date.now()}`; await supabase.storage.from('images').upload(name, imageFile); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; } await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); alert("主視覺更新成功。"); setIsSavingHero(false); router.refresh(); };
   
+  // 💡 2. 修正公告儲存：強制重新載入
   const handleSaveNews = async () => { 
     setIsAddingNews(true); 
     let url = addNewsPreviewUrl; 
@@ -190,14 +193,28 @@ export default function AdminDashboard() {
       }]); 
     } 
     
-    alert("發布成功。"); setEditNewsId(null); setAddNewsTitle(""); setAddNewsContent(""); setAddNewsPreviewUrl(""); setAddNewsCategory("news"); setAddNewsActionUrl(""); fetchData(); setIsAddingNews(false); router.refresh(); 
+    alert("發布成功。"); 
+    window.location.reload(); 
   };
   
-  const handleSaveService = async () => { setIsAddingSrv(true); if (editSrvId) await supabase.from("blessing_services").update({ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }).eq("id", editSrvId); else await supabase.from("blessing_services").insert([{ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }]); alert("祈福項目已儲存。"); setEditSrvId(null); setSrvTitle(""); setSrvDesc(""); setSrvAction(""); fetchData(); setIsAddingSrv(false); router.refresh(); };
+  // 💡 3. 修正服務按鈕儲存：強制重新載入
+  const handleSaveService = async () => { 
+    setIsAddingSrv(true); 
+    if (editSrvId) await supabase.from("blessing_services").update({ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }).eq("id", editSrvId); 
+    else await supabase.from("blessing_services").insert([{ title: srvTitle, description: srvDesc, action_text: srvAction, link_url: srvLink }]); 
+    alert("祈福項目已儲存。"); 
+    window.location.reload(); 
+  };
   
-  const handleSaveFooter = async () => { setIsSavingFooter(true); const footerJsonString = JSON.stringify({ address, phone, lineUrl, igUrl, bankName, bankAccount, showBankInfo }); await supabase.from("site_content").upsert({ id: "site_footer", title: "頁尾聯絡資訊", content: footerJsonString }); alert("頁尾更新成功."); setIsSavingFooter(false); router.refresh(); };
+  // 💡 4. 修正頁尾儲存：強制重新載入
+  const handleSaveFooter = async () => { 
+    setIsSavingFooter(true); 
+    const footerJsonString = JSON.stringify({ address, phone, lineUrl, igUrl, bankName, bankAccount, showBankInfo }); 
+    await supabase.from("site_content").upsert({ id: "site_footer", title: "頁尾聯絡資訊", content: footerJsonString }); 
+    alert("頁尾更新成功."); 
+    window.location.reload(); 
+  };
   
-  // ✨ 切換狀態與刪除，支援兩種不同的資料表
   const toggleOrderStatus = async (id: string, currentStatus: string, isSp: boolean = false) => { try { const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'; const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).update({ status: newStatus }).eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("狀態更新失敗：" + err.message); } };
   const deleteOrder = async (id: string, isSp: boolean = false) => { if(confirm("確定要刪除這筆紀錄嗎？此動作無法復原。")) { try { const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).delete().eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("刪除失敗：" + err.message); } } };
 
@@ -213,6 +230,7 @@ export default function AdminDashboard() {
   const addFcOption = () => { if (fcOptions.length >= 4) return alert("最多設定 4 種方案"); setFcOptions([...fcOptions, { title: "", price: 0 }]); };
   const removeFcOption = (index: number) => { const newOptions = fcOptions.filter((_, i) => i !== index); setFcOptions(newOptions); };
 
+  // 💡 5. 修正快閃活動儲存：強制重新載入
   const handleAddFlashCampaign = async () => {
     if(!fcTitle || !fcBankId) return alert("請輸入活動標題與綁定指定帳戶");
     const validOptions = fcOptions.filter((o: any) => o.title.trim() !== "");
@@ -241,12 +259,10 @@ export default function AdminDashboard() {
       else alert("限時快閃活動已成功發布！");
     }
 
-    setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setEditFcId(null); setFcSplash(false);
-    setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : "");
-    fetchData();
-    router.refresh(); 
+    window.location.reload(); 
   };
 
+  // 💡 6. 修正商品儲存：補上重新載入 (原本沒有寫)
   const handleSaveProduct = async () => {
     if (!pTitle) return alert("請輸入商品名稱");
     setIsAddingProduct(true);
@@ -254,15 +270,19 @@ export default function AdminDashboard() {
       let url = pPreviewUrl;
       if (pImageFile) { const name = `prod_${Date.now()}`; const { error: uploadError } = await supabase.storage.from('images').upload(name, pImageFile); if (uploadError) throw new Error("圖片上傳失敗：" + uploadError.message); url = supabase.storage.from('images').getPublicUrl(name).data.publicUrl; }
       if (editPId) { const { error } = await supabase.from("blessing_products").update({ category: pCategory, title: pTitle, price: pPrice, description: pDesc, image_url: url }).eq("id", editPId); if (error) throw error; } else { const { error } = await supabase.from("blessing_products").insert([{ category: pCategory, title: pTitle, price: pPrice, description: pDesc, image_url: url }]); if (error) throw error; }
-      alert("商品項目儲存成功。"); setEditPId(null); setPTitle(""); setPPrice(0); setPDesc(""); setPPreviewUrl(""); setPCategory("lamp"); setPImageFile(null); fetchData(); 
-    } catch (err: any) { alert("儲存發生錯誤: " + err.message); } finally { setIsAddingProduct(false); }
+      alert("商品項目儲存成功。"); 
+      window.location.reload(); 
+    } catch (err: any) { 
+      alert("儲存發生錯誤: " + err.message); 
+      setIsAddingProduct(false); 
+    }
   };
 
-  // ✨ 獨立專案管理功能
   const updateSpOption = (index: number, field: string, value: any) => { const newOptions = [...spOptions]; newOptions[index] = { ...newOptions[index], [field]: value }; setSpOptions(newOptions); };
   const addSpOption = () => { setSpOptions([...spOptions, { title: "", price: 0 }]); };
   const removeSpOption = (index: number) => { setSpOptions(spOptions.filter((_, i) => i !== index)); };
 
+  // 💡 7. 修正獨立專案儲存：補上重新載入 (原本沒有寫)
   const handleSaveSpecialProject = async () => {
     if (!spTitle || !spBankInfo) return alert("請輸入專案標題與專屬匯款帳戶資訊");
     const validOptions = spOptions.filter((o: any) => o.title.trim() !== "");
@@ -282,11 +302,9 @@ export default function AdminDashboard() {
       const { error } = await supabase.from("special_projects").insert([{ title: spTitle, description: spDesc, bank_info: spBankInfo, image_url: url, options: validOptions }]);
       if (error) alert("發布失敗：" + error.message); else alert("獨立專案發布成功！");
     }
-    setSpTitle(""); setSpDesc(""); setSpBankInfo(""); setSpPreviewUrl(""); setSpImageFile(null); setSpOptions([{ title: "隨喜認捐", price: 0 }]); setEditSpId(null);
-    fetchData();
+    window.location.reload();
   };
 
-  // ✨ 匯出 Excel (支援兩種訂單)
   const exportToCSV = () => {
     if (currentDisplayOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
     const isSp = selectedServiceType === 'special_project';
@@ -320,7 +338,6 @@ export default function AdminDashboard() {
   };
 
   const handleCopyUrl = (id: string, title: string, isSp: boolean = false) => {
-    // ✨ 專屬獨立網址
     const url = isSp ? `${window.location.origin}/project/${id}` : `https://liff.line.me/2010604926-zQQVEwEM/campaign/${id}`;
     const shareText = `【${title}】熱烈報名中！\n👉 點此前往專屬報名網址：\n${url}`;
 
@@ -425,7 +442,7 @@ export default function AdminDashboard() {
                 <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1">🔗 複製連結</button>
                 <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg transition-colors">📊 報表</button>
                 <button onClick={() => {setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false); setFcBankId(fc.bank_account_id || (campaignBanks.length > 0 ? campaignBanks[0].id : "")); setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-xs font-bold bg-stone-100 text-stone-600 px-4 py-2 rounded-lg">編輯</button>
-                <button onClick={async()=>{if(confirm("確定刪除此活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); router.refresh();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
+                <button onClick={async()=>{if(confirm("確定刪除此活動？")){await supabase.from("flash_campaigns").delete().eq("id",fc.id); fetchData(); window.location.reload();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
               </div>
             </div>
           ))}
@@ -544,7 +561,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 8. 服務與預約紀錄管理 (✨ 加入專案獨立切換) */}
+      {/* 8. 服務與預約紀錄管理 */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-xl font-bold border-l-4 border-emerald-700 pl-3 text-emerald-900">8. 服務與預約紀錄管理</h2>
@@ -640,7 +657,7 @@ export default function AdminDashboard() {
         </div>
       </section>
 
-      {/* 9. ✨ 獨立專款專案管理 (全新加入) */}
+      {/* 9. 獨立專款專案管理 */}
       <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-stone-100 space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-blue-700 pl-3 text-blue-900">9. 獨立專款專案管理 (如: 玉皇上帝金牌、建廟基金)</h2>
         <p className="text-sm text-stone-500 font-bold mb-4 bg-blue-50 p-3 rounded-lg">💡 提示：此區塊的認捐將「繞過一般購物車」走專屬獨立通道，並提供專屬獨立網址供您分享給信眾。</p>
@@ -689,7 +706,7 @@ export default function AdminDashboard() {
                   setEditSpId(sp.id); setSpTitle(sp.title); setSpDesc(sp.description || ""); setSpBankInfo(sp.bank_info || ""); setSpPreviewUrl(sp.image_url || "");
                   setSpOptions(sp.options && Array.isArray(sp.options) && sp.options.length > 0 ? sp.options : [{title: "隨喜認捐", price: 0}]); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                 }} className="text-xs font-bold bg-stone-100 text-stone-600 px-4 py-2 rounded-lg">編輯</button>
-                <button onClick={async()=>{if(confirm("確定刪除此專案？")){await supabase.from("special_projects").delete().eq("id",sp.id); fetchData();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
+                <button onClick={async()=>{if(confirm("確定刪除此專案？")){await supabase.from("special_projects").delete().eq("id",sp.id); fetchData(); window.location.reload();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
               </div>
             </div>
           ))}
