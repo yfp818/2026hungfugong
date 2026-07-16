@@ -64,7 +64,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF7F0] dark:bg-[#121212] selection:bg-[#A61D24] selection:text-white transition-colors duration-500">
+    <main className="min-h-screen bg-background dark:bg-[#121212] selection:bg-[#A61D24] selection:text-white transition-colors duration-500">
       
       {activeCampaign && <CampaignSplash campaign={activeCampaign} />}
       <AOSProvider />
@@ -95,7 +95,7 @@ export default async function Home() {
 
           <div className="animate-hero delay-500 pt-16 pb-8 md:pb-0 flex justify-center md:justify-start gap-4 shrink-0 w-full relative z-30">
             <Link href="/lamps"><Button size="lg" className="w-32 md:w-40 bg-[#A61D24] text-white hover:bg-[#85161C] tracking-wider border border-[#A61D24] shadow-lg rounded-xl">開始祈福</Button></Link>
-            <Link href="/booking"><Button size="lg" variant="outline" className="w-32 md:w-40 tracking-wider bg-transparent text-white border-white hover:bg-white hover:text-[#A61D24] shadow-lg rounded-xl">預約問事</Button></Link>
+            <Link href="/booking"><Button size="lg" variant="outline" className="w-32 md:w-40 tracking-wider bg-transparent text-white border-white hover:bg-card text-card-foreground hover:text-[#A61D24] shadow-lg rounded-xl">預約問事</Button></Link>
           </div>
         </div>
 
@@ -109,19 +109,19 @@ export default async function Home() {
 
       {/* ================= 區塊二：本宮公告 ================= */}
       {listAnnouncements.length > 0 && (
-        <div id="announcements" className="w-full bg-white dark:bg-[#121212] relative z-20 transition-colors duration-500">
+        <div id="announcements" className="w-full bg-card text-card-foreground dark:bg-[#121212] relative z-20 transition-colors duration-500">
           <section className="py-24 px-6 max-w-7xl mx-auto" data-aos="fade-up">
             <div className="flex flex-col md:flex-row gap-12 md:gap-24">
               <div className="flex flex-col items-center md:items-start shrink-0">
                 <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold text-slate-800 dark:text-stone-200 tracking-[0.4em] leading-[1.5] transition-colors`}>
                   <span className="block">本 宮</span><span className="block">公 告</span>
                 </h2>
-                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D] dark:bg-[#D89F3C]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-white dark:bg-[#121212] z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] dark:bg-[#D89F3C] shrink-0 -ml-1 rounded-r-full"></div></div>
+                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D] dark:bg-[#D89F3C]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-card text-card-foreground dark:bg-[#121212] z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] dark:bg-[#D89F3C] shrink-0 -ml-1 rounded-r-full"></div></div>
               </div>
 
               <div className="flex-1 flex flex-col w-full border-t border-stone-200 dark:border-stone-800 md:border-none">
                 {listAnnouncements.map((news: any) => (
-                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-900/50 transition-colors group">
+                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 dark:border-stone-800/50 hover:bg-muted text-muted-foreground dark:hover:bg-stone-900/50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <svg className="w-5 h-5 text-[#D89F3C] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
                       <h3 className="text-lg md:text-xl font-bold text-[#1A432D] dark:text-[#D89F3C] group-hover:text-[#A61D24] transition-colors line-clamp-1">{news.title}</h3>
@@ -137,11 +137,11 @@ export default async function Home() {
 
       {/* ================= 區塊三：重點活動 ================= */}
       {listEvents.length > 0 && (
-        <div id="events" className="w-full bg-[#FAF7F0] dark:bg-[#1A1A1A] border-t border-stone-200/50 dark:border-stone-800/50 transition-colors duration-500">
+        <div id="events" className="w-full bg-background dark:bg-[#1A1A1A] border-t border-stone-200/50 dark:border-stone-800/50 transition-colors duration-500">
           <section className="pt-24 pb-16 px-6 max-w-7xl mx-auto">
             <div className="text-center md:text-right mb-16 md:mb-24 pr-4" data-aos="fade-up">
               <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold tracking-widest text-[#1A432D] dark:text-[#D89F3C] mb-4 transition-colors`}>重點活動</h2>
-              <div className="w-full h-[2px] bg-[#D89F3C] mt-6 relative"><div className="absolute right-12 -top-[6px] w-3 h-3 border-2 border-[#D89F3C] rounded-full bg-[#FAF7F0] dark:bg-[#1A1A1A]"></div></div>
+              <div className="w-full h-[2px] bg-[#D89F3C] mt-6 relative"><div className="absolute right-12 -top-[6px] w-3 h-3 border-2 border-[#D89F3C] rounded-full bg-background dark:bg-[#1A1A1A]"></div></div>
             </div>
             
             <div className="space-y-24 md:space-y-40">
@@ -155,7 +155,7 @@ export default async function Home() {
                       </Link>
                     )}
 
-                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-white/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
+                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-card text-card-foreground/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
                       <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
                       <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] dark:text-stone-100 mb-6 tracking-wide leading-snug hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
                       <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{stripMarkdown(news.content)}</p>
@@ -173,7 +173,7 @@ export default async function Home() {
 
       {/* ================= 區塊四：祈福專區 ================= */}
       {dynamicServices.length > 0 && (
-        <section id="services" className="pb-24 pt-24 w-full bg-white dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
+        <section id="services" className="pb-24 pt-24 w-full bg-card text-card-foreground dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#A61D24] dark:text-[#D89F3C] mb-4 transition-colors`}>祈 福 專 區</h2>
             <p className="text-lg tracking-widest text-stone-500 dark:text-stone-400 font-medium">點亮心燈 照慧平安</p>
@@ -195,7 +195,7 @@ export default async function Home() {
 
       {/* ================= 區塊 4.5：獨立專款專案 (✨ 全新專屬顯示區) ================= */}
       {specialProjects.length > 0 && (
-        <section id="special-projects" className="pb-32 w-full bg-white dark:bg-[#121212] transition-colors duration-500 relative overflow-hidden">
+        <section id="special-projects" className="pb-32 w-full bg-card text-card-foreground dark:bg-[#121212] transition-colors duration-500 relative overflow-hidden">
           {/* 帝王金裝飾背景 */}
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#D89F3C]/5 via-transparent to-transparent pointer-events-none"></div>
 
