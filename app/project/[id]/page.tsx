@@ -109,7 +109,7 @@ export default function SpecialProjectPage() {
         <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-background">
           
           <img 
-            src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
+            src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
             alt="祈福印記" 
             className="w-full h-auto block pointer-events-none select-none relative z-0" 
           />

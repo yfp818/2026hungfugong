@@ -200,7 +200,7 @@ export default function GlobalCartPage() {
               
             {/* 底圖，撐開整體高寬比例 */}
             <img 
-              src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/IMG_5311.PNG" 
+              src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
               alt="祈福印記" 
               className="w-full h-auto block pointer-events-none select-none relative z-0" 
             />
