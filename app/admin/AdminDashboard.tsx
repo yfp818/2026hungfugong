@@ -378,9 +378,9 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-12 space-y-12 pb-32 animate-in fade-in duration-700">
-      <h1 className="text-3xl font-bold text-[#A61D24] dark:text-red-400 tracking-widest border-b border-border pb-4">皇府宮管理後台</h1>
-      
+    // 💡 加上了 w-full overflow-x-hidden，並把手機版 padding 從 p-6 改為 p-4 讓卡片更滿版
+    <div className="min-h-screen w-full overflow-x-hidden bg-background p-4 md:p-12 space-y-8 md:space-y-12 pb-32 animate-in fade-in duration-700">
+      <h1 className="text-3xl font-bold text-[#A61D24] dark:text-red-400 tracking-widest border-b border-border pb-4">皇府宮管理後台</h1> 
       {/* 1. 首頁主視覺 */}
       <section className="bg-card text-card-foreground p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
         <h2 className="text-xl font-bold border-l-4 border-[#A61D24] dark:border-red-500 pl-3">1. 首頁主視覺</h2>

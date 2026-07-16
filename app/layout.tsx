@@ -17,7 +17,7 @@ const notoSans = Noto_Sans_TC({
 export const notoSerif = Noto_Serif_TC({
   subsets: ["latin"],
   weight: ["700", "900"],
-  variable: '--font-noto-serif', // 👈 關鍵就在這一行！
+  variable: '--font-noto-serif', 
 });
 
 export const metadata: Metadata = {
@@ -32,8 +32,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-TW" data-scroll-behavior="smooth" suppressHydrationWarning>
-      {/* ✨ 在 body 標籤中加入 notoSerif.variable，讓全站都能取用這個字體 */}
-      <body className={`${notoSans.className} ${notoSerif.variable} antialiased bg-muted text-stone-900 dark:bg-[#121212] dark:text-stone-100 transition-colors duration-300`}>
+      {/* 💡 1. 加入 w-full overflow-x-hidden (防止手機版水平破版縮小) */}
+      {/* 💡 2. 移除寫死的顏色，換成 bg-background text-foreground (全自動日夜間切換) */}
+      <body className={`${notoSans.className} ${notoSerif.variable} antialiased w-full overflow-x-hidden bg-background text-foreground transition-colors duration-300`}>
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>
