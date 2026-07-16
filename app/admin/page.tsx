@@ -16,17 +16,17 @@ export default async function AdminPage() {
 
   if (!session || !session.user?.email || !adminEmails.includes(session.user.email)) {
     return (
-      <div className="min-h-screen bg-[#FAF7F0] flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1/2 bg-[#1A432D]"></div>
         
-        <div className="bg-white p-10 md:p-12 rounded-[2rem] shadow-2xl border border-stone-100 max-w-md w-full text-center space-y-8 relative z-10">
-          <div className="w-20 h-20 bg-[#FAF7F0] text-[#D89F3C] rounded-full flex items-center justify-center mx-auto shadow-inner border border-stone-200">
+        <div className="bg-card p-10 md:p-12 rounded-[2rem] shadow-2xl border border-stone-100 max-w-md w-full text-center space-y-8 relative z-10">
+          <div className="w-20 h-20 bg-background text-[#D89F3C] rounded-full flex items-center justify-center mx-auto shadow-inner border border-border">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
           
           <div>
             <h1 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">皇府宮管理系統</h1>
-            <p className="text-stone-500 font-medium tracking-widest text-sm mb-2">
+            <p className="text-muted-foreground font-medium tracking-widest text-sm mb-2">
               {session?.user?.name ? `目前登入：${session.user.name}` : "請使用授權帳號登入"}
             </p>
             {session?.user?.email && !adminEmails.includes(session.user.email) && (

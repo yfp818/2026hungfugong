@@ -15,7 +15,7 @@ const renderSmartContent = (content: string) => {
     let line = lines[i];
 
     // 魔法 1：辨識 **加粗文字**
-    line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-stone-800">$1</strong>');
+    line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-foreground">$1</strong>');
 
     if (line.startsWith('# ')) {
       // 魔法 2：辨識 "# " 變成金色大標題
@@ -57,11 +57,11 @@ export default async function NewsDetailPage({ params }: any) {
 
   if (error || !news) {
     return (
-      <main className="min-h-screen bg-[#FAF7F0] flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-red-100 max-w-lg">
+      <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-card p-8 md:p-12 rounded-3xl shadow-sm border border-red-100 max-w-lg">
           <h1 className="text-2xl font-bold text-[#A61D24] mb-4">找不到對應的文章</h1>
           <p className="text-stone-600 mb-2">系統嘗試尋找的文章 ID：<span className="font-mono bg-stone-100 px-2 py-1 rounded text-sm">{articleId}</span></p>
-          <p className="text-stone-500 text-sm mb-8">可能原因：該文章已被刪除，或資料庫連線錯誤。</p>
+          <p className="text-muted-foreground text-sm mb-8">可能原因：該文章已被刪除，或資料庫連線錯誤。</p>
           <Link href="/#announcements">
             <Button className="bg-[#1A432D] text-white hover:bg-[#122F20] tracking-widest rounded-xl">返回首頁</Button>
           </Link>
@@ -71,8 +71,8 @@ export default async function NewsDetailPage({ params }: any) {
   }
 
   return (
-    <main className="min-h-screen bg-[#FAF7F0] pt-32 pb-16 px-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
+    <main className="min-h-screen bg-background pt-32 pb-16 px-6">
+      <div className="max-w-3xl mx-auto bg-card rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
         {news.image_url && (
           <div className="w-full h-64 md:h-[400px] relative bg-stone-100">
             <img src={news.image_url} alt={news.title} className="w-full h-full object-cover" />
@@ -85,7 +85,7 @@ export default async function NewsDetailPage({ params }: any) {
             <span className={`text-xs font-bold px-3 py-1 rounded-full text-white ${news.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>
               {news.category === 'event' ? '重點活動' : '本宮公告'}
             </span>
-            <span className="text-stone-400 text-sm font-medium tracking-widest">
+            <span className="text-muted-foreground text-sm font-medium tracking-widest">
               {new Date(news.created_at).toLocaleDateString('zh-TW')}
             </span>
           </div>
@@ -116,7 +116,7 @@ export default async function NewsDetailPage({ params }: any) {
             <div className="flex flex-col sm:flex-row justify-between gap-4 mt-2">
               <ShareButton title={news.title} />
               <Link href="/#announcements" className="w-full sm:w-auto">
-                <Button variant="outline" className="w-full px-8 py-6 rounded-xl tracking-widest text-stone-500 border-stone-200 hover:bg-stone-50 transition-colors font-bold">
+                <Button variant="outline" className="w-full px-8 py-6 rounded-xl tracking-widest text-muted-foreground border-border hover:bg-muted transition-colors font-bold">
                   返回列表
                 </Button>
               </Link>

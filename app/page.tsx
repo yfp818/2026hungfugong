@@ -116,17 +116,17 @@ export default async function Home() {
                 <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold text-slate-800 dark:text-stone-200 tracking-[0.4em] leading-[1.5] transition-colors`}>
                   <span className="block">本 宮</span><span className="block">公 告</span>
                 </h2>
-                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D] dark:bg-[#D89F3C]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-card text-card-foreground dark:bg-[#121212] z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] dark:bg-[#D89F3C] shrink-0 -ml-1 rounded-r-full"></div></div>
+                <div className="flex items-center mt-6 w-32"><div className="h-[2px] w-full bg-[#1A432D] dark:bg-[#D89F3C]"></div><div className="w-4 h-4 border-[2px] border-[#D89F3C] rounded-full shrink-0 -ml-2 bg-card dark:bg-[#121212] z-10"></div><div className="h-[4px] w-12 bg-[#1A432D] dark:bg-[#D89F3C] shrink-0 -ml-1 rounded-r-full"></div></div>
               </div>
 
-              <div className="flex-1 flex flex-col w-full border-t border-stone-200 dark:border-stone-800 md:border-none">
+              <div className="flex-1 flex flex-col w-full border-t border-border dark:border-stone-800 md:border-none">
                 {listAnnouncements.map((news: any) => (
-                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 dark:border-stone-800/50 hover:bg-muted text-muted-foreground dark:hover:bg-stone-900/50 transition-colors group">
+                  <Link href={`/news/${news.id}`} key={news.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-6 border-b border-stone-100 dark:border-stone-800/50 hover:bg-muted dark:hover:bg-stone-900/50 transition-colors group">
                     <div className="flex items-center gap-4">
                       <svg className="w-5 h-5 text-[#D89F3C] shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z"/></svg>
                       <h3 className="text-lg md:text-xl font-bold text-[#1A432D] dark:text-[#D89F3C] group-hover:text-[#A61D24] transition-colors line-clamp-1">{news.title}</h3>
                     </div>
-                    <span className="text-stone-400 dark:text-stone-500 text-sm mt-3 sm:mt-0 font-medium tracking-widest shrink-0 sm:ml-4">{new Date(news.created_at).toISOString().split('T')[0]}</span>
+                    <span className="text-stone-400 dark:text-muted-foreground text-sm mt-3 sm:mt-0 font-medium tracking-widest shrink-0 sm:ml-4">{new Date(news.created_at).toISOString().split('T')[0]}</span>
                   </Link>
                 ))}
               </div>
@@ -137,7 +137,7 @@ export default async function Home() {
 
       {/* ================= 區塊三：重點活動 ================= */}
       {listEvents.length > 0 && (
-        <div id="events" className="w-full bg-background dark:bg-[#1A1A1A] border-t border-stone-200/50 dark:border-stone-800/50 transition-colors duration-500">
+        <div id="events" className="w-full bg-background dark:bg-[#1A1A1A] border-t border-border dark:border-stone-800/50 transition-colors duration-500">
           <section className="pt-24 pb-16 px-6 max-w-7xl mx-auto">
             <div className="text-center md:text-right mb-16 md:mb-24 pr-4" data-aos="fade-up">
               <h2 className={`${notoSerif.className} text-4xl md:text-5xl font-bold tracking-widest text-[#1A432D] dark:text-[#D89F3C] mb-4 transition-colors`}>重點活動</h2>
@@ -155,8 +155,8 @@ export default async function Home() {
                       </Link>
                     )}
 
-                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-card text-card-foreground/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
-                      <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-stone-200 dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
+                    <div className={`w-[90%] md:w-[45%] relative z-10 -mt-24 md:mt-auto md:mb-auto ${isEven ? 'md:-ml-24 lg:-ml-32' : 'md:-mr-24 lg:-mr-32'} bg-card/85 dark:bg-[#2A2A2A]/85 backdrop-blur-xl border border-white/50 dark:border-stone-700/50 rounded-[2rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 group-hover:-translate-y-2 flex flex-col`}>
+                      <p className="text-[#D89F3C] text-sm tracking-widest mb-4 font-bold border-b border-border dark:border-stone-700 pb-4 inline-block md:w-full">{new Date(news.created_at).toLocaleDateString('zh-TW')}</p>
                       <Link href={`/news/${news.id}`}><h3 className={`${notoSerif.className} text-2xl md:text-4xl font-bold text-[#1A432D] dark:text-stone-100 mb-6 tracking-wide leading-snug hover:text-[#A61D24] dark:hover:text-[#D89F3C] transition-colors whitespace-pre-wrap`}>{news.title}</h3></Link>
                       <p className="text-stone-600 dark:text-stone-400 leading-relaxed mb-8 text-justify md:text-lg line-clamp-4 whitespace-pre-wrap flex-1">{stripMarkdown(news.content)}</p>
                       <div className="flex justify-end pt-2">
@@ -176,7 +176,7 @@ export default async function Home() {
         <section id="services" className="pb-24 pt-24 w-full bg-card text-card-foreground dark:bg-[#121212] border-t border-stone-100 dark:border-stone-800 transition-colors duration-500">
           <div className="text-center mb-16" data-aos="fade-up">
             <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#A61D24] dark:text-[#D89F3C] mb-4 transition-colors`}>祈 福 專 區</h2>
-            <p className="text-lg tracking-widest text-stone-500 dark:text-stone-400 font-medium">點亮心燈 照慧平安</p>
+            <p className="text-lg tracking-widest text-muted-foreground dark:text-stone-400 font-medium">點亮心燈 照慧平安</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto px-6">
@@ -201,7 +201,7 @@ export default async function Home() {
 
           <div className="text-center mb-16 relative z-10" data-aos="fade-up">
             <h2 className={`${notoSerif.className} text-3xl md:text-4xl font-bold tracking-widest text-[#D89F3C] mb-4 drop-shadow-sm`}>專 款 專 案</h2>
-            <p className="text-lg tracking-widest text-stone-500 font-bold">功德無量 福報延綿</p>
+            <p className="text-lg tracking-widest text-muted-foregroundv font-bold">功德無量 福報延綿</p>
           </div>
 
           <div className="max-w-5xl mx-auto px-6 space-y-12 relative z-10">
@@ -217,7 +217,7 @@ export default async function Home() {
 
                 <div className="flex-1 flex flex-col justify-center h-full w-full">
                   <h3 className={`${notoSerif.className} text-2xl md:text-3xl font-bold text-[#1A432D] dark:text-stone-100 mb-4 tracking-wide leading-snug`}>{sp.title}</h3>
-                  <p className="text-stone-500 dark:text-stone-400 leading-relaxed mb-8 line-clamp-3 text-justify font-medium">{sp.description}</p>
+                  <p className="text-muted-foreground dark:text-stone-400 leading-relaxed mb-8 line-clamp-3 text-justify font-medium">{sp.description}</p>
 
                   <div className="mt-auto">
                     <Link href={`/project/${sp.id}`} className="block">

@@ -557,7 +557,7 @@ export default function AdminDashboard() {
                <div><p className="font-bold text-foreground tracking-widest">開放匯款與捐獻帳戶資訊</p></div>
                <label className="relative inline-flex items-center cursor-pointer">
                  <input type="checkbox" checked={showBankInfo} onChange={e=>setShowBankInfo(e.target.checked)} className="sr-only peer"/>
-                 <div className="w-14 h-7 bg-muted-foreground/30 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-700 dark:peer-checked:bg-slate-500"></div>
+                 <div className="w-14 h-7 bg-muted-foreground/30 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[4px] after:bg-card after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-700 dark:peer-checked:bg-slate-500"></div>
                </label>
             </div>
             {showBankInfo && (

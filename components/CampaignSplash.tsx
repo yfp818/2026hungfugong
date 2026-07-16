@@ -34,7 +34,7 @@ export default function CampaignSplash({ campaign }: { campaign: any }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
-      <div className="bg-[#FAF7F0] w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 fade-in duration-500">
+      <div className="bg-background w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 fade-in duration-500">
         {campaign.image_url && (
           <div className="relative aspect-square w-full bg-stone-100">
             <img src={campaign.image_url} alt={campaign.title} className="w-full h-full object-cover" />
@@ -48,7 +48,7 @@ export default function CampaignSplash({ campaign }: { campaign: any }) {
           </div>
         )}
         
-        <div className="p-6 space-y-4 text-center bg-white">
+        <div className="p-6 space-y-4 text-center bg-card">
           <p className="text-stone-400 text-sm tracking-widest font-mono font-bold">
             {new Date(campaign.created_at).toLocaleDateString('zh-TW')}
           </p>
@@ -56,7 +56,7 @@ export default function CampaignSplash({ campaign }: { campaign: any }) {
             <button onClick={handleGoToCampaign} className="w-full bg-[#A61D24] hover:bg-[#85161C] text-white py-4 rounded-xl font-bold tracking-widest shadow-lg transition-all transform hover:scale-[1.02]">
               進入活動頁面
             </button>
-            <button onClick={handleClose} className="w-full bg-stone-50 border border-stone-200 text-stone-500 hover:bg-stone-100 hover:text-stone-700 py-4 rounded-xl font-bold tracking-widest transition-all">
+            <button onClick={handleClose} className="w-full bg-muted border border-border text-muted-foreground hover:bg-stone-100 hover:text-stone-700 py-4 rounded-xl font-bold tracking-widest transition-all">
               不，直接進入首頁
             </button>
           </div>

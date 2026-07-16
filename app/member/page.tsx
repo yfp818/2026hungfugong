@@ -71,15 +71,15 @@ export default function MemberCenter() {
   };
 
   if (status === "loading") {
-    return <div className="min-h-screen bg-[#FAF7F0] flex items-center justify-center font-bold tracking-widest text-[#1A432D]">驗證信眾身分中...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center font-bold tracking-widest text-[#1A432D]">驗證信眾身分中...</div>;
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#FAF7F0] flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <UserCircle className="w-24 h-24 text-stone-300 mb-6" />
         <h1 className="text-3xl font-bold text-slate-800 tracking-widest mb-4">請先登入信眾帳號</h1>
-        <p className="text-stone-500 mb-8 tracking-widest leading-relaxed max-w-md">登入後即可查看您的專屬祈福紀錄與本宮代辦進度，並管理您的聯絡資訊。</p>
+        <p className="text-muted-foreground mb-8 tracking-widest leading-relaxed max-w-md">登入後即可查看您的專屬祈福紀錄與本宮代辦進度，並管理您的聯絡資訊。</p>
         <Link href="/"><Button className="bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-6 rounded-full font-bold tracking-widest shadow-lg">返回首頁</Button></Link>
       </div>
     );
@@ -89,7 +89,7 @@ export default function MemberCenter() {
   const pendingOrders = orders.filter((o) => o.status !== "completed").length;
 
   return (
-    <div className="min-h-screen bg-[#FAF7F0] pb-32">
+    <div className="min-h-screen bg-background pb-32">
       <div className="bg-[#1A432D] pt-24 pb-32 px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
         <div className="max-w-4xl mx-auto relative z-10 text-center text-white">
@@ -100,15 +100,15 @@ export default function MemberCenter() {
 
       <div className="max-w-4xl mx-auto px-6 -mt-20 relative z-20 space-y-8">
         
-        <div className="bg-white rounded-3xl p-6 border border-stone-200/60 shadow-sm flex justify-between items-center">
+        <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-5">
             {session?.user?.image ? (
               <img src={session.user.image} alt="avatar" className="w-16 h-16 rounded-full border-2 border-stone-100 shadow-sm object-cover" />
             ) : (
-              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-stone-400 border-2 border-stone-200 shadow-sm"><UserCircle size={32} /></div>
+              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-stone-400 border-2 border-border shadow-sm"><UserCircle size={32} /></div>
             )}
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-stone-800 tracking-wider">{session?.user?.name}</h2>
+              <h2 className="text-2xl font-bold text-foreground tracking-wider">{session?.user?.name}</h2>
               <p className="text-xs text-stone-400 tracking-widest">已完成 LINE 信眾身分認證</p>
             </div>
           </div>
@@ -116,20 +116,20 @@ export default function MemberCenter() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-3xl p-6 border border-stone-200/60 shadow-sm flex flex-col items-center justify-center gap-2">
+          <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center justify-center gap-2">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2"><History size={20} /></div>
-            <p className="text-3xl font-bold text-slate-800">{completedOrders}</p>
-            <p className="text-xs font-bold tracking-widest text-stone-500">已圓滿服務</p>
+            <p className="text-3xl font-bold text-foreground">{completedOrders}</p>
+            <p className="text-xs font-bold tracking-widest text-muted-foreground">已圓滿服務</p>
           </div>
-          <div className="bg-white rounded-3xl p-6 border border-stone-200/60 shadow-sm flex flex-col items-center justify-center gap-2">
+          <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center justify-center gap-2">
             <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2"><Wallet size={20} /></div>
             <p className="text-3xl font-bold text-slate-800">{pendingOrders}</p>
-            <p className="text-xs font-bold tracking-widest text-stone-500">待對帳處理</p>
+            <p className="text-xs font-bold tracking-widest text-muted-foreground">待對帳處理</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-8 border border-stone-200/60 shadow-sm space-y-6">
-          <div className="flex justify-between items-center border-b border-stone-100 pb-4">
+        <div className="bg-card rounded-3xl p-8 border border-border shadow-sm space-y-6">
+          <div className="flex justify-between items-center border-b border-border pb-4">
              <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2">
                <Edit3 className="text-[#D89F3C]" size={20}/> 快速填表聯絡資訊
              </h3>
@@ -140,19 +140,19 @@ export default function MemberCenter() {
           
           {isEditingProfile ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-               <div><label className="block text-xs font-bold text-stone-500 mb-2">聯絡電話</label><input value={profile.phone} onChange={e=>setProfile({...profile, phone: e.target.value})} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
-               <div><label className="block text-xs font-bold text-stone-500 mb-2">通訊地址</label><input value={profile.address} onChange={e=>setProfile({...profile, address: e.target.value})} className="w-full border border-stone-200 p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
+               <div><label className="block text-xs font-bold text-muted-foreground mb-2">聯絡電話</label><input value={profile.phone} onChange={e=>setProfile({...profile, phone: e.target.value})} className="w-full border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
+               <div><label className="block text-xs font-bold text-muted-foreground mb-2">通訊地址</label><input value={profile.address} onChange={e=>setProfile({...profile, address: e.target.value})} className="w-full border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
                <Button onClick={handleSaveProfile} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-6 rounded-xl font-bold tracking-widest mt-2">儲存變更</Button>
             </div>
           ) : (
             <div className="space-y-5">
               <div className="flex items-start gap-4">
-                 <div className="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center shrink-0"><Phone size={16} className="text-stone-400"/></div>
-                 <div><p className="text-xs font-bold text-stone-400 tracking-widest mb-1">聯絡電話</p><p className="font-medium text-stone-800">{profile.phone || "尚未設定"}</p></div>
+                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0"><Phone size={16} className="text-stone-400"/></div>
+                 <div><p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">聯絡電話</p><p className="font-medium text-foreground">{profile.phone || "尚未設定"}</p></div>
               </div>
               <div className="flex items-start gap-4">
-                 <div className="w-8 h-8 rounded-full bg-stone-50 flex items-center justify-center shrink-0"><MapPin size={16} className="text-stone-400"/></div>
-                 <div><p className="text-xs font-bold text-stone-400 tracking-widest mb-1">通訊地址</p><p className="font-medium text-stone-800 leading-relaxed">{profile.address || "尚未設定"}</p></div>
+                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0"><MapPin size={16} className="text-stone-400"/></div>
+                 <div><p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">通訊地址</p><p className="font-medium text-foreground leading-relaxed">{profile.address || "尚未設定"}</p></div>
               </div>
               <p className="text-[10px] text-stone-400 tracking-widest pt-2 flex items-center gap-1.5">
                 <Info size={12} className="shrink-0" />
@@ -162,15 +162,15 @@ export default function MemberCenter() {
           )}
         </div>
 
-        <div className="bg-white rounded-3xl p-8 border border-stone-200/60 shadow-sm space-y-6">
-          <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-stone-100 pb-4">
+        <div className="bg-card rounded-3xl p-8 border border-border shadow-sm space-y-6">
+          <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-border pb-4">
             <Calendar className="text-[#A61D24]" size={20}/> 祈福與服務紀錄
           </h3>
           
           {loadingOrders ? (
             <div className="text-center py-10 text-stone-400 font-bold tracking-widest">載入中...</div>
           ) : orders.length === 0 ? (
-            <div className="text-center py-12 bg-stone-50 rounded-2xl border border-dashed border-stone-200 text-stone-400 font-bold tracking-widest">
+            <div className="text-center py-12 bg-muted rounded-2xl border border-dashed border-border text-stone-400 font-bold tracking-widest">
               目前尚無紀錄
             </div>
           ) : (
@@ -182,13 +182,13 @@ export default function MemberCenter() {
                       <span className="text-xs font-bold px-3 py-1 rounded-full tracking-widest bg-stone-100 text-stone-600">{order.service_type}</span>
                       <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
                     </div>
-                    <p className="font-bold text-stone-800 line-clamp-2 text-sm md:text-base">
+                    <p className="font-bold text-foreground line-clamp-2 text-sm md:text-base">
                       {formatServiceDetails(order.service_details)}
                     </p>
-                    {order.bank_last_5 && <p className="text-xs font-bold text-stone-500 tracking-widest">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
+                    {order.bank_last_5 && <p className="text-xs font-bold text-muted-foreground tracking-widest">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
                   </div>
                   <div className="flex justify-between md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 border-stone-100 pt-3 md:pt-0">
-                     <span className="font-bold text-lg text-slate-800">${order.total_price}</span>
+                     <span className="font-bold text-lg text-foreground">${order.total_price}</span>
                      <div className="flex items-center gap-2">
                        <button
                          onClick={() => setSelectedOrder(order)}
@@ -196,7 +196,7 @@ export default function MemberCenter() {
                        >
                          <FileText size={12} /> 祈福印記
                        </button>
-                       <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-500 border border-stone-200'}`}>
+                       <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-500 border border-border'}`}>
                          {order.status === 'completed' ? '已處理圓滿' : '等待對帳中'}
                        </span>
                      </div>
@@ -220,7 +220,7 @@ export default function MemberCenter() {
             
             <button 
               onClick={() => setSelectedOrder(null)} 
-              className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-white/20 p-2 rounded-full backdrop-blur-md z-[60]"
+              className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-card/20 p-2 rounded-full backdrop-blur-md z-[60]"
             >
               <X size={20} />
             </button>
@@ -233,7 +233,7 @@ export default function MemberCenter() {
             </div>
 
             {/* 💡 終極絕對鎖定防禦陣型 (依據陳世碼先生 175x300 座標規範圖，使用純粹的 left/top calc 公式) */}
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
+            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-background">
               
               {/* 底圖，撐開整體高寬比例 */}
               <img 

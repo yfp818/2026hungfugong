@@ -33,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="zh-TW" data-scroll-behavior="smooth" suppressHydrationWarning>
       {/* ✨ 在 body 標籤中加入 notoSerif.variable，讓全站都能取用這個字體 */}
-      <body className={`${notoSans.className} ${notoSerif.variable} antialiased bg-stone-50 text-stone-900 dark:bg-[#121212] dark:text-stone-100 transition-colors duration-300`}>
+      <body className={`${notoSans.className} ${notoSerif.variable} antialiased bg-muted text-stone-900 dark:bg-[#121212] dark:text-stone-100 transition-colors duration-300`}>
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>

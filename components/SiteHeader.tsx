@@ -19,7 +19,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
 
   // ✨ 註解移到這裡就完全沒問題了
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 shadow-sm transition-colors duration-300">
+    <header className="sticky top-0 z-40 w-full bg-card/90 dark:bg-[#121212]/90 backdrop-blur-md border-b border-border dark:border-stone-800 shadow-sm transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
        <Link href="/" className="flex items-center gap-3 group">
@@ -53,7 +53,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
           <ThemeToggle />
           
           {session ? (
-            <Link href="/member" className="flex items-center gap-2 bg-stone-50 dark:bg-[#1A432D]/20 hover:bg-stone-100 dark:hover:bg-[#1A432D]/40 border border-stone-200 dark:border-[#1A432D]/30 text-[#1A432D] dark:text-[#D89F3C] px-5 py-2 rounded-full text-sm font-bold tracking-widest transition-all">
+            <Link href="/member" className="flex items-center gap-2 bg-muted dark:bg-[#1A432D]/20 hover:bg-stone-100 dark:hover:bg-[#1A432D]/40 border border-border dark:border-[#1A432D]/30 text-[#1A432D] dark:text-[#D89F3C] px-5 py-2 rounded-full text-sm font-bold tracking-widest transition-all">
               <div className="w-2 h-2 bg-[#06C755] rounded-full"></div>
               信眾中心
             </Link>
@@ -81,28 +81,28 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
 
       {/* 手機版展開選單 */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-[#121212] border-b border-stone-200 dark:border-stone-800 px-4 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2 transition-colors duration-300">
+        <div className="md:hidden bg-card dark:bg-[#121212] border-b border-border dark:border-stone-800 px-4 py-4 space-y-3 shadow-lg animate-in slide-in-from-top-2 transition-colors duration-300">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               href={link.path}
               onClick={() => setIsMenuOpen(false)}
               className={`block px-4 py-3 rounded-xl text-sm font-bold tracking-widest transition-colors ${
-                pathname === link.path ? "bg-stone-50 dark:bg-stone-800/50 text-[#A61D24] dark:text-[#D89F3C]" : "text-stone-600 dark:text-stone-300"
+                pathname === link.path ? "bg-muted dark:bg-stone-800/50 text-[#A61D24] dark:text-[#D89F3C]" : "text-stone-600 dark:text-stone-300"
               }`}
             >
               {link.title}
             </Link>
           ))}
           
-          <div className="pt-4 border-t border-stone-100 dark:border-stone-800 space-y-4">
+          <div className="pt-4 border-t border-border dark:border-stone-800 space-y-4">
             <div className="flex items-center justify-between px-2">
-              <span className="text-sm font-bold tracking-widest text-stone-500 dark:text-stone-400">深色模式</span>
+              <span className="text-sm font-bold tracking-widest text-muted-foreground dark:text-stone-400">深色模式</span>
               <ThemeToggle />
             </div>
 
             {session ? (
-              <Link href="/member" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-center gap-2 w-full bg-stone-50 dark:bg-[#1A432D]/20 border border-stone-200 dark:border-[#1A432D]/30 text-[#1A432D] dark:text-[#D89F3C] px-4 py-3.5 rounded-xl text-sm font-bold tracking-widest transition-colors">
+              <Link href="/member" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-center gap-2 w-full bg-muted dark:bg-[#1A432D]/20 border border-border dark:border-[#1A432D]/30 text-[#1A432D] dark:text-[#D89F3C] px-4 py-3.5 rounded-xl text-sm font-bold tracking-widest transition-colors">
                 <div className="w-2 h-2 bg-[#06C755] rounded-full"></div>
                 前往信眾中心
               </Link>

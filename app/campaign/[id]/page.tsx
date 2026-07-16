@@ -12,7 +12,7 @@ export default async function CampaignPage({ params }: { params: { id: string } 
   if (!campaign) notFound();
 
   return (
-    <main className="min-h-screen bg-[#FAF7F0]">
+    <main className="min-h-screen bg-background">
       <FlashCampaignSection campaign={campaign} />
     </main>
   );
