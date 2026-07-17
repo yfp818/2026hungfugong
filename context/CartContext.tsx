@@ -110,13 +110,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {
-    // 💡 防呆機制：當 Next.js 在背景預渲染 404 頁面找不到 Provider 時，給予空陣列避免 Build 崩潰
+    // 💡 防呆機制：避免 Vercel 打包時找不到 Provider 而崩潰
     return {
       cartItems: [],
       addToCart: () => {},
       removeFromCart: () => {},
       clearCart: () => {},
-    } as any; // 加上 as any 確保 TypeScript 不會因為缺少某些自訂屬性而阻擋打包
+    } as any;
   }
   return context;
 }
