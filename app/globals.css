@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
-/* 🌟 移除原本限制 class 切換的設定，讓 Tailwind 原生跟隨系統 */
+/* 🌟 1. 喚醒切換按鈕：告訴 Tailwind 使用 class 來控制深色模式 */
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-border: hsl(var(--border));
@@ -53,29 +54,27 @@
     --radius: 0.5rem;
   }
   
-  /* 🌙 深夜模式 (Dark Mode) 變數：使用原生 CSS 媒體查詢偵測手機系統 */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: 0 0% 7%; 
-      --foreground: 0 0% 98%;
-      --card: 24 9.8% 10%;
-      --card-foreground: 0 0% 98%;
-      --popover: 24 9.8% 10%;
-      --popover-foreground: 0 0% 98%;
-      --primary: 0 0% 98%;
-      --primary-foreground: 24 9.8% 10%;
-      --secondary: 24 9.8% 10%;
-      --secondary-foreground: 0 0% 98%;
-      --muted: 24 9.8% 10%;
-      --muted-foreground: 25 5.3% 44.7%;
-      --accent: 24 9.8% 10%;
-      --accent-foreground: 0 0% 98%;
-      --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 0 0% 98%;
-      --border: 24 9.8% 10%;
-      --input: 24 9.8% 10%;
-      --ring: 24 5.4% 63.9%;
-    }
+  /* 🌟 2. 關鍵修正：把 @media 換成 .dark，讓 ThemeProvider 按鈕重新掌權！ */
+  .dark {
+    --background: 0 0% 7%; 
+    --foreground: 0 0% 98%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 24 9.8% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 24 9.8% 10%;
+    --secondary: 24 9.8% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 24 9.8% 10%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 24 9.8% 10%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24 9.8% 10%;
+    --input: 24 9.8% 10%;
+    --ring: 24 5.4% 63.9%;
   }
 
   *, ::after, ::before, ::backdrop, ::file-selector-button {
