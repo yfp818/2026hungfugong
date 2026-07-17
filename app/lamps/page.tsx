@@ -112,7 +112,7 @@ export default function GlobalCartPage() {
 
   return (
     // 深夜模式：最外層背景與文字變數化
-    <main className="min-h-screen bg-background text-foreground py-16 px-4 md:px-6 flex flex-col items-center justify-center transition-colors duration-300">
+    <main className="min-h-screen antialiasedbg-background text-foreground py-16 px-4 md:px-6 flex flex-col items-center justify-center transition-colors duration-300">
       
       {step === 1 && (
         <div className="max-w-3xl w-full bg-card text-card-foreground rounded-[2rem] shadow-xl border border-border overflow-hidden">
