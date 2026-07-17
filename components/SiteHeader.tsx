@@ -15,6 +15,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
     return null;
   }
 
+  
   const navLinks = [
     { title: "首頁", path: "/" },
     { title: "當月點燈", path: "/lamps" },
