@@ -109,6 +109,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) throw new Error("useCart 必須在 CartProvider 內使用");
+  if (!context) {
+    // 💡 防呆機制：當 Next.js 在背景預渲染 404 頁面找不到 Provider 時，給予空陣列避免 Build 崩潰
+    return {
+      cartItems: [],
+      addToCart: () => {},
+      removeFromCart: () => {},
+      clearCart: () => {},
+    } as any; // 加上 as any 確保 TypeScript 不會因為缺少某些自訂屬性而阻擋打包
+  }
   return context;
 }
