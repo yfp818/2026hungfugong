@@ -34,7 +34,7 @@ export default function RootLayout({
     <html lang="zh-TW" data-scroll-behavior="smooth" suppressHydrationWarning>
       {/* 💡 1. 加入 w-full overflow-x-hidden (防止手機版水平破版縮小) */}
       {/* 💡 2. 移除寫死的顏色，換成 bg-background text-foreground (全自動日夜間切換) */}
-      <body className={`${notoSans.className} ${notoSerif.variable} antialiased w-full overflow-x-hidden bg-background text-foreground transition-colors duration-300`}>
+      <body className={`${notoSans.className} ${notoSerif.variable} antialiased w-full overflow-x-clip bg-background text-foreground transition-colors duration-300`}>
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>

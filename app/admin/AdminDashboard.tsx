@@ -350,7 +350,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-background p-4 md:p-12 pb-32 animate-in fade-in duration-700">
+    <div className="min-h-screen w-full bg-background p-4 md:p-12 pb-32 animate-in fade-in duration-700">
       
       {/* 標題區 */}
       <h1 className="text-3xl font-bold text-[#A61D24] dark:text-red-400 tracking-widest border-b border-border pb-4 mb-6">皇府宮管理後台</h1>
