@@ -1,12 +1,16 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation"; // 💡 1. 引入偵測網址的工具
 import { useCart } from "@/context/CartContext";
 
 export default function FloatingCartButton() {
   const { cartItems } = useCart();
+  const pathname = usePathname(); // 💡 2. 取得目前的網址
   
-  // 已經移除 if (cartItems.length === 0) return null; 的隱藏邏輯
-  // 現在按鈕會永遠常駐在右下角
+  // 💡 3. 關鍵防護：如果目前在後台，就直接回傳 null (隱藏按鈕！)
+  if (pathname && pathname.startsWith("/admin")) {
+    return null;
+  }
 
   // ✨ 已經加上了 id="global-cart-btn" 作為隱形斗篷的定位點
   return (
