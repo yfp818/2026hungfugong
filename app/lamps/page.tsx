@@ -38,7 +38,7 @@ export default function LampsPage() {
       price: selectedProduct.price,
     });
 
-    alert(`✅ 已將「${selectedProduct.title}」加入祈福清單！\n您可繼續為其他家人填寫，或點擊右下角購物車結帳。`);
+    alert(`✅ 已將「${selectedProduct.title}」加入我祈福清單！\n您可繼續為其他家人填寫，或點擊右下角購物車結帳。`);
     setUserName(""); setBirthDate(""); setSelectedProduct(null);
   };
 
