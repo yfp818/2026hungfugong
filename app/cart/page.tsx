@@ -108,11 +108,9 @@ export default function GlobalCartPage() {
   const combinedOptions = cartItems.map(item => parseItemDetails(item).finalOptions).join("、");
 
   return (
-    // 💡 1. 最外層背景改為 bg-background text-foreground
     <main className="min-h-screen bg-background text-foreground py-16 px-4 md:px-6 flex flex-col items-center justify-center transition-colors duration-300">
       
       {step === 1 && (
-        // 💡 2. 表單卡片改為 bg-card text-card-foreground border-border
         <div className="max-w-3xl w-full bg-card text-card-foreground rounded-[2rem] shadow-xl border border-border overflow-hidden">
           <div className="bg-[#1A432D] p-10 text-center border-b-[6px] border-[#D89F3C]">
             <h1 className="text-3xl font-bold text-white tracking-[0.2em] drop-shadow-md">祈福清單合併結帳</h1>
@@ -123,14 +121,16 @@ export default function GlobalCartPage() {
             {cartItems.length === 0 ? (
               <div className="text-center py-16 space-y-6">
                 <p className="text-muted-foreground tracking-widest font-medium">您的祈福清單目前空無一物</p>
-                <Link href="/"><Button className="bg-[#1A432D] hover:bg-[#122F20] text-white rounded-full px-8 py-5 tracking-widest transition-colors">返回首頁選購</Button></Link>
+                {/* 💡 修復 1：拔除 Button 包裝，直接使用 Link，保證跳轉絕對順暢 */}
+                <Link href="/" className="inline-block bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white rounded-full px-8 py-4 font-bold tracking-widest shadow-md transition-colors">
+                  返回首頁選購
+                </Link>
               </div>
             ) : (
               <div className="space-y-8 animate-in fade-in duration-500">
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg text-foreground tracking-wider border-l-4 border-[#A61D24] dark:border-red-500 pl-3">已加入登記項目</h3>
                   
-                  {/* 💡 3. 清單外框改為 bg-muted/30 border-border */}
                   <div className="divide-y divide-border border border-border rounded-2xl bg-muted/30 overflow-hidden">
                     {cartItems.map((item) => (
                       <div key={item.id} className="p-5 flex justify-between items-start gap-4 hover:bg-muted/50 transition-colors">
@@ -154,14 +154,12 @@ export default function GlobalCartPage() {
                   </div>
                 </div>
 
-                {/* 💡 4. 銀行帳戶提示區塊改為 bg-muted border-border */}
                 <div className="bg-muted p-6 rounded-2xl border border-border text-center space-y-3 shadow-inner max-w-md mx-auto">
                   <h4 className="font-bold text-muted-foreground tracking-widest text-xs">指定功德護持帳戶</h4>
                   <p className="font-bold text-base text-foreground">{bankName}</p>
                   <p className="font-bold text-xl text-[#D89F3C] tracking-widest">{bankAccount}</p>
                 </div>
 
-                {/* 💡 5. 輸入框背景改為 bg-background，文字 text-foreground */}
                 <div className="max-w-md mx-auto space-y-3 text-center">
                   <label className="block text-sm font-bold text-muted-foreground tracking-widest">請輸入轉帳帳號後 5 碼</label>
                   <input 
@@ -187,7 +185,6 @@ export default function GlobalCartPage() {
       )}
 
       {/* 步驟二：✨ 神尊圖騰祈福印記成功畫面 */}
-      {/* 🛑 注意：這個區塊要模擬真實紙張，所以我刻意保留了淺色底 (bg-background) 和深色字，讓它在深夜模式也不會變黑！ */}
       {step === 2 && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
           
@@ -198,7 +195,8 @@ export default function GlobalCartPage() {
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
 
-          <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-background">
+          {/* 💡 修復 2：將背景改回強制淺色 bg-[#FAF7F0]，否則深夜模式下黑字會隱形！ */}
+          <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
             {/* 底圖 */}
             <img 
@@ -207,7 +205,6 @@ export default function GlobalCartPage() {
               className="w-full h-auto block pointer-events-none select-none relative z-0" 
             />
 
-            {/* 確保直立中文字顯示正常 */}
             <style>{`
               .receipt-text {
                 font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
