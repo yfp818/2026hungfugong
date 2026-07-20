@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -19,71 +19,114 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  // 抓取信眾資料
-  async function fetchMemberData() {
-    if (session?.user?.email) {
-      // 1. 取得聯絡資訊
-      const { data: userProfile } = await supabase
-        .from("user_contacts")
-        .select("*")
-        .eq("line_id", session.user.email)
-        .single();
+  // 🌟 背景全自動同步與合併邏輯
+  const fetchMemberData = useCallback(async () => {
+    if (!session?.user?.email) return;
 
-      if (userProfile) {
-        setProfile({ phone: userProfile.phone || "", address: userProfile.address || "" });
-      }
+    const userLineId = session.user.email;
+    const userName = session.user.name;
 
-      // 2. 取得會員錢包餘額
-      const { data: memberData } = await supabase
+    // 1. 取得信眾曾經填寫過的聯絡資訊 (包含在點燈/代燒頁面填寫的)
+    const { data: userProfile } = await supabase
+      .from("user_contacts")
+      .select("*")
+      .eq("line_id", userLineId)
+      .single();
+
+    const currentPhone = userProfile?.phone || "";
+    setProfile({ phone: currentPhone, address: userProfile?.address || "" });
+
+    // 2. 核心無感同步魔法：只要有電話，就自動檢查是否需要合併或更新後台資料
+    if (currentPhone) {
+      // 尋找是否有同電話、但 LINE ID 不同的幽靈舊帳號
+      const { data: oldProfiles } = await supabase
         .from("member_profiles")
-        .select("wallet_balance")
-        .eq("user_line_id", session.user.email)
-        .single();
-        
-      if (memberData) {
-        setWalletBalance(memberData.wallet_balance || 0);
+        .select("*")
+        .eq("phone", currentPhone)
+        .neq("user_line_id", userLineId);
+
+      let absorbedBalance = 0;
+      
+      // 如果有舊帳號，執行吸收轉移
+      if (oldProfiles && oldProfiles.length > 0) {
+        for (const old of oldProfiles) {
+          absorbedBalance += (old.wallet_balance || 0);
+          // 將舊紀錄與舊訂單全數轉移至當前的 LINE 帳號
+          await supabase.from("wallet_transactions").update({ user_line_id: userLineId }).eq("user_line_id", old.user_line_id);
+          await supabase.from("member_profiles").delete().eq("user_line_id", old.user_line_id);
+        }
+        await supabase.from("service_orders").update({ user_line_id: userLineId }).eq("user_phone", currentPhone);
       }
 
-      // 3. 取得祈福金異動紀錄
-      const { data: txData } = await supabase
-        .from("wallet_transactions")
-        .select("*")
-        .eq("user_line_id", session.user.email)
-        .order("created_at", { ascending: false });
+      // 檢查目前在會員庫的狀態
+      const { data: currentWallet } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).single();
+      
+      // ✨ 關鍵防呆：只有在「吸收到舊餘額」或「後台電話未同步」時，才發動背景寫入更新，節省效能
+      if (absorbedBalance > 0 || currentWallet?.phone !== currentPhone) {
+        const newBalance = (currentWallet?.wallet_balance || 0) + absorbedBalance;
+        
+        await supabase.from("member_profiles").upsert({
+           user_line_id: userLineId,
+           name: userName,
+           phone: currentPhone,
+           wallet_balance: newBalance
+        });
 
-      if (txData) setTransactions(txData);
+        // 只有吸收到錢的時候才彈窗給驚喜
+        if (absorbedBalance > 0) {
+          alert(`🎉 系統已自動為您找回並合併祈福金餘額 $${absorbedBalance}！`);
+        }
+      }
+    }
 
-      // 4. 取得歷史祈福訂單紀錄 (以 LINE ID 為主，若無則用電話抓取)
-      let historyOrders: any[] = [];
-      const { data: ordersByLine } = await supabase
+    // 3. 讀取最終最新的餘額
+    const { data: finalMemberData } = await supabase
+      .from("member_profiles")
+      .select("wallet_balance")
+      .eq("user_line_id", userLineId)
+      .single();
+      
+    setWalletBalance(finalMemberData?.wallet_balance || 0);
+
+    // 4. 讀取交易紀錄與訂單
+    const { data: txData } = await supabase
+      .from("wallet_transactions")
+      .select("*")
+      .eq("user_line_id", userLineId)
+      .order("created_at", { ascending: false });
+
+    if (txData) setTransactions(txData);
+
+    let historyOrders: any[] = [];
+    const { data: ordersByLine } = await supabase
+      .from("service_orders")
+      .select("*")
+      .eq("user_line_id", userLineId)
+      .order("created_at", { ascending: false });
+    
+    if (ordersByLine && ordersByLine.length > 0) {
+      historyOrders = ordersByLine;
+    } else if (currentPhone) {
+      const { data: ordersByPhone } = await supabase
         .from("service_orders")
         .select("*")
-        .eq("user_line_id", session.user.email)
+        .eq("user_phone", currentPhone)
         .order("created_at", { ascending: false });
-      
-      if (ordersByLine && ordersByLine.length > 0) {
-        historyOrders = ordersByLine;
-      } else if (userProfile?.phone) {
-        const { data: ordersByPhone } = await supabase
-          .from("service_orders")
-          .select("*")
-          .eq("user_phone", userProfile.phone)
-          .order("created_at", { ascending: false });
-        if (ordersByPhone) historyOrders = ordersByPhone;
-      }
-      setOrders(historyOrders);
+      if (ordersByPhone) historyOrders = ordersByPhone;
     }
+    setOrders(historyOrders);
     setLoadingOrders(false);
-  }
+  }, [session]);
 
   useEffect(() => {
     fetchMemberData();
-  }, [session]);
+  }, [fetchMemberData]);
 
-  // 🌟 核心升級：儲存並自動融合舊帳號
+  // 手動儲存功能
   const handleSaveProfile = async () => {
     if (session?.user?.email) {
-      // 1. 儲存基礎聯絡資訊
+      if (!profile.phone) return alert("請輸入聯絡電話！");
+
       await supabase.from("user_contacts").upsert({
         line_id: session.user.email,
         line_name: session.user.name,
@@ -91,48 +134,11 @@ export default function MemberCenter() {
         address: profile.address,
       });
 
-      // 2. 檢查並融合舊的電話錢包帳戶
-      if (profile.phone) {
-        const oldPhoneId = `phone_${profile.phone}`;
-        const { data: oldProfile } = await supabase.from("member_profiles").select("*").eq("user_line_id", oldPhoneId).single();
-        
-        if (oldProfile) {
-           // 找到舊帳號，進行餘額轉移
-           const { data: currentProfile } = await supabase.from("member_profiles").select("*").eq("user_line_id", session.user.email).single();
-           const currentBalance = currentProfile?.wallet_balance || 0;
-           const newTotalBalance = currentBalance + (oldProfile.wallet_balance || 0);
-
-           // 創建或更新正式 LINE 帳號的錢包
-           await supabase.from("member_profiles").upsert({
-              user_line_id: session.user.email,
-              name: session.user.name,
-              phone: profile.phone,
-              wallet_balance: newTotalBalance
-           });
-
-           // 轉移舊帳號的所有交易紀錄給 LINE 帳號
-           await supabase.from("wallet_transactions").update({ user_line_id: session.user.email }).eq("user_line_id", oldPhoneId);
-           
-           // 轉移舊訂單
-           await supabase.from("service_orders").update({ user_line_id: session.user.email }).eq("user_phone", profile.phone);
-
-           // 刪除舊的臨時電話帳號
-           await supabase.from("member_profiles").delete().eq("user_line_id", oldPhoneId);
-           
-           alert(`🎉 系統已自動為您找回舊有的祈福金餘額 $${oldProfile.wallet_balance}！`);
-        } else {
-           // 若無舊帳號，確保當前 LINE 帳號在 member_profiles 中有建檔
-           await supabase.from("member_profiles").upsert({
-              user_line_id: session.user.email,
-              name: session.user.name,
-              phone: profile.phone
-           }, { onConflict: 'user_line_id' });
-        }
-      }
+      // 儲存後呼叫 fetchMemberData，自動觸發背景同步邏輯
+      await fetchMemberData();
       
-      alert("資料已更新！");
       setIsEditingProfile(false);
-      fetchMemberData(); // 重新拉取最新餘額與狀態
+      alert("資料已成功更新並同步！");
     }
   };
 
@@ -208,7 +214,6 @@ export default function MemberCenter() {
               <p className="text-4xl md:text-5xl font-extrabold text-[#D89F3C] tracking-tight mt-1">
                 ${walletBalance.toLocaleString()}
               </p>
-              {/* 💡 溫馨提示：引導信眾綁定電話 */}
               {walletBalance === 0 && !profile.phone && (
                  <p className="text-xs text-amber-300/90 tracking-widest mt-3 bg-amber-900/30 p-2 rounded-lg inline-block border border-amber-700/30">
                    💡 提示：請於下方完善聯絡電話，系統將自動找回舊有紀錄與餘額。
@@ -249,9 +254,9 @@ export default function MemberCenter() {
           
           {isEditingProfile ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-               <div><label className="block text-xs font-bold text-muted-foreground mb-2">聯絡電話</label><input value={profile.phone} onChange={e=>setProfile({...profile, phone: e.target.value})} className="w-full border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
-               <div><label className="block text-xs font-bold text-muted-foreground mb-2">通訊地址</label><input value={profile.address} onChange={e=>setProfile({...profile, address: e.target.value})} className="w-full border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
-               <Button onClick={handleSaveProfile} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-6 rounded-xl font-bold tracking-widest mt-2">儲存變更</Button>
+               <div><label className="block text-xs font-bold text-muted-foreground mb-2">聯絡電話 <span className="text-red-500">*必填，綁定餘額憑證</span></label><input value={profile.phone} onChange={e=>setProfile({...profile, phone: e.target.value})} placeholder="例如：0912345678" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
+               <div><label className="block text-xs font-bold text-muted-foreground mb-2">通訊地址</label><input value={profile.address} onChange={e=>setProfile({...profile, address: e.target.value})} placeholder="請填寫完整地址" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
+               <Button onClick={handleSaveProfile} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-6 rounded-xl font-bold tracking-widest mt-2">儲存變更並同步帳戶</Button>
             </div>
           ) : (
             <div className="space-y-5">
@@ -289,7 +294,7 @@ export default function MemberCenter() {
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
                 {transactions.map((tx) => (
-                  <div key={tx.id} className="flex justify-between items-center p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                  <div key={tx.id} className="flex justify-between items-center p-4 bg-muted/50 rounded-2xl border border-border">
                     <div>
                       <p className="font-bold text-sm text-foreground tracking-wide">{tx.description}</p>
                       <p className="text-xs font-medium text-stone-400 mt-1">
@@ -320,10 +325,10 @@ export default function MemberCenter() {
             ) : (
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
                 {orders.map((order) => (
-                  <div key={order.id} className={`p-5 border border-stone-100 rounded-2xl flex flex-col justify-between gap-4 transition-shadow group bg-white ${order.status === 'refunded' ? 'opacity-50' : 'hover:shadow-md'}`}>
+                  <div key={order.id} className={`p-5 border border-border rounded-2xl flex flex-col justify-between gap-4 transition-shadow group bg-card ${order.status === 'refunded' ? 'opacity-50' : 'hover:shadow-md'}`}>
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center justify-between gap-3">
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full tracking-widest ${order.status === 'refunded' ? 'bg-red-50 text-red-600' : 'bg-stone-100 text-stone-600'}`}>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full tracking-widest ${order.status === 'refunded' ? 'bg-red-50 text-red-600' : 'bg-muted text-muted-foreground'}`}>
                           {order.status === 'refunded' ? '已作廢退款' : order.service_type}
                         </span>
                         <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
@@ -333,18 +338,18 @@ export default function MemberCenter() {
                       </p>
                       {order.bank_last_5 && <p className="text-xs font-bold text-muted-foreground tracking-widest pt-1">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
                     </div>
-                    <div className="flex justify-between items-center pt-3 border-t border-stone-100">
+                    <div className="flex justify-between items-center pt-3 border-t border-border">
                        <span className={`font-bold text-lg ${order.status === 'refunded' ? 'text-stone-400' : 'text-foreground'}`}>${order.total_price || order.amount || 0}</span>
                        <div className="flex items-center gap-2">
                          {order.status !== 'refunded' && (
                            <button
                              onClick={() => setSelectedOrder(order)}
-                             className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
+                             className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 border border-amber-200 dark:border-amber-800 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
                            >
                              <FileText size={12} /> 祈福印記
                            </button>
                          )}
-                         <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : order.status === 'refunded' ? 'bg-stone-100 text-stone-500 border border-border' : 'bg-stone-100 text-stone-500 border border-border'}`}>
+                         <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : order.status === 'refunded' ? 'bg-muted text-stone-500 border border-border' : 'bg-muted text-stone-500 border border-border'}`}>
                            {order.status === 'completed' ? '已處理' : order.status === 'refunded' ? '已作廢退款' : '待對帳'}
                          </span>
                        </div>
@@ -358,7 +363,7 @@ export default function MemberCenter() {
         </div>
       </div>
 
-      {/* 祈福印記彈窗模組 (完全保留原版絕對定位設定) */}
+      {/* 祈福印記彈窗模組 */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
@@ -383,7 +388,7 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-background">
+            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
