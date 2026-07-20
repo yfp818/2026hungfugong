@@ -11,12 +11,11 @@ export default function BurningServicePage() {
   const router = useRouter();
   
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
+  const safeContacts = Array.isArray(contacts) ? contacts : [];
   
   const [products, setProducts] = useState<any[]>([]);
-  
   const [itemQuantities, setItemQuantities] = useState<{ [key: string]: number }>({});
   
-  // ✨ 核心升級：加入 targetName (祈福對象)、phone (聯絡電話) 與 memo (祈福心願)
   const [name, setName] = useState("");
   const [targetName, setTargetName] = useState(""); 
   const [phone, setPhone] = useState("");
@@ -27,6 +26,7 @@ export default function BurningServicePage() {
   const [selectedContactId, setSelectedContactId] = useState("self");
   const [saveToContacts, setSaveToContacts] = useState(true);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
 
   const totalPrice = products.reduce((sum, p) => sum + (p.price * (itemQuantities[p.id] || 0)), 0);
   
@@ -37,23 +37,26 @@ export default function BurningServicePage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: prods } = await supabase.from("blessing_products").select("*").eq("category", "burning");
+      const { data: prods } = await supabase
+        .from("blessing_products")
+        .select("*")
+        .eq("category", "burning");
       if (prods) setProducts(prods);
     }
     loadData();
   }, [session]);
 
   useEffect(() => {
-    // 預設帶入本人聯絡資訊
-    if (selfProfile && !name) {
-      setName(selfProfile.userName); 
-      setPhone(selfProfile.userPhone);
+    if (selfProfile && !hasAutoFilled) {
+      setName(selfProfile.userName || ""); 
+      setPhone(selfProfile.userPhone || "");
       if (selectedContactId === "self") {
-        setBirthDate(selfProfile.birthDate); 
-        setAddress(selfProfile.address);
+        setBirthDate(selfProfile.birthDate || ""); 
+        setAddress(selfProfile.address || "");
       }
+      setHasAutoFilled(true);
     }
-  }, [selfProfile, name, selectedContactId]);
+  }, [selfProfile, hasAutoFilled, selectedContactId]);
 
   const handleQtyChange = (id: string, delta: number) => {
     setItemQuantities(prev => {
@@ -63,24 +66,26 @@ export default function BurningServicePage() {
     });
   };
 
-  // ✨ 智慧名冊切換邏輯
   const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
     setSelectedContactId(selectedId);
 
     if (selectedId === "new") {
-      setTargetName(""); setBirthDate(""); setAddress(""); 
+      setTargetName(""); 
+      setBirthDate(""); 
+      setAddress(""); 
     } else if (selectedId === "self") {
-      setTargetName(""); // 留白代表同聯絡人
+      setTargetName(""); 
       if (selfProfile) {
-        setBirthDate(selfProfile.birthDate); setAddress(selfProfile.address);
+        setBirthDate(selfProfile.birthDate || ""); 
+        setAddress(selfProfile.address || "");
       }
     } else {
-      const contact = contacts.find(c => c.id === selectedId);
+      const contact = safeContacts.find((c: any) => c.id.toString() === selectedId.toString());
       if (contact) {
-        setTargetName(contact.contact_name); // 將親友帶入祈福對象
-        setBirthDate(contact.birth_date); 
-        setAddress(contact.address);
+        setTargetName(contact.contact_name || ""); 
+        setBirthDate(contact.birth_date || ""); 
+        setAddress(contact.address || "");
       }
     }
   };
@@ -90,35 +95,60 @@ export default function BurningServicePage() {
     
     const hasSelected = Object.values(itemQuantities).some(qty => qty > 0);
     if (!hasSelected) return alert("請至少選購一項代燒服務。");
+    if (!name || !phone || !birthDate || !address) return alert("請填寫完整的祈福聯絡與生辰資料");
 
-    // 更新快取資訊供下一頁使用
-    updateSharedInfo({ userName: name, userPhone: phone, birthDate, address });
+    // 🛡️ 防呆修復：強制背景雙向同步，確保會員中心能抓到電話
+    if (session?.user?.email) {
+      try {
+        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+        if (ucData && ucData.length > 0) {
+          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+        } else {
+          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+        }
+
+        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+        if (mpData && mpData.length > 0) {
+          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+        } else {
+          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+        }
+      } catch (error) {
+        console.error("同步代燒聯絡資料失敗:", error);
+      }
+    }
+
+    if (typeof updateSharedInfo === "function") {
+      updateSharedInfo({ userName: name, userPhone: phone, birthDate, address });
+    }
+    
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
-
-    // ✨ 最終寫入購物車的大德名字：若有填祈福對象就用對象，否則用聯絡人
     const finalTargetName = targetName || name;
     
-    // ✨ 組合明細字串 (將心願附加在後方，讓小票也能印出來)
     const baseDetails = getSelectedItemsString();
     const finalDetails = memo ? `${baseDetails}、\n祈福心願: ${memo}` : baseDetails;
 
-    await addToCart({
-      id: safeId, 
-      serviceType: "burning", 
-      userName: finalTargetName, // 這會成為小票上的「大德」
-      userPhone: phone,
-      birthDate: birthDate, 
-      address: address, 
-      itemDetails: finalDetails, // 這會成為小票上的「方案」
-      price: totalPrice
-    }, saveToContacts);
+    if (typeof addToCart === "function") {
+      await addToCart({
+        id: safeId, 
+        serviceType: "burning", 
+        userName: finalTargetName, 
+        userPhone: phone,
+        birthDate: birthDate, 
+        address: address, 
+        itemDetails: finalDetails, 
+        price: totalPrice
+      }, saveToContacts);
+    }
 
     setItemQuantities({}); 
-    setMemo(""); // 送出後清空心願
+    setMemo(""); 
     setShowRedirectModal(true);
   };
 
-  if (status === "loading") return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-[#A61D24] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (status === "loading") {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><div className="w-10 h-10 border-4 border-[#A61D24] border-t-transparent rounded-full animate-spin"></div></div>;
+  }
 
   return (
     <main className="min-h-screen bg-background py-16 px-6 flex items-center justify-center">
@@ -136,6 +166,7 @@ export default function BurningServicePage() {
         ) : (
           <div className="p-8 md:p-12">
             <form onSubmit={handleAddToCart} className="space-y-12 animate-in fade-in duration-500">
+              
               <div className="space-y-6">
                 <h3 className="font-bold text-xl text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">選擇代燒項目</h3>
                 {products.length === 0 ? (
@@ -187,18 +218,23 @@ export default function BurningServicePage() {
                 )}
               </div>
 
-              {/* ✨ 升級為清晰的雙欄位排版與標籤 */}
               <div className="space-y-6 pt-8 border-t border-border">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h3 className="font-bold text-xl text-[#1A432D] tracking-widest border-l-4 border-[#A61D24] pl-3">代燒資料填寫</h3>
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-muted-foreground tracking-widest">載入名冊：</span>
-                    <select value={selectedContactId} onChange={handleContactChange} className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-bold text-[#1A432D] outline-none focus:border-[#A61D24] bg-muted">
+                    <select 
+                      value={selectedContactId} 
+                      onChange={handleContactChange} 
+                      className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-bold text-[#1A432D] outline-none focus:border-[#A61D24] bg-muted"
+                    >
                       <option value="self">👑 本人預設資料</option>
                       <option value="new">➕ 手動輸入新對象</option>
-                      {contacts.length > 0 && (
+                      {safeContacts.length > 0 && (
                         <optgroup label="已儲存親友">
-                          {contacts.map(c => <option key={c.id} value={c.id}>{c.contact_name}</option>)}
+                          {safeContacts.map((c: any) => (
+                            <option key={c.id} value={c.id}>{c.contact_name}</option>
+                          ))}
                         </optgroup>
                       )}
                     </select>
@@ -208,37 +244,78 @@ export default function BurningServicePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">聯絡人姓名</label>
-                    <input required value={name} onChange={e=>setName(e.target.value)} placeholder="請填寫聯絡人" className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                    <input 
+                      required 
+                      value={name} 
+                      onChange={e=>setName(e.target.value)} 
+                      placeholder="請填寫聯絡人" 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground"
+                    />
                   </div>
                   
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">祈福對象 <span className="text-muted-foreground font-normal">(選填)</span></label>
-                    <input value={targetName} onChange={e=>setTargetName(e.target.value)} placeholder="若同聯絡人請留白" className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                    <input 
+                      value={targetName} 
+                      onChange={e=>setTargetName(e.target.value)} 
+                      placeholder="若同聯絡人請留白" 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground"
+                    />
                   </div>
                   
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">聯絡電話</label>
-                    <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="請輸入電話" className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                    <input 
+                      required 
+                      type="tel" 
+                      value={phone} 
+                      onChange={e=>setPhone(e.target.value)} 
+                      placeholder="請輸入電話" 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground"
+                    />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">出生年月日</label>
-                    <input required value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：1990/01/01" className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                    <input 
+                      required 
+                      value={birthDate} 
+                      onChange={e=>setBirthDate(e.target.value)} 
+                      placeholder="例：1990/01/01" 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground"
+                    />
                   </div>
                   
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">居住地址</label>
-                    <input required value={address} onChange={e=>setAddress(e.target.value)} placeholder="請輸入完整地址" className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all"/>
+                    <input 
+                      required 
+                      value={address} 
+                      onChange={e=>setAddress(e.target.value)} 
+                      placeholder="請輸入完整地址" 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground"
+                    />
                   </div>
                   
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="text-xs font-bold text-muted-foreground tracking-widest ml-1">祈福心願 / 備註留言 <span className="text-muted-foreground font-normal">(選填)</span></label>
-                    <textarea value={memo} onChange={e=>setMemo(e.target.value)} placeholder="例如：祈求玉帝保佑家人平安健康" rows={3} className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] focus:ring-4 focus:ring-[#A61D24]/10 font-bold text-foreground placeholder:text-stone-400 placeholder:font-medium shadow-sm transition-all resize-none"></textarea>
+                    <textarea 
+                      value={memo} 
+                      onChange={e=>setMemo(e.target.value)} 
+                      placeholder="例如：祈求玉帝保佑家人平安健康" 
+                      rows={3} 
+                      className="w-full bg-card border-2 border-border p-4 rounded-xl outline-none focus:border-[#A61D24] font-bold text-foreground resize-none"
+                    ></textarea>
                   </div>
                 </div>
 
                 <label className="flex items-center gap-3 cursor-pointer mt-4 w-max">
-                  <input type="checkbox" checked={saveToContacts} onChange={e=>setSaveToContacts(e.target.checked)} className="w-4 h-4 accent-[#A61D24]"/>
+                  <input 
+                    type="checkbox" 
+                    checked={saveToContacts} 
+                    onChange={e=>setSaveToContacts(e.target.checked)} 
+                    className="w-4 h-4 accent-[#A61D24]"
+                  />
                   <span className="text-sm font-bold text-stone-600 tracking-widest">同步儲存此對象至我的常用名冊</span>
                 </label>
               </div>
@@ -248,13 +325,14 @@ export default function BurningServicePage() {
                   <span className="text-sm text-muted-foreground font-bold tracking-widest">本次選購小計</span>
                   <p className="text-3xl font-bold text-[#A61D24] mt-1">${totalPrice}</p>
                 </div>
-                <Button type="submit" className="w-full sm:w-auto bg-[#1A432D] hover:bg-[#122F20] text-white font-bold px-10 py-7 rounded-xl shadow-lg text-lg tracking-widest">加入代燒清單</Button>
+                <Button type="submit" className="w-full sm:w-auto bg-[#1A432D] hover:bg-[#122F20] text-white font-bold px-10 py-7 rounded-xl shadow-lg text-lg tracking-widest">
+                  加入代燒清單
+                </Button>
               </div>
             </form>
           </div>
         )}
 
-        {/* 導航彈窗 */}
         {showRedirectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm transition-all">
             <div className="bg-background border-2 border-white p-8 rounded-[2rem] max-w-sm w-full shadow-2xl space-y-8 text-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
@@ -264,17 +342,16 @@ export default function BurningServicePage() {
               </div>
               <div className="space-y-3 relative z-10">
                 <h3 className="text-2xl font-bold text-[#1A432D] tracking-widest">已加入代燒清單</h3>
-                {/* ✨ 彈窗成功顯示祈福對象 */}
                 <p className="text-muted-foreground text-sm tracking-widest leading-relaxed">您剛才為「<span className="text-[#1A432D] font-bold">{targetName || name}</span>」登記的項目已暫存。<br/>請問接下來的動作？</p>
               </div>
               <div className="flex flex-col gap-3 relative z-10 pt-2">
-                <button onClick={() => router.push("/lamps")} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border hover:border-[#D89F3C] text-stone-600 hover:text-[#1A432D] py-4 rounded-xl font-bold tracking-widest shadow-sm transition-all">
+                <button onClick={() => router.push("/lamps")} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border text-stone-600 py-4 rounded-xl font-bold tracking-widest shadow-sm">
                   <svg className="w-5 h-5 text-[#D89F3C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>加購當月點燈
                 </button>
-                <button onClick={() => { setShowRedirectModal(false); setSelectedContactId("new"); setTargetName(""); setBirthDate(""); setAddress(""); setMemo(""); }} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border hover:border-[#D89F3C] text-stone-600 hover:text-[#1A432D] py-4 rounded-xl font-bold tracking-widest shadow-sm transition-all">
+                <button onClick={() => { setShowRedirectModal(false); setSelectedContactId("new"); setTargetName(""); setBirthDate(""); setAddress(""); setMemo(""); setItemQuantities({}); }} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border text-stone-600 py-4 rounded-xl font-bold tracking-widest shadow-sm">
                   <svg className="w-5 h-5 text-[#D89F3C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>繼續為下一位代燒
                 </button>
-                <button onClick={() => router.push("/cart")} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-4 rounded-xl font-bold tracking-widest shadow-lg mt-2 transition-all">
+                <button onClick={() => router.push("/cart")} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-4 rounded-xl font-bold tracking-widest shadow-lg mt-2">
                   前往結帳對帳 →
                 </button>
               </div>

@@ -5,7 +5,10 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Calendar, History, Wallet, UserCircle, MapPin, Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft } from "lucide-react"; 
+import { 
+  Calendar, History, Wallet, UserCircle, MapPin, 
+  Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft 
+} from "lucide-react"; 
 
 export default function MemberCenter() {
   const { data: session, status } = useSession();
@@ -19,83 +22,62 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
-  // 🌟 背景全自動同步與合併邏輯
   const fetchMemberData = useCallback(async () => {
     if (!session?.user?.email) return;
 
     const userLineId = session.user.email;
     const userName = session.user.name;
 
-    // 1. 取得信眾曾經填寫過的聯絡資訊 (包含在點燈/代燒頁面填寫的)
-    const { data: userProfile } = await supabase
+    // 🛡️ 防護 1：使用 order 與 limit 避免多筆紀錄造成的崩潰
+    const { data: userProfiles } = await supabase
       .from("user_contacts")
       .select("*")
       .eq("line_id", userLineId)
-      .single();
+      .order("created_at", { ascending: false });
 
+    const userProfile = userProfiles && userProfiles.length > 0 ? userProfiles[0] : null;
     const currentPhone = userProfile?.phone || "";
     setProfile({ phone: currentPhone, address: userProfile?.address || "" });
 
-    // 2. 核心無感同步魔法：只要有電話，就自動檢查是否需要合併或更新後台資料
+    // 進行舊帳號餘額吸收
     if (currentPhone) {
-      // 尋找是否有同電話、但 LINE ID 不同的幽靈舊帳號
       const { data: oldProfiles } = await supabase
         .from("member_profiles")
         .select("*")
         .eq("phone", currentPhone)
         .neq("user_line_id", userLineId);
 
-      let absorbedBalance = 0;
-      
-      // 如果有舊帳號，執行吸收轉移
       if (oldProfiles && oldProfiles.length > 0) {
         for (const old of oldProfiles) {
-          absorbedBalance += (old.wallet_balance || 0);
-          // 將舊紀錄與舊訂單全數轉移至當前的 LINE 帳號
           await supabase.from("wallet_transactions").update({ user_line_id: userLineId }).eq("user_line_id", old.user_line_id);
           await supabase.from("member_profiles").delete().eq("user_line_id", old.user_line_id);
         }
         await supabase.from("service_orders").update({ user_line_id: userLineId }).eq("user_phone", currentPhone);
       }
-
-      // 檢查目前在會員庫的狀態
-      const { data: currentWallet } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).single();
-      
-      // ✨ 關鍵防呆：只有在「吸收到舊餘額」或「後台電話未同步」時，才發動背景寫入更新，節省效能
-      if (absorbedBalance > 0 || currentWallet?.phone !== currentPhone) {
-        const newBalance = (currentWallet?.wallet_balance || 0) + absorbedBalance;
-        
-        await supabase.from("member_profiles").upsert({
-           user_line_id: userLineId,
-           name: userName,
-           phone: currentPhone,
-           wallet_balance: newBalance
-        });
-
-        // 只有吸收到錢的時候才彈窗給驚喜
-        if (absorbedBalance > 0) {
-          alert(`🎉 系統已自動為您找回並合併祈福金餘額 $${absorbedBalance}！`);
-        }
-      }
     }
 
-    // 3. 讀取最終最新的餘額
-    const { data: finalMemberData } = await supabase
-      .from("member_profiles")
-      .select("wallet_balance")
-      .eq("user_line_id", userLineId)
-      .single();
-      
-    setWalletBalance(finalMemberData?.wallet_balance || 0);
-
-    // 4. 讀取交易紀錄與訂單
+    // 🛡️ 防護 2：無敵核算器！直接抓取所有異動明細進行精準加總
     const { data: txData } = await supabase
       .from("wallet_transactions")
       .select("*")
       .eq("user_line_id", userLineId)
       .order("created_at", { ascending: false });
 
-    if (txData) setTransactions(txData);
+    if (txData) {
+      setTransactions(txData);
+      
+      // 🚀 強制重新計算真正的總餘額 (解決後台連續點擊退款的覆蓋問題，將 1200+1800+600 完美加總)
+      const trueBalance = txData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+      setWalletBalance(trueBalance);
+
+      // 自動修正後台可能錯誤的餘額，確保資料庫與明細一致
+      const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
+      if (mpData && mpData.length > 0) {
+         await supabase.from("member_profiles").update({ wallet_balance: trueBalance, phone: currentPhone, name: userName }).eq("user_line_id", userLineId);
+      } else {
+         await supabase.from("member_profiles").insert({ user_line_id: userLineId, wallet_balance: trueBalance, phone: currentPhone, name: userName });
+      }
+    }
 
     let historyOrders: any[] = [];
     const { data: ordersByLine } = await supabase
@@ -122,21 +104,28 @@ export default function MemberCenter() {
     fetchMemberData();
   }, [fetchMemberData]);
 
-  // 手動儲存功能
   const handleSaveProfile = async () => {
     if (session?.user?.email) {
       if (!profile.phone) return alert("請輸入聯絡電話！");
 
-      await supabase.from("user_contacts").upsert({
-        line_id: session.user.email,
-        line_name: session.user.name,
-        phone: profile.phone,
-        address: profile.address,
-      });
-
-      // 儲存後呼叫 fetchMemberData，自動觸發背景同步邏輯
-      await fetchMemberData();
+      const { data: existData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
       
+      if (existData && existData.length > 0) {
+        await supabase.from("user_contacts").update({ 
+          phone: profile.phone, 
+          address: profile.address, 
+          line_name: session.user.name 
+        }).eq("line_id", session.user.email);
+      } else {
+        await supabase.from("user_contacts").insert({ 
+          line_id: session.user.email, 
+          phone: profile.phone, 
+          address: profile.address, 
+          line_name: session.user.name 
+        });
+      }
+
+      await fetchMemberData();
       setIsEditingProfile(false);
       alert("資料已成功更新並同步！");
     }
@@ -167,7 +156,9 @@ export default function MemberCenter() {
         <UserCircle className="w-24 h-24 text-stone-300 mb-6" />
         <h1 className="text-3xl font-bold text-slate-800 tracking-widest mb-4">請先登入信眾帳號</h1>
         <p className="text-muted-foreground mb-8 tracking-widest leading-relaxed max-w-md">登入後即可查看您的專屬祈福紀錄與本宮代辦進度，並管理您的聯絡資訊。</p>
-        <Link href="/"><Button className="bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-6 rounded-full font-bold tracking-widest shadow-lg">返回首頁</Button></Link>
+        <Link href="/">
+          <Button className="bg-[#1A432D] hover:bg-[#122F20] text-white px-8 py-6 rounded-full font-bold tracking-widest shadow-lg">返回首頁</Button>
+        </Link>
       </div>
     );
   }
@@ -230,12 +221,16 @@ export default function MemberCenter() {
         {/* 狀態統計區塊 */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center justify-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2"><History size={20} /></div>
+            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+              <History size={20} />
+            </div>
             <p className="text-3xl font-bold text-foreground">{completedOrders}</p>
             <p className="text-xs font-bold tracking-widest text-muted-foreground">已圓滿服務</p>
           </div>
           <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center justify-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2"><Wallet size={20} /></div>
+            <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-2">
+              <Wallet size={20} />
+            </div>
             <p className="text-3xl font-bold text-slate-800">{pendingOrders}</p>
             <p className="text-xs font-bold tracking-widest text-muted-foreground">待對帳處理</p>
           </div>
@@ -254,19 +249,49 @@ export default function MemberCenter() {
           
           {isEditingProfile ? (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-               <div><label className="block text-xs font-bold text-muted-foreground mb-2">聯絡電話 <span className="text-red-500">*必填，綁定餘額憑證</span></label><input value={profile.phone} onChange={e=>setProfile({...profile, phone: e.target.value})} placeholder="例如：0912345678" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
-               <div><label className="block text-xs font-bold text-muted-foreground mb-2">通訊地址</label><input value={profile.address} onChange={e=>setProfile({...profile, address: e.target.value})} placeholder="請填寫完整地址" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"/></div>
-               <Button onClick={handleSaveProfile} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-6 rounded-xl font-bold tracking-widest mt-2">儲存變更並同步帳戶</Button>
+               <div>
+                 <label className="block text-xs font-bold text-muted-foreground mb-2">
+                   聯絡電話 <span className="text-red-500">*必填，綁定餘額憑證</span>
+                 </label>
+                 <input 
+                   value={profile.phone} 
+                   onChange={e=>setProfile({...profile, phone: e.target.value})} 
+                   placeholder="例如：0912345678" 
+                   className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"
+                 />
+               </div>
+               <div>
+                 <label className="block text-xs font-bold text-muted-foreground mb-2">通訊地址</label>
+                 <input 
+                   value={profile.address} 
+                   onChange={e=>setProfile({...profile, address: e.target.value})} 
+                   placeholder="請填寫完整地址" 
+                   className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#1A432D]"
+                 />
+               </div>
+               <Button onClick={handleSaveProfile} className="w-full bg-[#1A432D] hover:bg-[#122F20] text-white py-6 rounded-xl font-bold tracking-widest mt-2">
+                 儲存變更並同步帳戶
+               </Button>
             </div>
           ) : (
             <div className="space-y-5">
               <div className="flex items-start gap-4">
-                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0"><Phone size={16} className="text-stone-400"/></div>
-                 <div><p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">聯絡電話</p><p className="font-medium text-foreground">{profile.phone || "尚未設定"}</p></div>
+                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                   <Phone size={16} className="text-stone-400"/>
+                 </div>
+                 <div>
+                   <p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">聯絡電話</p>
+                   <p className="font-medium text-foreground">{profile.phone || "尚未設定"}</p>
+                 </div>
               </div>
               <div className="flex items-start gap-4">
-                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0"><MapPin size={16} className="text-stone-400"/></div>
-                 <div><p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">通訊地址</p><p className="font-medium text-foreground leading-relaxed">{profile.address || "尚未設定"}</p></div>
+                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                   <MapPin size={16} className="text-stone-400"/>
+                 </div>
+                 <div>
+                   <p className="text-xs font-bold text-muted-foreground tracking-widest mb-1">通訊地址</p>
+                   <p className="font-medium text-foreground leading-relaxed">{profile.address || "尚未設定"}</p>
+                 </div>
               </div>
               <p className="text-[10px] text-stone-400 tracking-widest pt-2 flex items-center gap-1.5">
                 <Info size={12} className="shrink-0" />
@@ -349,7 +374,7 @@ export default function MemberCenter() {
                              <FileText size={12} /> 祈福印記
                            </button>
                          )}
-                         <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : order.status === 'refunded' ? 'bg-muted text-stone-500 border border-border' : 'bg-muted text-stone-500 border border-border'}`}>
+                         <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-muted text-stone-500 border border-border'}`}>
                            {order.status === 'completed' ? '已處理' : order.status === 'refunded' ? '已作廢退款' : '待對帳'}
                          </span>
                        </div>
@@ -359,11 +384,10 @@ export default function MemberCenter() {
               </div>
             )}
           </div>
-
         </div>
       </div>
 
-      {/* 祈福印記彈窗模組 */}
+      {/* 神尊印記彈窗 */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
@@ -373,7 +397,6 @@ export default function MemberCenter() {
             className="relative w-full max-w-[360px] flex flex-col items-center" 
             onClick={(e) => e.stopPropagation()} 
           >
-            
             <button 
               onClick={() => setSelectedOrder(null)} 
               className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-card/20 p-2 rounded-full backdrop-blur-md z-[60]"
@@ -389,131 +412,47 @@ export default function MemberCenter() {
             </div>
 
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
-              
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
                 alt="祈福印記" 
                 className="w-full h-auto block pointer-events-none select-none relative z-0" 
               />
+              <style>{`.receipt-text { font-family: var(--font-noto-serif), "Noto Serif TC", serif !important; }`}</style>
 
-              <style>{`
-                .receipt-text {
-                  font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
-                }
-              `}</style>
-
-              <div 
-                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-                style={{ 
-                  left: 'calc(44.5 / 175 * 100%)', 
-                  top: 'calc(85 / 300 * 100%)', 
-                  width: 'calc(90 / 175 * 100%)', 
-                  height: 'calc(20 / 300 * 100%)' 
-                }}
-              >
+              <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}>
                 <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-                style={{ 
-                  left: 'calc(160 / 175 * 100%)', 
-                  top: 'calc(75 / 300 * 100%)', 
-                  width: 'calc(12 / 175 * 100%)', 
-                  height: 'calc(150 / 300 * 100%)',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-                style={{ 
-                  left: 'calc(3 / 175 * 100%)', 
-                  top: 'calc(70 / 300 * 100%)', 
-                  width: 'calc(12 / 175 * 100%)', 
-                  height: 'calc(180 / 300 * 100%)',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(90 / 175 * 100%)', 
-                  top: 'calc(110 / 300 * 100%)', 
-                  width: 'calc(35 / 175 * 100%)', 
-                  height: 'auto',
-                  maxHeight: 'calc(120 / 300 * 100%)', 
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
                 <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(90 / 175 * 100%)', 
-                  top: 'calc(170 / 300 * 100%)', 
-                  width: 'calc(35 / 175 * 100%)', 
-                  height: 'auto',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
                 <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-[#A61D24]"
-                style={{ 
-                  left: 'calc(75 / 175 * 100%)', 
-                  top: 'calc(110 / 300 * 100%)', 
-                  width: 'calc(35 / 175 * 100%)', 
-                  height: 'auto',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-[#A61D24]" style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text text-stone-900"
-                style={{ 
-                  left: 'calc(40 / 175 * 100%)',
-                  top: 'calc(128 / 300 * 100%)',
-                  width: 'calc(70 / 175 * 100%)', 
-                  height: 'auto',                               
-                  maxHeight: 'calc(102 / 300 * 100%)',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'upright'
-                }}
-              >
+              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
                 <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
                   {formatServiceDetails(selectedOrder.service_details)}
                 </span>
               </div>
 
-              <div 
-                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-                style={{ 
-                  left: 'calc(62.5 / 175 * 100%)', 
-                  top: 'calc(240 / 300 * 100%)', 
-                  width: 'calc(50 / 175 * 100%)', 
-                  height: 'calc(10 / 300 * 100%)' 
-                }}
-              >
+              <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}>
                 <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
               </div>
             </div>
