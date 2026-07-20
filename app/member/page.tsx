@@ -5,11 +5,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Calendar, History, Wallet, UserCircle, MapPin, Phone, Edit3, X, FileText, Camera, Info } from "lucide-react"; 
+import { Calendar, History, Wallet, UserCircle, MapPin, Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft } from "lucide-react"; 
 
 export default function MemberCenter() {
   const { data: session, status } = useSession();
   const [orders, setOrders] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profile, setProfile] = useState({ phone: "", address: "" });
@@ -19,6 +22,7 @@ export default function MemberCenter() {
   useEffect(() => {
     async function fetchMemberData() {
       if (session?.user?.email) {
+        // 1. 取得聯絡資訊
         const { data: userProfile } = await supabase
           .from("user_contacts")
           .select("*")
@@ -29,6 +33,27 @@ export default function MemberCenter() {
           setProfile({ phone: userProfile.phone || "", address: userProfile.address || "" });
         }
 
+        // 2. 取得會員錢包餘額 (對應您的新資料表)
+        const { data: memberData } = await supabase
+          .from("member_profiles")
+          .select("wallet_balance")
+          .eq("user_line_id", session.user.email)
+          .single();
+          
+        if (memberData) {
+          setWalletBalance(memberData.wallet_balance || 0);
+        }
+
+        // 3. 取得祈福金異動紀錄
+        const { data: txData } = await supabase
+          .from("wallet_transactions")
+          .select("*")
+          .eq("user_line_id", session.user.email)
+          .order("created_at", { ascending: false });
+
+        if (txData) setTransactions(txData);
+
+        // 4. 取得歷史祈福訂單紀錄
         const { data: historyOrders } = await supabase
           .from("service_orders")
           .select("*")
@@ -98,8 +123,9 @@ export default function MemberCenter() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 -mt-20 relative z-20 space-y-8">
+      <div className="max-w-4xl mx-auto px-6 -mt-20 relative z-20 space-y-6">
         
+        {/* 帳戶基礎資訊 */}
         <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-5">
             {session?.user?.image ? (
@@ -115,6 +141,26 @@ export default function MemberCenter() {
           <button onClick={() => signOut()} className="text-sm font-bold text-stone-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50">登出</button>
         </div>
 
+        {/* 💳 專屬祈福金餘額卡片 (新加入模組) */}
+        <div className="bg-gradient-to-br from-[#1A432D] to-[#0F291B] dark:from-emerald-950 dark:to-stone-900 text-white p-6 md:p-8 rounded-[2rem] shadow-lg relative overflow-hidden border border-emerald-800/40">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs font-bold tracking-widest text-emerald-300 bg-emerald-900/60 px-3 py-1.5 rounded-full border border-emerald-700/50 flex items-center gap-1.5 w-fit">
+                <Coins size={14} /> 數位祈福金帳戶
+              </span>
+              <p className="text-sm text-emerald-200/80 tracking-widest mt-4">目前可用餘額</p>
+              <p className="text-4xl md:text-5xl font-extrabold text-[#D89F3C] tracking-tight mt-1">
+                ${walletBalance.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="pt-5 mt-5 border-t border-emerald-800/60 flex justify-between items-center text-xs text-emerald-200/80 tracking-widest">
+            <span>餘額可用於結帳時全額或部分扣抵</span>
+            <span>系統自動對帳</span>
+          </div>
+        </div>
+
+        {/* 狀態統計區塊 */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center justify-center gap-2">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2"><History size={20} /></div>
@@ -128,6 +174,7 @@ export default function MemberCenter() {
           </div>
         </div>
 
+        {/* 聯絡資訊區塊 */}
         <div className="bg-card rounded-3xl p-8 border border-border shadow-sm space-y-6">
           <div className="flex justify-between items-center border-b border-border pb-4">
              <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2">
@@ -162,52 +209,90 @@ export default function MemberCenter() {
           )}
         </div>
 
-        <div className="bg-card rounded-3xl p-8 border border-border shadow-sm space-y-6">
-          <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-border pb-4">
-            <Calendar className="text-[#A61D24]" size={20}/> 祈福與服務紀錄
-          </h3>
+        {/* 雙欄區塊：祈福金明細 & 祈福服務紀錄 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {loadingOrders ? (
-            <div className="text-center py-10 text-stone-400 font-bold tracking-widest">載入中...</div>
-          ) : orders.length === 0 ? (
-            <div className="text-center py-12 bg-muted rounded-2xl border border-dashed border-border text-stone-400 font-bold tracking-widest">
-              目前尚無紀錄
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {orders.map((order) => (
-                <div key={order.id} className="p-5 border border-stone-100 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:shadow-md transition-shadow group">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold px-3 py-1 rounded-full tracking-widest bg-stone-100 text-stone-600">{order.service_type}</span>
-                      <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+          {/* 左側：祈福金異動明細 (新加入模組) */}
+          <div className="bg-card rounded-3xl p-6 md:p-8 border border-border shadow-sm space-y-6">
+            <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-border pb-4">
+              <ArrowRightLeft className="text-purple-700" size={20}/> 祈福金異動明細
+            </h3>
+            
+            {loadingOrders ? (
+              <div className="text-center py-10 text-stone-400 font-bold tracking-widest">載入中...</div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-12 bg-muted rounded-2xl border border-dashed border-border text-stone-400 font-bold tracking-widest">
+                尚無資金異動紀錄唷
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                {transactions.map((tx) => (
+                  <div key={tx.id} className="flex justify-between items-center p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                    <div>
+                      <p className="font-bold text-sm text-foreground tracking-wide">{tx.description}</p>
+                      <p className="text-xs font-medium text-stone-400 mt-1">
+                        {new Date(tx.created_at).toLocaleDateString("zh-TW")}
+                      </p>
                     </div>
-                    <p className="font-bold text-foreground line-clamp-2 text-sm md:text-base">
-                      {formatServiceDetails(order.service_details)}
-                    </p>
-                    {order.bank_last_5 && <p className="text-xs font-bold text-muted-foreground tracking-widest">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
+                    <span className={`font-bold tracking-wider ${tx.amount >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {tx.amount >= 0 ? `+${tx.amount}` : tx.amount}
+                    </span>
                   </div>
-                  <div className="flex justify-between md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 border-stone-100 pt-3 md:pt-0">
-                     <span className="font-bold text-lg text-foreground">${order.total_price}</span>
-                     <div className="flex items-center gap-2">
-                       <button
-                         onClick={() => setSelectedOrder(order)}
-                         className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
-                       >
-                         <FileText size={12} /> 祈福印記
-                       </button>
-                       <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-500 border border-border'}`}>
-                         {order.status === 'completed' ? '已處理圓滿' : '等待對帳中'}
-                       </span>
-                     </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 右側：祈福與服務紀錄 (保留您的原版本) */}
+          <div className="bg-card rounded-3xl p-6 md:p-8 border border-border shadow-sm space-y-6">
+            <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-border pb-4">
+              <Calendar className="text-[#A61D24]" size={20}/> 祈福與服務紀錄
+            </h3>
+            
+            {loadingOrders ? (
+              <div className="text-center py-10 text-stone-400 font-bold tracking-widest">載入中...</div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12 bg-muted rounded-2xl border border-dashed border-border text-stone-400 font-bold tracking-widest">
+                目前尚無紀錄
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide">
+                {orders.map((order) => (
+                  <div key={order.id} className="p-5 border border-stone-100 rounded-2xl flex flex-col justify-between gap-4 hover:shadow-md transition-shadow group bg-white">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold px-3 py-1 rounded-full tracking-widest bg-stone-100 text-stone-600">{order.service_type}</span>
+                        <span className="text-xs font-medium text-stone-400">{new Date(order.created_at).toLocaleDateString('zh-TW')}</span>
+                      </div>
+                      <p className="font-bold text-foreground line-clamp-2 text-sm md:text-base pt-1">
+                        {formatServiceDetails(order.service_details)}
+                      </p>
+                      {order.bank_last_5 && <p className="text-xs font-bold text-muted-foreground tracking-widest pt-1">匯款末五碼：<span className="text-[#A61D24]">{order.bank_last_5}</span></p>}
+                    </div>
+                    <div className="flex justify-between items-center pt-3 border-t border-stone-100">
+                       <span className="font-bold text-lg text-foreground">${order.total_price}</span>
+                       <div className="flex items-center gap-2">
+                         <button
+                           onClick={() => setSelectedOrder(order)}
+                           className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
+                         >
+                           <FileText size={12} /> 祈福印記
+                         </button>
+                         <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-500 border border-border'}`}>
+                           {order.status === 'completed' ? '已處理' : '待對帳'}
+                         </span>
+                       </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
+      {/* 祈福印記彈窗模組 (完全保留原版絕對定位設定) */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
@@ -232,24 +317,20 @@ export default function MemberCenter() {
                <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
             </div>
 
-            {/* 💡 終極絕對鎖定防禦陣型 (依據陳世碼先生 175x300 座標規範圖，使用純粹的 left/top calc 公式) */}
             <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-background">
               
-              {/* 底圖，撐開整體高寬比例 */}
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
                 alt="祈福印記" 
                 className="w-full h-auto block pointer-events-none select-none relative z-0" 
               />
 
-              {/* 確保直立中文字顯示正常 */}
               <style>{`
                 .receipt-text {
                   font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
                 }
               `}</style>
 
-              {/* T1: Top Header (X: 42.5, Y: 10, W: 90, H: 20) */}
               <div 
                 className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
                 style={{ 
@@ -263,7 +344,6 @@ export default function MemberCenter() {
                 <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
               </div>
 
-              {/* T2: Right Column (X: 160, Y: 75, W: 12, H: 150) */}
               <div 
                 className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
                 style={{ 
@@ -278,7 +358,6 @@ export default function MemberCenter() {
                 <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
               </div>
 
-              {/* T3: Left Column (X: 3, Y: 75, W: 12, H: 150) */}
               <div 
                 className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
                 style={{ 
@@ -293,94 +372,83 @@ export default function MemberCenter() {
                 <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
               </div>
 
-              {/* T4: Body Right - 大德 (X: 105, Y: 110, W: 35) */}
-{/* 高度設定為 auto，加上 maxHeight 防護牆，並向左退拉開與右龍距離 */}
-<div 
-  className="absolute z-10 receipt-text text-stone-900"
-  style={{ 
-    left: 'calc(90 / 175 * 100%)', 
-    top: 'calc(110 / 300 * 100%)', 
-    width: 'calc(35 / 175 * 100%)', 
-    height: 'auto',
-    maxHeight: 'calc(120 / 300 * 100%)', 
-    writingMode: 'vertical-rl',
-    textOrientation: 'upright'
-  }}
->
-  {/* marginBottom 控制標籤與內容的距離 */}
-  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
-  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
-</div>
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(90 / 175 * 100%)', 
+                  top: 'calc(110 / 300 * 100%)', 
+                  width: 'calc(35 / 175 * 100%)', 
+                  height: 'auto',
+                  maxHeight: 'calc(120 / 300 * 100%)', 
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
+              </div>
 
-{/* T6: Body Sub - 項目 (X: 105, Y: 170, W: 35) */}
-{/* 🛑 校正重點：left 必須與大德 (105) 完全一樣，width 也統一，這樣項目才會在大德的正下方！ */}
-<div 
-  className="absolute z-10 receipt-text text-stone-900"
-  style={{ 
-    left: 'calc(90 / 175 * 100%)', /* 👈 已修正：對齊上方的大德 */
-    top: 'calc(170 / 300 * 100%)', 
-    width: 'calc(35 / 175 * 100%)', /* 👈 已修正：寬度與大德統一 */
-    height: 'auto',
-    writingMode: 'vertical-rl',
-    textOrientation: 'upright'
-  }}
->
-  <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
-  <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
-</div>
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(90 / 175 * 100%)', 
+                  top: 'calc(170 / 300 * 100%)', 
+                  width: 'calc(35 / 175 * 100%)', 
+                  height: 'auto',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
+                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
+              </div>
 
-{/* T5-A: Body Left - 方案標題 (獨立固定在上方) */}
-<div 
-  className="absolute z-10 receipt-text text-[#A61D24]"
-  style={{ 
-    left: 'calc(75 / 175 * 100%)', 
-    top: 'calc(110 / 300 * 100%)', 
-    width: 'calc(35 / 175 * 100%)', 
-    height: 'auto',
-    writingMode: 'vertical-rl',
-    textOrientation: 'upright'
-  }}
->
-  <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
-</div>
+              <div 
+                className="absolute z-10 receipt-text text-[#A61D24]"
+                style={{ 
+                  left: 'calc(75 / 175 * 100%)', 
+                  top: 'calc(110 / 300 * 100%)', 
+                  width: 'calc(35 / 175 * 100%)', 
+                  height: 'auto',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
+              </div>
 
-{/* T5-B: Body Left - 方案黑字內容 (獨立區塊，起始點往下壓) */}
-<div 
-  className="absolute z-10 receipt-text text-stone-900"
-  style={{ 
-    left: 'calc(40 / 175 * 100%)', /* 👈 往左延伸寬度 (70)，爭取足夠的換行空間，但最右側依然對齊 110 */
-    top: 'calc(128 / 300 * 100%)', /* 👈 往下推移 18mm，完美讓出上方「方案」的空間 */
-    width: 'calc(70 / 175 * 100%)', 
-    height: 'auto',                               
-    maxHeight: 'calc(102 / 300 * 100%)', /* 👈 因為起始點下降了 18mm，所以最大高度減去 18，確保依然在蓮花上方停住 */
-    writingMode: 'vertical-rl',
-    textOrientation: 'upright'
-  }}
->
-  <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
-    {formatServiceDetails(selectedOrder.service_details)}
-  </span>
-</div>
+              <div 
+                className="absolute z-10 receipt-text text-stone-900"
+                style={{ 
+                  left: 'calc(40 / 175 * 100%)',
+                  top: 'calc(128 / 300 * 100%)',
+                  width: 'calc(70 / 175 * 100%)', 
+                  height: 'auto',                               
+                  maxHeight: 'calc(102 / 300 * 100%)',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'upright'
+                }}
+              >
+                <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
+                  {formatServiceDetails(selectedOrder.service_details)}
+                </span>
+              </div>
 
-{/* T7: Footer (X: 62.5, Y: 240, W: 50, H: 10) */}
-{/* 底部功德圓滿維持不動，目前的參數很完美 */}
-<div 
-  className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-  style={{ 
-    left: 'calc(62.5 / 175 * 100%)', 
-    top: 'calc(240 / 300 * 100%)', 
-    width: 'calc(50 / 175 * 100%)', 
-    height: 'calc(10 / 300 * 100%)' 
-  }}
->
-  <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
-</div>
-
-</div>
-
-</div>
-</div>
-)}
-</div>
-);
+              <div 
+                className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
+                style={{ 
+                  left: 'calc(62.5 / 175 * 100%)', 
+                  top: 'calc(240 / 300 * 100%)', 
+                  width: 'calc(50 / 175 * 100%)', 
+                  height: 'calc(10 / 300 * 100%)' 
+                }}
+              >
+                <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
