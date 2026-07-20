@@ -69,6 +69,11 @@ export default function AdminDashboard() {
   const [refundDesc, setRefundDesc] = useState<string>("");
   const [isProcessingRefund, setIsProcessingRefund] = useState(false);
   const [searchMemberQuery, setSearchMemberQuery] = useState<string>("");
+  
+  // 新增：信眾資料編輯的 State
+  const [editMemId, setEditMemId] = useState<string|null>(null);
+  const [editMemName, setEditMemName] = useState("");
+  const [editMemPhone, setEditMemPhone] = useState("");
 
   const [campaignBanks, setCampaignBankAccounts] = useState<any[]>([]);
   const [flashCampaignsList, setFlashCampaignsList] = useState<any[]>([]);
@@ -331,44 +336,6 @@ export default function AdminDashboard() {
     } catch (err: any) { alert("儲存發生錯誤: " + err.message); }
   };
 
-  const handleAdminRefund = async () => {
-    if (!selectedMemberId || !refundAmount || !refundDesc) return alert("請填寫完整的發放資訊（信眾、金額、事由）");
-    const amt = parseInt(refundAmount);
-    if (isNaN(amt) || amt <= 0) return alert("請輸入大於零的正整數金額");
-
-    setIsProcessingRefund(true);
-    try {
-      const target = membersList.find(m => m.user_line_id === selectedMemberId);
-      const newBalance = (target?.wallet_balance || 0) + amt;
-
-      const { error: balanceError } = await supabase.from("member_profiles")
-        .update({ wallet_balance: newBalance })
-        .eq("user_line_id", selectedMemberId);
-      if (balanceError) throw balanceError;
-
-      const { error: txError } = await supabase.from("wallet_transactions").insert([{
-        user_line_id: selectedMemberId,
-        amount: amt,
-        transaction_type: "refund",
-        description: refundDesc
-      }]);
-      if (txError) throw txError;
-
-      alert("功德金發放成功。");
-      setRefundAmount("");
-      setRefundDesc("");
-      
-      const { data: mData } = await supabase.from("member_profiles").select("*").order("created_at", { ascending: false });
-      if (mData) setMembersList(mData);
-      const { data: tData } = await supabase.from("wallet_transactions").select("*").order("created_at", { ascending: false });
-      if (tData) setTransactionsList(tData);
-    } catch (err: any) {
-      alert("執行失敗：" + err.message);
-    } finally {
-      setIsProcessingRefund(false);
-    }
-  };
-
   const exportToCSV = () => {
     if (currentDisplayOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
     const isSp = selectedServiceType === 'special_project';
@@ -399,6 +366,65 @@ export default function AdminDashboard() {
       const textArea = document.createElement("textarea"); textArea.value = shareText; textArea.style.position = "absolute"; textArea.style.left = "-999999px"; document.body.appendChild(textArea); textArea.select();
       try { document.execCommand('copy'); alert("已複製專屬連結。"); } catch (error) { prompt("請手動複製以下文案：", shareText); } finally { textArea.remove(); }
     }
+  };
+
+  // ==========================================
+  // 🌟 新增：信眾與錢包進階操作功能 (編輯、撤銷)
+  // ==========================================
+
+  // 1. 編輯信眾資料
+  const handleUpdateMember = async () => {
+    if (!editMemId) return;
+    try {
+      const { error } = await supabase.from("member_profiles").update({ name: editMemName, phone: editMemPhone }).eq("user_line_id", editMemId);
+      if (error) throw error;
+      alert("信眾資料更新成功！");
+      setEditMemId(null);
+      fetchData();
+    } catch (err: any) { alert("更新失敗：" + err.message); }
+  };
+
+  // 2. 撤銷交易紀錄並自動校正餘額 (防呆核心)
+  const handleUndoTransaction = async (tx: any) => {
+    if (!confirm("⚠️ 確定要撤銷此筆紀錄嗎？\n系統將會自動從該信眾的錢包中「扣回 / 補回」這筆金額！")) return;
+    try {
+      // a. 找到該信眾並反向計算餘額
+      const member = membersList.find(m => m.user_line_id === tx.user_line_id);
+      if (member) {
+        const newBalance = (member.wallet_balance || 0) - tx.amount;
+        const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", tx.user_line_id);
+        if (balanceError) throw balanceError;
+      }
+      // b. 刪除該筆交易紀錄
+      const { error: txError } = await supabase.from("wallet_transactions").delete().eq("id", tx.id);
+      if (txError) throw txError;
+
+      alert("已成功撤銷紀錄，並完成餘額校正。");
+      fetchData();
+    } catch (err: any) { alert("撤銷失敗：" + err.message); }
+  };
+
+  // 3. 原有的發放祈福金邏輯
+  const handleAdminRefund = async () => {
+    if (!selectedMemberId || !refundAmount || !refundDesc) return alert("請填寫完整的發放資訊");
+    const amt = parseInt(refundAmount);
+    if (isNaN(amt) || amt <= 0) return alert("金額需大於零");
+
+    setIsProcessingRefund(true);
+    try {
+      const target = membersList.find(m => m.user_line_id === selectedMemberId);
+      const newBalance = (target?.wallet_balance || 0) + amt;
+
+      const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", selectedMemberId);
+      if (balanceError) throw balanceError;
+
+      const { error: txError } = await supabase.from("wallet_transactions").insert([{ user_line_id: selectedMemberId, amount: amt, transaction_type: "refund", description: refundDesc }]);
+      if (txError) throw txError;
+
+      alert("功德金發放成功。");
+      setRefundAmount(""); setRefundDesc(""); setSelectedMemberId(""); // 發放完自動清除選取
+      fetchData();
+    } catch (err: any) { alert("執行失敗：" + err.message); } finally { setIsProcessingRefund(false); }
   };
 
   return (
@@ -479,7 +505,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between mb-6 bg-background text-foreground p-5 rounded-xl border border-border shadow-sm">
                      <div><p className="font-bold text-foreground tracking-widest">開放匯款與捐獻帳戶資訊</p></div>
                      <label className="relative inline-flex items-center cursor-pointer">
-                       <input type="checkbox" checked={showBankInfo} onChange={e=>setShowBankInfo(e.checked)} className="sr-only peer"/>
+                       <input type="checkbox" checked={showBankInfo} onChange={e=>setShowBankInfo(e.target.checked)} className="sr-only peer"/>
                        <div className="w-14 h-7 bg-muted-foreground/30 rounded-full peer peer-checked:after:translate-x-full after:absolute after:top-0.5 after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-700 dark:peer-checked:bg-slate-500"></div>
                      </label>
                   </div>
@@ -780,84 +806,147 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* 模組 4：信眾與餘額管理 */}
+        {/* 🌟 模組 4：信眾與餘額管理 (本次重點更新區塊) */}
         {activeTab === 'wallet' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {/* 左側：功德金退款發放控制面板 */}
-            <div className="lg:col-span-1 bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6 h-fit">
+            <div className="lg:col-span-1 bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6 h-fit sticky top-24">
               <h2 className="text-xl font-bold border-l-4 border-purple-700 dark:border-purple-500 pl-3">發放信眾祈福金</h2>
-              <div className="space-y-4 text-sm">
+              
+              <div className="space-y-5 text-sm">
+                
+                {/* 🌟 亮點 1：自動帶入目前選定的信眾 (取代原本的下拉選單) */}
+                <div className={`p-5 rounded-2xl border transition-colors ${selectedMemberId ? 'bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-700' : 'bg-muted border-border'}`}>
+                  <label className="block text-xs font-bold text-muted-foreground mb-3">當前發放對象</label>
+                  {selectedMemberId ? (
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <p className="font-bold text-foreground text-xl mb-1">{membersList.find(m=>m.user_line_id===selectedMemberId)?.name || "未設定姓名"}</p>
+                        <p className="text-sm text-muted-foreground font-mono">{membersList.find(m=>m.user_line_id===selectedMemberId)?.phone || "無電話紀錄"}</p>
+                      </div>
+                      <button onClick={()=>setSelectedMemberId("")} className="w-full text-xs font-bold bg-white dark:bg-card border border-border px-3 py-2 rounded-xl shadow-sm hover:bg-muted transition-colors">重新選擇信眾</button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm font-bold text-purple-700 dark:text-purple-400">請從右側「名冊」中點選目標對象 👉</p>
+                    </div>
+                  )}
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">指定信眾帳戶</label>
-                  <select value={selectedMemberId} onChange={e => setSelectedMemberId(e.target.value)} className="w-full border border-border p-3 rounded-xl bg-background text-foreground font-bold outline-none">
-                    <option value="">請選擇接收退款的信眾</option>
-                    {membersList.map((m: any) => (
-                      <option key={m.user_line_id} value={m.user_line_id}>
-                        {m.name || "未設定姓名"} ({m.phone || "無電話"}) - 目前:${m.wallet_balance || 0}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-bold text-muted-foreground mb-2">發放金額 (新台幣)</label>
+                  <input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="輸入金額，例如: 600" className="w-full bg-background text-foreground border border-border p-4 rounded-xl outline-none focus:border-purple-500 font-bold text-lg"/>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">發放金額 (新台幣)</label>
-                  <input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="輸入金額，例如: 600" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none"/>
+                  <label className="block text-xs font-bold text-muted-foreground mb-2">退款或加值事由說明</label>
+                  <textarea value={refundDesc} onChange={e => setRefundDesc(e.target.value)} placeholder="請輸入發放原因，例如：祝壽燈填寫疏漏，退回款項" className="w-full bg-background text-foreground border border-border p-4 rounded-xl h-24 outline-none resize-none focus:border-purple-500"/>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">退款或加值事由說明</label>
-                  <textarea value={refundDesc} onChange={e => setRefundDesc(e.target.value)} placeholder="請輸入發放原因，例如：祝壽燈填寫疏漏，退回款項" className="w-full bg-background text-foreground border border-border p-3 rounded-xl h-24 outline-none resize-none"/>
-                </div>
-                <button onClick={handleAdminRefund} disabled={isProcessingRefund} className="w-full bg-purple-700 hover:bg-purple-800 dark:bg-purple-600 dark:hover:bg-purple-500 text-white py-4 rounded-xl font-bold tracking-widest transition-colors shadow-sm">{isProcessingRefund ? "處理中..." : "確認核發祈福金"}</button>
+                <button onClick={handleAdminRefund} disabled={isProcessingRefund || !selectedMemberId} className={`w-full py-5 rounded-xl font-bold tracking-widest transition-all shadow-sm ${selectedMemberId ? 'bg-purple-700 hover:bg-purple-800 text-white hover:shadow-md' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-70'}`}>
+                  {isProcessingRefund ? "處理中..." : selectedMemberId ? "確認核發祈福金" : "請先選擇信眾"}
+                </button>
               </div>
             </div>
 
-            {/* 右側：信眾名冊與全宮廟歷史異動明細流水帳 */}
+            {/* 右側：信眾名冊與歷史明細 */}
             <div className="lg:col-span-2 space-y-8">
-              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-4">
+              
+              {/* 信眾錢包名冊 */}
+              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                   <h2 className="text-xl font-bold border-l-4 border-purple-700 dark:border-purple-500 pl-3">信眾錢包名冊</h2>
-                  <input type="text" placeholder="搜尋信眾姓名、電話或識別碼" value={searchMemberQuery} onChange={e => setSearchMemberQuery(e.target.value)} className="bg-background text-foreground border border-border p-2 px-4 rounded-xl text-sm outline-none w-full sm:w-64"/>
+                  
+                  {/* 搜尋列 */}
+                  <div className="relative w-full sm:w-72">
+                    <input type="text" placeholder="搜尋信眾姓名或電話..." value={searchMemberQuery} onChange={e => setSearchMemberQuery(e.target.value)} className="bg-background text-foreground border border-border p-3 pl-4 rounded-xl text-sm outline-none w-full focus:border-purple-500 transition-colors shadow-sm"/>
+                  </div>
                 </div>
-                <div className="overflow-x-auto max-h-[250px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-sm">
+                
+                <div className="overflow-x-auto max-h-[400px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-sm shadow-inner bg-background">
                   <table className="w-full text-left whitespace-nowrap">
-                    <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm">
-                      <tr><th className="p-3">信眾姓名</th><th className="p-3">聯絡電話</th><th className="p-3">LINE 識別碼</th><th className="p-3 text-right">可用餘額</th></tr>
+                    <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm border-b border-border">
+                      <tr><th className="p-4">信眾姓名</th><th className="p-4">聯絡電話</th><th className="p-4 text-right">可用餘額</th><th className="p-4 text-center">編輯操作</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-border bg-card text-card-foreground">
+                    <tbody className="divide-y divide-border text-foreground">
                       {filteredMembers.map((m: any) => (
-                        <tr key={m.user_line_id} className="hover:bg-muted transition-colors">
-                          <td className="p-3 font-bold text-foreground">{m.name || "未設定"}</td>
-                          <td className="p-3 text-muted-foreground">{m.phone || "無紀錄"}</td>
-                          <td className="p-3 font-mono text-xs text-muted-foreground max-w-[120px] truncate" title={m.user_line_id}>{m.user_line_id}</td>
-                          <td className="p-3 font-bold text-right text-purple-700 dark:text-purple-400">${m.wallet_balance || 0}</td>
+                        <tr 
+                          key={m.user_line_id} 
+                          onClick={() => { if(editMemId !== m.user_line_id) setSelectedMemberId(m.user_line_id); }}
+                          className={`transition-colors cursor-pointer ${selectedMemberId === m.user_line_id ? 'bg-purple-50 dark:bg-purple-900/20' : 'hover:bg-muted'}`}
+                        >
+                          <td className="p-4">
+                            {/* 🌟 亮點 2：內聯編輯 (Inline Edit) 防呆 */}
+                            {editMemId === m.user_line_id ? (
+                              <input autoFocus value={editMemName} onChange={e=>setEditMemName(e.target.value)} onClick={e=>e.stopPropagation()} placeholder="姓名" className="w-28 bg-background border border-purple-400 p-2 rounded-lg outline-none font-bold shadow-sm"/>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {selectedMemberId === m.user_line_id && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
+                                <span className="font-bold">{m.name || "未設定"}</span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4 text-muted-foreground font-mono">
+                            {editMemId === m.user_line_id ? (
+                              <input value={editMemPhone} onChange={e=>setEditMemPhone(e.target.value)} onClick={e=>e.stopPropagation()} placeholder="電話" className="w-32 bg-background border border-purple-400 p-2 rounded-lg outline-none font-bold shadow-sm"/>
+                            ) : (
+                              m.phone || "無紀錄"
+                            )}
+                          </td>
+                          <td className="p-4 font-bold text-right text-purple-700 dark:text-purple-400 text-lg">${m.wallet_balance || 0}</td>
+                          <td className="p-4 text-center">
+                            {editMemId === m.user_line_id ? (
+                              <div className="flex justify-center gap-2">
+                                 <button onClick={(e)=>{e.stopPropagation(); handleUpdateMember();}} className="text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 px-4 py-2 rounded-lg shadow-sm transition-colors">儲存</button>
+                                 <button onClick={(e)=>{e.stopPropagation(); setEditMemId(null);}} className="text-xs font-bold bg-muted text-muted-foreground hover:bg-stone-300 px-4 py-2 rounded-lg transition-colors">取消</button>
+                              </div>
+                            ) : (
+                              <button onClick={(e)=>{e.stopPropagation(); setEditMemId(m.user_line_id); setEditMemName(m.name||""); setEditMemPhone(m.phone||"");}} className="text-xs font-bold bg-card border border-border hover:bg-muted text-foreground px-5 py-2 rounded-lg transition-colors shadow-sm">編輯</button>
+                            )}
+                          </td>
                         </tr>
                       ))}
+                      {filteredMembers.length === 0 && (
+                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground font-bold">無符合條件的信眾</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-4">
+              {/* 全宮廟歷史異動明細 */}
+              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
                 <h2 className="text-xl font-bold border-l-4 border-purple-700 dark:border-purple-500 pl-3">全宮廟歷史異動明細</h2>
-                <div className="overflow-x-auto max-h-[300px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-xs">
+                <div className="overflow-x-auto max-h-[350px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-sm shadow-inner bg-background">
                   <table className="w-full text-left whitespace-nowrap">
-                    <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm">
-                      <tr><th className="p-3">異動時間</th><th className="p-3">信眾識別碼</th><th className="p-3">性質</th><th className="p-3">事由明細</th><th className="p-3 text-right">異動金額</th></tr>
+                    <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm border-b border-border">
+                      <tr><th className="p-4">異動時間</th><th className="p-4">信眾</th><th className="p-4">事由明細</th><th className="p-4 text-right">異動金額</th><th className="p-4 text-center">撤銷操作</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-border bg-card text-card-foreground">
-                      {transactionsList.map((tx: any) => (
+                    <tbody className="divide-y divide-border text-foreground">
+                      {transactionsList.map((tx: any) => {
+                        const txMember = membersList.find(m => m.user_line_id === tx.user_line_id);
+                        return (
                         <tr key={tx.id} className="hover:bg-muted transition-colors">
-                          <td className="p-3 text-muted-foreground">{new Date(tx.created_at).toLocaleString('zh-TW')}</td>
-                          <td className="p-3 font-mono text-muted-foreground max-w-[120px] truncate" title={tx.user_line_id}>{tx.user_line_id}</td>
-                          <td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.transaction_type === 'refund' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-stone-100 text-stone-800'}`}>{tx.transaction_type === 'refund' ? '退款加值' : '消費扣抵'}</span></td>
-                          <td className="p-3 text-foreground max-w-[180px] truncate" title={tx.description}>{tx.description}</td>
-                          <td className={`p-3 font-bold text-right ${tx.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{tx.amount >= 0 ? `+${tx.amount}` : tx.amount}</td>
+                          <td className="p-4 text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                          <td className="p-4 font-bold">{txMember?.name || "未知"}</td>
+                          <td className="p-4">
+                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold mr-3 ${tx.transaction_type === 'refund' ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-800'}`}>{tx.transaction_type === 'refund' ? '退款加值' : '消費扣抵'}</span>
+                             <span className="text-muted-foreground max-w-[150px] truncate inline-block align-bottom" title={tx.description}>{tx.description}</span>
+                          </td>
+                          <td className={`p-4 font-bold text-right text-lg ${tx.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{tx.amount >= 0 ? `+${tx.amount}` : tx.amount}</td>
+                          <td className="p-4 text-center">
+                            {/* 🌟 亮點 3：撤銷並自動校正餘額防呆 */}
+                            <button onClick={() => handleUndoTransaction(tx)} className="text-xs font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg transition-colors shadow-sm">撤銷</button>
+                          </td>
                         </tr>
-                      ))}
+                      )})}
+                      {transactionsList.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-muted-foreground font-bold">無任何異動紀錄</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
+
             </div>
           </div>
         )}
