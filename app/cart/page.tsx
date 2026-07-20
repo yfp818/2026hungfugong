@@ -15,22 +15,23 @@ export default function GlobalCartPage() {
   const [bankLast5, setBankLast5] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   
+  const [receiptData, setReceiptData] = useState<any>(null);
+  
   const [lineUrl, setLineUrl] = useState("https://lin.ee/uHaPx59");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
 
-  // 🌟 錢包餘額與扣抵狀態
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [useWallet, setUseWallet] = useState<boolean>(false);
 
-  // 💰 金額計算邏輯
-  const totalCartPrice = cartItems.reduce((sum, item) => sum + item.price, 0);
+  // 安全計算總價，確保 cartItems 是有效陣列
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
+  const totalCartPrice = safeCartItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
   const deductedAmount = useWallet ? Math.min(totalCartPrice, walletBalance) : 0;
   const finalPrice = totalCartPrice - deductedAmount;
 
   useEffect(() => {
     async function loadInitialData() {
-      // 1. 讀取網站設定 (銀行帳戶與 LINE 連結)
       const { data: siteData } = await supabase.from("site_content").select("content").eq("id", "site_footer").single();
       if (siteData?.content) {
         try {
@@ -41,7 +42,6 @@ export default function GlobalCartPage() {
         } catch (e) {}
       }
 
-      // 2. 讀取信眾錢包餘額
       if (session?.user?.email) {
         const { data: memberData } = await supabase
           .from("member_profiles")
@@ -57,24 +57,21 @@ export default function GlobalCartPage() {
   }, [session]);
 
   const handleCheckout = async () => {
-    if (cartItems.length === 0) return alert("購物車目前無任何項目。");
-    // 若最終金額大於 0，強制要求填寫後五碼
+    if (safeCartItems.length === 0) return alert("購物車目前無任何項目。");
     if (finalPrice > 0 && bankLast5.length !== 5) return alert("請正確填寫轉帳帳號後五碼。");
 
     setIsProcessing(true);
 
     try {
-      // 1. 寫入訂單明細
-      const itemsToInsert = cartItems.map(item => ({
+      const itemsToInsert = safeCartItems.map((item: any) => ({
         user_line_id: session?.user?.email || session?.user?.name || "line_user",
         service_type: item.serviceType === "booking" ? "濟事問事" : item.serviceType === "lamp" ? "當月點燈" : "代燒服務",
-        user_name: item.userName,
+        user_name: item.userName || "未提供姓名",
         user_phone: item.userPhone || "",
-        birth_date: item.birthDate,
-        address: item.address,
-        service_details: item.itemDetails,
-        total_price: item.price,
-        // 若餘額全額扣抵 (finalPrice === 0)，自動帶入 "餘額扣抵"，並將狀態設為 completed 節省後台對帳時間
+        birth_date: item.birthDate || "",
+        address: item.address || "",
+        service_details: item.itemDetails || "",
+        total_price: Number(item.price) || 0,
         bank_last_5: finalPrice === 0 ? "餘額扣抵" : bankLast5,
         status: finalPrice === 0 ? "completed" : "pending"
       }));
@@ -82,19 +79,14 @@ export default function GlobalCartPage() {
       const { error: orderError } = await supabase.from("service_orders").insert(itemsToInsert);
       if (orderError) throw orderError;
 
-      // 2. 若有使用祈福金，執行雙向核銷扣款
       if (useWallet && deductedAmount > 0 && session?.user?.email) {
         const newBalance = walletBalance - deductedAmount;
-        
-        // 更新餘額
         const { error: balanceError } = await supabase
           .from("member_profiles")
           .update({ wallet_balance: newBalance })
           .eq("user_line_id", session.user.email);
-        
         if (balanceError) throw balanceError;
 
-        // 寫入消費異動明細
         const { error: txError } = await supabase
           .from("wallet_transactions")
           .insert([{
@@ -103,11 +95,19 @@ export default function GlobalCartPage() {
             transaction_type: "consume",
             description: `[結帳扣抵] 祈福服務 (總額 $${totalCartPrice}，扣抵 $${deductedAmount})`
           }]);
-        
         if (txError) throw txError;
       }
 
-      // 3. 成功後進入神尊印記頁面
+      // 備份印記資料並清空購物車
+      setReceiptData({
+        items: [...safeCartItems],
+        total: totalCartPrice,
+        deducted: deductedAmount,
+        final: finalPrice,
+        b5: finalPrice === 0 ? "餘額扣抵" : bankLast5
+      });
+      
+      clearCart();
       setStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
@@ -128,16 +128,17 @@ export default function GlobalCartPage() {
   };
 
   const handleCopyReceipt = () => {
-    const itemsDetailsString = cartItems.map(item => `-[${item.userName}] ${item.itemDetails}`).join("\n");
+    if (!receiptData) return;
     
-    // 動態生成對帳單文案
+    const itemsDetailsString = receiptData.items.map((item: any) => `-[${item.userName}] ${item.itemDetails}`).join("\n");
+    
     let text = `【皇府宮 - 祈福合併對帳單】\n${itemsDetailsString}\n\n`;
-    text += `功德總計金額：$${totalCartPrice}\n`;
-    if (deductedAmount > 0) text += `祈福金扣抵：-$${deductedAmount}\n`;
-    text += `應付匯款金額：$${finalPrice}\n\n`;
+    text += `功德總計金額：$${receiptData.total}\n`;
+    if (receiptData.deducted > 0) text += `祈福金扣抵：-$${receiptData.deducted}\n`;
+    text += `應付匯款金額：$${receiptData.final}\n\n`;
     
-    if (finalPrice > 0) {
-      text += `核銷轉帳後五碼：${bankLast5}\n*已完成線上合併登記，請管理員核對*`;
+    if (receiptData.final > 0) {
+      text += `核銷轉帳後五碼：${receiptData.b5}\n*已完成線上合併登記，請管理員核對*`;
     } else {
       text += `*已全額由數位祈福金扣抵完畢*\n*系統已自動對帳完成*`;
     }
@@ -147,13 +148,13 @@ export default function GlobalCartPage() {
     } else {
       copyToClipboardFallback(text); window.open(lineUrl, "_blank");
     }
-    clearCart(); 
   };
 
   const parseItemDetails = (item: any) => {
-    const serviceName = item.serviceType === 'booking' ? '濟事問事' : item.serviceType === 'lamp' ? '當月點燈' : '代燒服務';
+    const serviceName = item?.serviceType === 'booking' ? '濟事問事' : item?.serviceType === 'lamp' ? '當月點燈' : '代燒服務';
 
-    let rawString = item.itemDetails
+    // 🛡️ 防呆處理：確保字串存在，防止 replace 崩潰
+    let rawString = (item?.itemDetails || "")
       .replace(/特辦活動:?\s*/g, '')
       .replace(/報名方案:?\s*/g, '')
       .replace(/\n/g, '、')
@@ -163,15 +164,12 @@ export default function GlobalCartPage() {
 
     let optionsArray = rawString.split('、').map((s: string) => s.trim()).filter(Boolean);
     const limitedOptions = optionsArray.slice(0, 3).join('、');
-    
-    const finalOptions = optionsArray.length > 3 ? limitedOptions + '等' : limitedOptions;
-
-    return { serviceName, finalOptions };
+    return { serviceName, finalOptions: optionsArray.length > 3 ? limitedOptions + '等' : limitedOptions };
   };
 
-  const combinedNames = Array.from(new Set(cartItems.map(item => item.userName))).join("、");
-  const combinedServices = Array.from(new Set(cartItems.map(item => parseItemDetails(item).serviceName))).join("、");
-  const combinedOptions = cartItems.map(item => parseItemDetails(item).finalOptions).join("、");
+  const combinedNames = receiptData ? Array.from(new Set(receiptData.items.map((i:any) => i.userName))).join("、") : "";
+  const combinedServices = receiptData ? Array.from(new Set(receiptData.items.map((i:any) => parseItemDetails(i).serviceName))).join("、") : "";
+  const combinedOptions = receiptData ? receiptData.items.map((i:any) => parseItemDetails(i).finalOptions).join("、") : "";
 
   return (
     <main className="min-h-screen bg-background text-foreground py-16 px-4 md:px-6 flex flex-col items-center justify-center transition-colors duration-300">
@@ -184,7 +182,7 @@ export default function GlobalCartPage() {
           </div>
 
           <div className="p-6 md:p-12">
-            {cartItems.length === 0 ? (
+            {safeCartItems.length === 0 ? (
               <div className="text-center py-16 space-y-6">
                 <p className="text-muted-foreground tracking-widest font-medium">您的祈福清單目前空無一物</p>
                 <Link href="/" className="inline-block bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white rounded-full px-8 py-4 font-bold tracking-widest shadow-md transition-colors">
@@ -194,12 +192,11 @@ export default function GlobalCartPage() {
             ) : (
               <div className="space-y-8 animate-in fade-in duration-500">
                 
-                {/* 購物車明細 */}
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg text-foreground tracking-wider border-l-4 border-[#A61D24] dark:border-red-500 pl-3">已加入登記項目</h3>
                   
                   <div className="divide-y divide-border border border-border rounded-2xl bg-muted/30 overflow-hidden">
-                    {cartItems.map((item) => (
+                    {safeCartItems.map((item: any) => (
                       <div key={item.id} className="p-5 flex justify-between items-start gap-4 hover:bg-muted/50 transition-colors">
                         <div className="space-y-1">
                           <div className="flex items-center gap-3">
@@ -209,7 +206,7 @@ export default function GlobalCartPage() {
                             </span>
                           </div>
                           <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                            {item.itemDetails.replace(/特辦活動:?\s*/g, '').replace(/報名方案:?\s*/g, '')}
+                            {(item.itemDetails || "").replace(/特辦活動:?\s*/g, '').replace(/報名方案:?\s*/g, '')}
                           </p>
                         </div>
                         <div className="flex flex-col items-end justify-between h-full min-h-[60px]">
@@ -221,7 +218,6 @@ export default function GlobalCartPage() {
                   </div>
                 </div>
 
-                {/* 🌟 數位祈福金扣抵區塊 */}
                 {walletBalance > 0 && (
                   <div className={`p-5 md:p-6 rounded-2xl border transition-all duration-300 shadow-sm ${useWallet ? 'bg-purple-50/50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800' : 'bg-muted/50 border-border'}`}>
                     <div className="flex items-center justify-between">
@@ -243,7 +239,6 @@ export default function GlobalCartPage() {
                   </div>
                 )}
 
-                {/* 動態結帳金額計算 */}
                 <div className="border border-border bg-card p-6 rounded-2xl shadow-sm space-y-3">
                    <div className="flex justify-between items-center text-sm font-bold text-muted-foreground tracking-widest">
                      <span>小計</span>
@@ -261,7 +256,6 @@ export default function GlobalCartPage() {
                    </div>
                 </div>
 
-                {/* 匯款資訊與後五碼 (若金額為 0 則自動隱藏) */}
                 {finalPrice > 0 ? (
                   <div className="space-y-6 animate-in fade-in duration-500">
                     <div className="bg-muted p-6 rounded-2xl border border-border text-center space-y-3 shadow-inner max-w-md mx-auto">
@@ -299,8 +293,7 @@ export default function GlobalCartPage() {
         </div>
       )}
 
-      {/* 步驟二：✨ 神尊圖騰祈福印記成功畫面 */}
-      {step === 2 && (
+      {step === 2 && receiptData && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
           
           <style>{`#global-cart-btn { display: none !important; }`}</style>
@@ -311,8 +304,6 @@ export default function GlobalCartPage() {
           </div>
 
           <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
-              
-            {/* 底圖 */}
             <img 
               src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
               alt="祈福印記" 
@@ -325,84 +316,49 @@ export default function GlobalCartPage() {
               }
             `}</style>
 
-            {/* T1 */}
-            <div 
-              className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-              style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}
-            >
+            <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}>
               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
             </div>
 
-            {/* T2 */}
-            <div 
-              className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-              style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
             </div>
 
-            {/* T3 */}
-            <div 
-              className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center"
-              style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
             </div>
 
-            {/* T4 */}
-            <div 
-              className="absolute z-10 receipt-text text-stone-900"
-              style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
               <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{combinedNames}</span>
             </div>
 
-            {/* T6 */}
-            <div 
-              className="absolute z-10 receipt-text text-stone-900"
-              style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
               <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{combinedServices}</span>
             </div>
 
-            {/* T5-A */}
-            <div 
-              className="absolute z-10 receipt-text text-[#A61D24]"
-              style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-[#A61D24]" style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
             </div>
 
-            {/* T5-B */}
-            <div 
-              className="absolute z-10 receipt-text text-stone-900"
-              style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}
-            >
+            <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
                 {combinedOptions}
               </span>
             </div>
 
-            {/* T7 */}
-            <div 
-              className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center"
-              style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}
-            >
+            <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}>
               <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
             </div>
-
           </div>
 
           <Button onClick={handleCopyReceipt} className="w-full max-w-[320px] mt-8 bg-[#06C755] hover:bg-[#05a546] text-white py-6 rounded-xl font-bold text-lg tracking-widest shadow-xl transition-transform hover:scale-[1.02]">
             一鍵複製，並打開 LINE 對帳
           </Button>
-
         </div>
       )}
-
     </main>
   );
 }
