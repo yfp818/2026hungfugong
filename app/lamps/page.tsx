@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react"; // 🌟 引入 useSession 抓取登入狀態
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 
 export default function LampsPage() {
+  const { data: session } = useSession(); // 🌟 取得目前登入的信眾資料
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToCart } = useCart();
@@ -14,19 +16,56 @@ export default function LampsPage() {
   const [birthDate, setBirthDate] = useState("");
   const [address, setAddress] = useState("");
 
+  // 1. 載入點燈商品項目
   useEffect(() => {
     async function loadProducts() {
-      // 💡 精準抓取後台 category 為 'lamp' 的商品
-      const { data } = await supabase.from("blessing_products").select("*").eq("category", "lamp").order("created_at", { ascending: true });
+      const { data } = await supabase
+        .from("blessing_products")
+        .select("*")
+        .eq("category", "lamp")
+        .order("created_at", { ascending: true });
       if (data) setProducts(data);
       setIsLoading(false);
     }
     loadProducts();
   }, []);
 
+  // 🌟 2. 自動抓取並預填信眾歷史聯絡資訊
+  useEffect(() => {
+    async function loadUserData() {
+      if (session?.user?.email) {
+        // 預設將祈福人姓名帶入 LINE 暱稱 (信眾可自行修改成家人名字)
+        if (!userName) setUserName(session.user.name || "");
+
+        const { data } = await supabase
+          .from("user_contacts")
+          .select("*")
+          .eq("line_id", session.user.email)
+          .single();
+
+        if (data) {
+          // 如果 state 目前是空的，就把資料庫的資料填進去
+          if (!userPhone) setUserPhone(data.phone || "");
+          if (!address) setAddress(data.address || "");
+        }
+      }
+    }
+    loadUserData();
+  }, [session]);
+
   const handleAddToCart = () => {
     if (!selectedProduct) return alert("請先選擇要點的燈種！");
     if (!userName || !birthDate || !address) return alert("請填寫完整的祈福人資料（姓名、生日、地址）");
+
+    // 🌟 3. 在加入購物車的同時，將信眾最新的電話與地址「靜默儲存」回資料庫
+    if (session?.user?.email) {
+      supabase.from("user_contacts").upsert({
+        line_id: session.user.email,
+        line_name: session.user.name,
+        phone: userPhone,
+        address: address,
+      }).then(); // 使用 background 執行，不阻擋使用者的操作體驗
+    }
 
     addToCart({
       id: Date.now().toString(),
@@ -41,6 +80,7 @@ export default function LampsPage() {
 
     alert(`✅ 已將「${selectedProduct.title}」加入祈福清單！\n您可繼續為其他家人填寫，或點擊右下角購物車結帳。`);
     
+    // 清空姓名與生日方便幫下一位家人點燈，但保留「電話與地址」不用重填
     setUserName(""); 
     setBirthDate(""); 
     setSelectedProduct(null);
@@ -60,6 +100,7 @@ export default function LampsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
+            {/* 左側：燈種選擇 */}
             <div className="space-y-6">
               <h3 className="text-xl font-bold border-l-4 border-[#D89F3C] pl-3">選擇燈種</h3>
               <div className="grid grid-cols-1 gap-4">
@@ -79,25 +120,26 @@ export default function LampsPage() {
               </div>
             </div>
 
-            <div className="bg-card p-6 md:p-8 rounded-[2rem] border border-border shadow-sm space-y-6">
+            {/* 右側：祈福人資料 */}
+            <div className="bg-card p-6 md:p-8 rounded-[2rem] border border-border shadow-sm space-y-6 h-fit sticky top-24">
               <h3 className="text-xl font-bold border-l-4 border-[#1A432D] dark:border-emerald-500 pl-3">祈福人資料</h3>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-1">姓名 <span className="text-red-500">*</span></label>
-                  <input value={userName} onChange={e=>setUserName(e.target.value)} placeholder="祈福人姓名" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C]"/>
+                  <input value={userName} onChange={e=>setUserName(e.target.value)} placeholder="祈福人姓名" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-1">聯絡電話</label>
-                  <input value={userPhone} onChange={e=>setUserPhone(e.target.value)} placeholder="09xxxxxxxx" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C]"/>
+                  <input value={userPhone} onChange={e=>setUserPhone(e.target.value)} placeholder="09xxxxxxxx" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-1">農曆生日 (生辰) <span className="text-red-500">*</span></label>
-                  <input value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：甲辰年五月初五吉時" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C]"/>
+                  <input value={birthDate} onChange={e=>setBirthDate(e.target.value)} placeholder="例：甲辰年五月初五吉時" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-1">居住地址 <span className="text-red-500">*</span></label>
-                  <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="祈福人居住地址" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C]"/>
+                  <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="祈福人居住地址" className="w-full bg-background border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/>
                 </div>
               </div>
 
