@@ -12,13 +12,13 @@ export default function LampsPage() {
   
   // 🌟 從 CartContext 取得名冊與快取資料
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
-  
-  // 🛡️ 防呆 1：確保 contacts 絕對是陣列，防止 length 報錯崩潰
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   
   const [products, setProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  // ✨ 核心修復：改回可複選的數量記錄器 (取代原本的單選 selectedProduct)
+  const [itemQuantities, setItemQuantities] = useState<{ [key: string]: number }>({});
 
   // ✨ 進階表單狀態
   const [name, setName] = useState("");
@@ -31,9 +31,16 @@ export default function LampsPage() {
   const [selectedContactId, setSelectedContactId] = useState("self");
   const [saveToContacts, setSaveToContacts] = useState(true);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
-  
-  // 🛡️ 防呆 2：避免輸入框被無限重置的鎖定器
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+
+  // 💰 計算總金額
+  const totalPrice = products.reduce((sum, p) => sum + (p.price * (itemQuantities[p.id] || 0)), 0);
+
+  // 📝 組合已選項目字串
+  const getSelectedItemsString = () => products
+    .filter(p => (itemQuantities[p.id] || 0) > 0)
+    .map(p => `${p.title} x${itemQuantities[p.id]} ($${p.price * itemQuantities[p.id]})`)
+    .join("、");
 
   useEffect(() => {
     async function loadProducts() {
@@ -62,7 +69,7 @@ export default function LampsPage() {
         setBirthDate(selfProfile.birthDate || ""); 
         setAddress(selfProfile.address || "");
       }
-      setHasAutoFilled(true); // 鎖定，讓信眾後續可以自由刪除修改
+      setHasAutoFilled(true);
     }
   }, [selfProfile, hasAutoFilled, selectedContactId]);
 
@@ -74,13 +81,12 @@ export default function LampsPage() {
     if (selectedId === "new") {
       setTargetName(""); setBirthDate(""); setAddress(""); 
     } else if (selectedId === "self") {
-      setTargetName(""); // 留白代表同聯絡人
+      setTargetName("");
       if (selfProfile) {
         setBirthDate(selfProfile.birthDate || ""); 
         setAddress(selfProfile.address || "");
       }
     } else {
-      // 🛡️ 防呆 3：強制轉成字串比對，防止數字與字串比對失敗
       const contact = safeContacts.find((c: any) => c.id.toString() === selectedId.toString());
       if (contact) {
         setTargetName(contact.contact_name || ""); 
@@ -90,23 +96,34 @@ export default function LampsPage() {
     }
   };
 
+  // ✨ 數量增減處理
+  const handleQtyChange = (id: string, delta: number) => {
+    setItemQuantities(prev => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [id]: next };
+    });
+  };
+
   const handleAddToCart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return alert("請先從左側選擇要點的燈種！");
+    
+    // 防呆：確認是否有選購至少一項
+    const hasSelected = Object.values(itemQuantities).some(qty => qty > 0);
+    if (!hasSelected) return alert("請至少選購一盞點燈項目！");
+    
     if (!name || !phone || !birthDate || !address) return alert("請填寫完整的祈福聯絡與生辰資料");
 
-    // 確保 Context 函數存在再呼叫
     if (typeof updateSharedInfo === "function") {
       updateSharedInfo({ userName: name, userPhone: phone, birthDate, address });
     }
     
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
-    
-    // ✨ 若有填祈福對象就用對象，否則用聯絡人
     const finalTargetName = targetName || name;
     
-    // ✨ 組合明細字串 (將心願附加在後方)
-    const finalDetails = memo ? `${selectedProduct.title}、\n祈福心願: ${memo}` : selectedProduct.title;
+    // 組合最終明細
+    const baseDetails = getSelectedItemsString();
+    const finalDetails = memo ? `${baseDetails}、\n祈福心願: ${memo}` : baseDetails;
 
     if (typeof addToCart === "function") {
       await addToCart({
@@ -117,10 +134,13 @@ export default function LampsPage() {
         birthDate: birthDate, 
         address: address, 
         itemDetails: finalDetails,
-        price: Number(selectedProduct.price) || 0
+        price: totalPrice // 使用加總後的總額
       }, saveToContacts);
     }
 
+    // 送出後清空數量與心願，方便幫下一位家人點燈
+    setItemQuantities({});
+    setMemo("");
     setShowRedirectModal(true);
   };
 
@@ -145,23 +165,50 @@ export default function LampsPage() {
         ) : (
           <form onSubmit={handleAddToCart} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* 左側：燈種選擇 (佔 5 欄) */}
+            {/* 左側：燈種選擇 (佔 5 欄) ✨ 改回複選增減設計 */}
             <div className="lg:col-span-5 space-y-6">
               <h3 className="text-xl font-bold border-l-4 border-[#D89F3C] pl-3 text-foreground">選擇燈種</h3>
               <div className="grid grid-cols-1 gap-4">
-                {products.map((p) => (
-                  <div 
-                    key={p.id} 
-                    onClick={() => setSelectedProduct(p)}
-                    className={`cursor-pointer p-5 rounded-2xl border-2 transition-all group ${selectedProduct?.id === p.id ? 'border-[#A61D24] dark:border-red-400 bg-red-50 dark:bg-red-900/20 shadow-md' : 'border-border bg-card hover:border-[#D89F3C] shadow-sm'}`}
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold text-lg text-foreground">{p.title}</h4>
-                      <span className="text-[#A61D24] dark:text-red-400 font-bold text-lg">${p.price}</span>
+                {products.map((p) => {
+                  const qty = itemQuantities[p.id] || 0;
+                  return (
+                    <div 
+                      key={p.id} 
+                      className={`p-5 rounded-2xl border-2 transition-all flex flex-col justify-between bg-card ${qty > 0 ? 'border-[#A61D24] dark:border-red-400 bg-red-50 dark:bg-red-900/20 shadow-md' : 'border-border hover:border-[#D89F3C] shadow-sm'}`}
+                    >
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <h4 className="font-bold text-lg text-foreground">{p.title}</h4>
+                        </div>
+                        {p.description && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-stone-100 dark:border-stone-800">
+                        <span className="text-[#A61D24] dark:text-red-400 font-bold text-lg">${p.price}</span>
+                        
+                        {/* 數量增減控制器 */}
+                        <div className="flex items-center gap-2 bg-muted rounded-full border border-border p-1 shadow-sm">
+                          <button 
+                            type="button" 
+                            onClick={() => handleQtyChange(p.id, -1)}
+                            disabled={qty === 0}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-base transition-all ${qty > 0 ? 'bg-card text-stone-600 dark:text-stone-300 shadow-sm hover:text-[#A61D24] dark:hover:text-red-400' : 'text-stone-300 cursor-not-allowed'}`}
+                          >
+                            -
+                          </button>
+                          <span className="w-4 text-center font-bold text-foreground text-sm">{qty}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => handleQtyChange(p.id, 1)}
+                            className="w-7 h-7 rounded-full bg-card shadow-sm flex items-center justify-center text-stone-600 dark:text-stone-300 font-bold text-base hover:text-[#A61D24] dark:hover:text-red-400 transition-all"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    {p.description && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{p.description}</p>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -220,8 +267,13 @@ export default function LampsPage() {
                 <span className="text-sm font-bold text-muted-foreground tracking-widest">同步儲存此對象至我的常用名冊</span>
               </label>
 
-              <div className="pt-2">
-                <Button type="submit" className="w-full bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white py-7 rounded-xl font-bold tracking-widest shadow-lg text-lg transition-transform hover:scale-[1.01]">
+              {/* ✨ 動態顯示小計與送出按鈕 */}
+              <div className="bg-muted border border-border p-5 md:p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-5 mt-4">
+                <div>
+                  <span className="text-sm text-muted-foreground font-bold tracking-widest">本次點燈小計</span>
+                  <p className="text-3xl font-bold text-[#A61D24] mt-1">${totalPrice}</p>
+                </div>
+                <Button type="submit" className="w-full sm:w-auto bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white py-7 px-8 rounded-xl font-bold tracking-widest shadow-lg text-lg transition-transform hover:scale-[1.01]">
                   加入點燈清單
                 </Button>
               </div>
@@ -240,13 +292,13 @@ export default function LampsPage() {
               </div>
               <div className="space-y-3 relative z-10">
                 <h3 className="text-2xl font-bold text-[#1A432D] dark:text-emerald-400 tracking-widest">已加入點燈清單</h3>
-                <p className="text-muted-foreground text-sm tracking-widest leading-relaxed">您剛才為「<span className="text-foreground font-bold">{targetName || name}</span>」登記的 {selectedProduct?.title} 已暫存。<br/>請問接下來的動作？</p>
+                <p className="text-muted-foreground text-sm tracking-widest leading-relaxed">您剛才為「<span className="text-foreground font-bold">{targetName || name}</span>」登記的點燈項目已暫存。<br/>請問接下來的動作？</p>
               </div>
               <div className="flex flex-col gap-3 relative z-10 pt-2">
                 <button onClick={() => router.push("/burning")} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border hover:border-[#D89F3C] text-foreground py-4 rounded-xl font-bold tracking-widest shadow-sm transition-all">
                   <svg className="w-5 h-5 text-[#D89F3C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>加購代燒服務
                 </button>
-                <button onClick={() => { setShowRedirectModal(false); setSelectedContactId("new"); setTargetName(""); setBirthDate(""); setAddress(""); setMemo(""); setSelectedProduct(null); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border hover:border-[#D89F3C] text-foreground py-4 rounded-xl font-bold tracking-widest shadow-sm transition-all">
+                <button onClick={() => { setShowRedirectModal(false); setSelectedContactId("new"); setTargetName(""); setBirthDate(""); setAddress(""); setMemo(""); setItemQuantities({}); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="w-full flex items-center justify-center gap-2 bg-card hover:bg-muted border border-border hover:border-[#D89F3C] text-foreground py-4 rounded-xl font-bold tracking-widest shadow-sm transition-all">
                   <svg className="w-5 h-5 text-[#D89F3C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>繼續為下一位點燈
                 </button>
                 <button onClick={() => router.push("/cart")} className="w-full bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white py-4 rounded-xl font-bold tracking-widest shadow-lg mt-2 transition-all">
