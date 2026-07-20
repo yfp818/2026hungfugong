@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Camera } from "lucide-react"; 
+import { Camera, Coins } from "lucide-react"; 
 
 export default function GlobalCartPage() {
   const { data: session } = useSession();
@@ -13,52 +13,107 @@ export default function GlobalCartPage() {
   
   const [step, setStep] = useState(1);
   const [bankLast5, setBankLast5] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [lineUrl, setLineUrl] = useState("https://lin.ee/uHaPx59");
   const [bankName, setBankName] = useState("");
   const [bankAccount, setBankAccount] = useState("");
 
+  // 🌟 錢包餘額與扣抵狀態
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [useWallet, setUseWallet] = useState<boolean>(false);
+
+  // 💰 金額計算邏輯
   const totalCartPrice = cartItems.reduce((sum, item) => sum + item.price, 0);
+  const deductedAmount = useWallet ? Math.min(totalCartPrice, walletBalance) : 0;
+  const finalPrice = totalCartPrice - deductedAmount;
 
   useEffect(() => {
-    async function loadBankInfo() {
-      const { data } = await supabase.from("site_content").select("content").eq("id", "site_footer").single();
-      if (data?.content) {
+    async function loadInitialData() {
+      // 1. 讀取網站設定 (銀行帳戶與 LINE 連結)
+      const { data: siteData } = await supabase.from("site_content").select("content").eq("id", "site_footer").single();
+      if (siteData?.content) {
         try {
-          const parsed = JSON.parse(data.content);
+          const parsed = JSON.parse(siteData.content);
           if (parsed.lineUrl) setLineUrl(parsed.lineUrl);
           if (parsed.bankName) setBankName(parsed.bankName);
           if (parsed.bankAccount) setBankAccount(parsed.bankAccount);
         } catch (e) {}
       }
+
+      // 2. 讀取信眾錢包餘額
+      if (session?.user?.email) {
+        const { data: memberData } = await supabase
+          .from("member_profiles")
+          .select("wallet_balance")
+          .eq("user_line_id", session.user.email)
+          .single();
+        if (memberData) {
+          setWalletBalance(memberData.wallet_balance || 0);
+        }
+      }
     }
-    loadBankInfo();
-  }, []);
+    loadInitialData();
+  }, [session]);
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) return alert("購物車目前無任何項目。");
-    if (bankLast5.length !== 5) return alert("請正確填寫轉帳帳號後五碼。");
+    // 若最終金額大於 0，強制要求填寫後五碼
+    if (finalPrice > 0 && bankLast5.length !== 5) return alert("請正確填寫轉帳帳號後五碼。");
 
-    const itemsToInsert = cartItems.map(item => ({
-      user_line_id: session?.user?.email || session?.user?.name || "line_user",
-      service_type: item.serviceType === "booking" ? "濟事問事" : item.serviceType === "lamp" ? "當月點燈" : "代燒服務",
-      user_name: item.userName,
-      user_phone: item.userPhone || "",
-      birth_date: item.birthDate,
-      address: item.address,
-      service_details: item.itemDetails,
-      total_price: item.price,
-      bank_last_5: bankLast5,
-      status: "pending"
-    }));
+    setIsProcessing(true);
 
-    const { error } = await supabase.from("service_orders").insert(itemsToInsert);
+    try {
+      // 1. 寫入訂單明細
+      const itemsToInsert = cartItems.map(item => ({
+        user_line_id: session?.user?.email || session?.user?.name || "line_user",
+        service_type: item.serviceType === "booking" ? "濟事問事" : item.serviceType === "lamp" ? "當月點燈" : "代燒服務",
+        user_name: item.userName,
+        user_phone: item.userPhone || "",
+        birth_date: item.birthDate,
+        address: item.address,
+        service_details: item.itemDetails,
+        total_price: item.price,
+        // 若餘額全額扣抵 (finalPrice === 0)，自動帶入 "餘額扣抵"，並將狀態設為 completed 節省後台對帳時間
+        bank_last_5: finalPrice === 0 ? "餘額扣抵" : bankLast5,
+        status: finalPrice === 0 ? "completed" : "pending"
+      }));
 
-    if (error) {
-      alert("明細寫入失敗，請洽客服：" + error.message);
-    } else {
+      const { error: orderError } = await supabase.from("service_orders").insert(itemsToInsert);
+      if (orderError) throw orderError;
+
+      // 2. 若有使用祈福金，執行雙向核銷扣款
+      if (useWallet && deductedAmount > 0 && session?.user?.email) {
+        const newBalance = walletBalance - deductedAmount;
+        
+        // 更新餘額
+        const { error: balanceError } = await supabase
+          .from("member_profiles")
+          .update({ wallet_balance: newBalance })
+          .eq("user_line_id", session.user.email);
+        
+        if (balanceError) throw balanceError;
+
+        // 寫入消費異動明細
+        const { error: txError } = await supabase
+          .from("wallet_transactions")
+          .insert([{
+            user_line_id: session.user.email,
+            amount: -deductedAmount,
+            transaction_type: "consume",
+            description: `[結帳扣抵] 祈福服務 (總額 $${totalCartPrice}，扣抵 $${deductedAmount})`
+          }]);
+        
+        if (txError) throw txError;
+      }
+
+      // 3. 成功後進入神尊印記頁面
       setStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error: any) {
+      alert("結帳發生錯誤，請洽客服：" + error.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -74,7 +129,18 @@ export default function GlobalCartPage() {
 
   const handleCopyReceipt = () => {
     const itemsDetailsString = cartItems.map(item => `-[${item.userName}] ${item.itemDetails}`).join("\n");
-    const text = `【皇府宮 - 祈福合併對帳單】\n${itemsDetailsString}\n\n功德總計金額：$${totalCartPrice}\n核銷轉帳後五碼：${bankLast5}\n\n*已完成線上合併登記，請管理員核對*`;
+    
+    // 動態生成對帳單文案
+    let text = `【皇府宮 - 祈福合併對帳單】\n${itemsDetailsString}\n\n`;
+    text += `功德總計金額：$${totalCartPrice}\n`;
+    if (deductedAmount > 0) text += `祈福金扣抵：-$${deductedAmount}\n`;
+    text += `應付匯款金額：$${finalPrice}\n\n`;
+    
+    if (finalPrice > 0) {
+      text += `核銷轉帳後五碼：${bankLast5}\n*已完成線上合併登記，請管理員核對*`;
+    } else {
+      text += `*已全額由數位祈福金扣抵完畢*\n*系統已自動對帳完成*`;
+    }
     
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(() => window.open(lineUrl, "_blank")).catch(() => { copyToClipboardFallback(text); window.open(lineUrl, "_blank"); });
@@ -112,8 +178,8 @@ export default function GlobalCartPage() {
       
       {step === 1 && (
         <div className="max-w-3xl w-full bg-card text-card-foreground rounded-[2rem] shadow-xl border border-border overflow-hidden">
-          <div className="bg-[#1A432D] p-10 text-center border-b-[6px] border-[#D89F3C]">
-            <h1 className="text-3xl font-bold text-white tracking-[0.2em] drop-shadow-md">祈福清單合併結帳</h1>
+          <div className="bg-[#1A432D] p-8 md:p-10 text-center border-b-[6px] border-[#D89F3C]">
+            <h1 className="text-2xl md:text-3xl font-bold text-white tracking-[0.2em] drop-shadow-md">祈福清單合併結帳</h1>
             <p className="text-white/70 text-xs tracking-widest mt-2">集中對帳 單次完款</p>
           </div>
 
@@ -121,13 +187,14 @@ export default function GlobalCartPage() {
             {cartItems.length === 0 ? (
               <div className="text-center py-16 space-y-6">
                 <p className="text-muted-foreground tracking-widest font-medium">您的祈福清單目前空無一物</p>
-                {/* 💡 修復 1：拔除 Button 包裝，直接使用 Link，保證跳轉絕對順暢 */}
                 <Link href="/" className="inline-block bg-[#1A432D] hover:bg-[#122F20] dark:bg-emerald-800 dark:hover:bg-emerald-900 text-white rounded-full px-8 py-4 font-bold tracking-widest shadow-md transition-colors">
                   返回首頁選購
                 </Link>
               </div>
             ) : (
               <div className="space-y-8 animate-in fade-in duration-500">
+                
+                {/* 購物車明細 */}
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg text-foreground tracking-wider border-l-4 border-[#A61D24] dark:border-red-500 pl-3">已加入登記項目</h3>
                   
@@ -154,29 +221,77 @@ export default function GlobalCartPage() {
                   </div>
                 </div>
 
-                <div className="bg-muted p-6 rounded-2xl border border-border text-center space-y-3 shadow-inner max-w-md mx-auto">
-                  <h4 className="font-bold text-muted-foreground tracking-widest text-xs">指定功德護持帳戶</h4>
-                  <p className="font-bold text-base text-foreground">{bankName}</p>
-                  <p className="font-bold text-xl text-[#D89F3C] tracking-widest">{bankAccount}</p>
-                </div>
-
-                <div className="max-w-md mx-auto space-y-3 text-center">
-                  <label className="block text-sm font-bold text-muted-foreground tracking-widest">請輸入轉帳帳號後 5 碼</label>
-                  <input 
-                    maxLength={5} 
-                    value={bankLast5} 
-                    onChange={e=>setBankLast5(e.target.value.replace(/\D/g,''))} 
-                    placeholder="數字 5 碼" 
-                    className="w-full text-center tracking-[0.5em] font-bold text-2xl border-2 border-input p-4 rounded-xl outline-none focus:border-[#A61D24] dark:focus:border-red-400 transition-colors bg-background text-foreground"
-                  />
-                </div>
-
-                <div className="border-t border-border pt-6 flex flex-col sm:flex-row justify-between items-center gap-6">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-bold tracking-widest">合併功德總金額</span>
-                    <p className="text-3xl font-bold text-[#A61D24] dark:text-red-400 mt-1">${totalCartPrice}</p>
+                {/* 🌟 數位祈福金扣抵區塊 */}
+                {walletBalance > 0 && (
+                  <div className={`p-5 md:p-6 rounded-2xl border transition-all duration-300 shadow-sm ${useWallet ? 'bg-purple-50/50 border-purple-200 dark:bg-purple-900/10 dark:border-purple-800' : 'bg-muted/50 border-border'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${useWallet ? 'bg-purple-100 text-purple-700' : 'bg-stone-200 text-stone-500'}`}>
+                          <Coins size={20} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground tracking-widest">數位祈福金餘額</p>
+                          <p className={`font-bold text-lg mt-0.5 ${useWallet ? 'text-purple-700' : 'text-muted-foreground'}`}>${walletBalance.toLocaleString()}</p>
+                        </div>
+                      </div>
+                      
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={() => setUseWallet(!useWallet)} />
+                        <div className="w-14 h-7 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                      </label>
+                    </div>
                   </div>
-                  <Button onClick={handleCheckout} className="w-full sm:w-auto bg-[#A61D24] hover:bg-[#85161C] dark:bg-red-700 dark:hover:bg-red-600 text-white font-bold px-12 py-6 rounded-xl text-lg tracking-widest shadow-lg transition-colors">確認送出並生成對帳單</Button>
+                )}
+
+                {/* 動態結帳金額計算 */}
+                <div className="border border-border bg-card p-6 rounded-2xl shadow-sm space-y-3">
+                   <div className="flex justify-between items-center text-sm font-bold text-muted-foreground tracking-widest">
+                     <span>小計</span>
+                     <span>${totalCartPrice}</span>
+                   </div>
+                   {useWallet && deductedAmount > 0 && (
+                     <div className="flex justify-between items-center text-sm font-bold text-purple-600 tracking-widest animate-in slide-in-from-top-2">
+                       <span>祈福金自動扣抵</span>
+                       <span>-${deductedAmount}</span>
+                     </div>
+                   )}
+                   <div className="pt-4 border-t border-border flex justify-between items-end">
+                     <span className="text-xs text-muted-foreground font-bold tracking-widest mb-1">應付結帳總額</span>
+                     <p className="text-4xl font-black text-[#A61D24] dark:text-red-400">${finalPrice}</p>
+                   </div>
+                </div>
+
+                {/* 匯款資訊與後五碼 (若金額為 0 則自動隱藏) */}
+                {finalPrice > 0 ? (
+                  <div className="space-y-6 animate-in fade-in duration-500">
+                    <div className="bg-muted p-6 rounded-2xl border border-border text-center space-y-3 shadow-inner max-w-md mx-auto">
+                      <h4 className="font-bold text-muted-foreground tracking-widest text-xs">指定功德護持帳戶</h4>
+                      <p className="font-bold text-base text-foreground">{bankName}</p>
+                      <p className="font-bold text-xl text-[#D89F3C] tracking-widest">{bankAccount}</p>
+                    </div>
+
+                    <div className="max-w-md mx-auto space-y-3 text-center">
+                      <label className="block text-sm font-bold text-muted-foreground tracking-widest">請匯款後輸入轉帳後 5 碼</label>
+                      <input 
+                        maxLength={5} 
+                        value={bankLast5} 
+                        onChange={e=>setBankLast5(e.target.value.replace(/\D/g,''))} 
+                        placeholder="數字 5 碼" 
+                        className="w-full text-center tracking-[0.5em] font-bold text-2xl border-2 border-input p-4 rounded-xl outline-none focus:border-[#A61D24] dark:focus:border-red-400 transition-colors bg-background text-foreground shadow-sm"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-6 rounded-2xl text-center space-y-2 shadow-sm animate-in zoom-in-95 duration-500">
+                    <p className="font-bold text-lg tracking-widest">✅ 款項已全額扣抵</p>
+                    <p className="text-xs font-bold opacity-80 tracking-widest">系統將為您自動核對帳目，無須填寫轉帳資料</p>
+                  </div>
+                )}
+
+                <div className="pt-4">
+                  <Button disabled={isProcessing} onClick={handleCheckout} className="w-full bg-[#A61D24] hover:bg-[#85161C] dark:bg-red-700 dark:hover:bg-red-600 text-white font-bold py-7 rounded-xl text-lg tracking-widest shadow-lg transition-transform hover:scale-[1.01]">
+                    {isProcessing ? "處理中..." : finalPrice === 0 ? "一鍵完成祈福登記" : "確認送出並生成對帳單"}
+                  </Button>
                 </div>
               </div>
             )}
@@ -195,7 +310,6 @@ export default function GlobalCartPage() {
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
 
-          {/* 💡 修復 2：將背景改回強制淺色 bg-[#FAF7F0]，否則深夜模式下黑字會隱形！ */}
           <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               
             {/* 底圖 */}

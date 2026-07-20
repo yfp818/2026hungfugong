@@ -195,7 +195,7 @@ export default function AdminDashboard() {
   const currentDisplayOrders = isShowingSpOrders ? filteredSpOrders : filteredOrders;
 
   const totalIncomeCompleted = currentDisplayOrders.filter((o: any) => o.status === 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
-  const totalIncomePending = currentDisplayOrders.filter((o: any) => o.status !== 'completed').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
+  const totalIncomePending = currentDisplayOrders.filter((o: any) => o.status !== 'completed' && o.status !== 'refunded').reduce((sum: number, o: any) => sum + (Number(o.total_price || o.amount) || 0), 0);
   
   const filteredMembers = membersList.filter((m: any) => {
     if (searchMemberQuery.trim() === "") return true;
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
     return (m.name?.toLowerCase().includes(q) || m.phone?.includes(q) || m.user_line_id?.toLowerCase().includes(q));
   });
 
-  // ========== API Functions ==========
+  // ========== API Actions ==========
   const handleSaveHero = async () => { 
     setIsSavingHero(true); 
     try {
@@ -216,7 +216,6 @@ export default function AdminDashboard() {
       } 
       const { error: dbError } = await supabase.from("site_content").upsert({ id: "homepage_intro", title, content, image_url: url, bg_opacity: bgOpacity }); 
       if (dbError) throw new Error("資料庫更新失敗：" + dbError.message);
-      
       alert("主視覺更新成功。"); window.location.reload(); 
     } catch (err: any) { alert("發生錯誤：" + err.message); } finally { setIsSavingHero(false); }
   };
@@ -256,9 +255,26 @@ export default function AdminDashboard() {
       alert("頁尾更新成功."); window.location.reload(); 
     } catch (err: any) { alert("儲存發生錯誤: " + err.message); } finally { setIsSavingFooter(false); }
   };
+
+  const toggleOrderStatus = async (id: string, currentStatus: string, isSp: boolean = false) => { 
+    if(currentStatus === 'refunded') return alert("已作廢退款的訂單無法變更狀態！");
+    try { 
+      const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'; 
+      const table = isSp ? "special_project_orders" : "service_orders"; 
+      await supabase.from(table).update({ status: newStatus }).eq("id", id); 
+      fetchData(); 
+    } catch (err: any) { alert("狀態更新失敗：" + err.message); } 
+  };
   
-  const toggleOrderStatus = async (id: string, currentStatus: string, isSp: boolean = false) => { try { const newStatus = currentStatus === 'pending' ? 'completed' : 'pending'; const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).update({ status: newStatus }).eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("狀態更新失敗：" + err.message); } };
-  const deleteOrder = async (id: string, isSp: boolean = false) => { if(confirm("確定要刪除這筆紀錄嗎？此動作無法復原。")) { try { const table = isSp ? "special_project_orders" : "service_orders"; const { error } = await supabase.from(table).delete().eq("id", id); if (error) throw error; fetchData(); } catch (err: any) { alert("刪除失敗：" + err.message); } } };
+  const deleteOrder = async (id: string, isSp: boolean = false) => { 
+    if(confirm("確定要刪除這筆紀錄嗎？此動作無法復原。")) { 
+      try { 
+        const table = isSp ? "special_project_orders" : "service_orders"; 
+        await supabase.from(table).delete().eq("id", id); 
+        fetchData(); 
+      } catch (err: any) { alert("刪除失敗：" + err.message); } 
+    } 
+  };
 
   const handleAddCampaignBank = async () => {
     if(!cbName || !cbNum) return alert("請填寫完整的銀行與帳號名稱");
@@ -335,9 +351,52 @@ export default function AdminDashboard() {
   };
 
   // ==========================================
+  // 🌟 一鍵退款作廢邏輯 (訂單 ➔ 錢包 完美閉環)
+  // ==========================================
+  const handleRefundOrder = async (order: any, isSp: boolean = false) => {
+    if (order.status === 'refunded') return alert("此訂單已退款作廢，無法重複退款。");
+    
+    const refundAmt = Number(order.total_price || order.amount || 0);
+    if (refundAmt <= 0) return alert("此訂單金額為 0，無需退款。");
+
+    if (!confirm(`⚠️ 警告：確定要將此訂單全額退款 $${refundAmt} 至信眾錢包，並直接「作廢此訂單」嗎？`)) return;
+
+    // 尋找對應的信眾錢包帳號 (多重條件比對防呆)
+    let targetMember = membersList.find(m => m.user_line_id === order.user_line_id);
+    if (!targetMember && order.user_phone) targetMember = membersList.find(m => m.phone === order.user_phone);
+    if (!targetMember && order.user_phone) targetMember = membersList.find(m => m.user_line_id === `phone_${order.user_phone}`);
+
+    if (!targetMember) {
+      return alert("找不到該信眾的數位錢包帳戶（無對應的 LINE 或電話紀錄）。\n請先引導信眾登入系統綁定手機，或前往「信眾與餘額管理」手動發放。");
+    }
+
+    try {
+      // 1. 自動加值至信眾錢包
+      const newBalance = (targetMember.wallet_balance || 0) + refundAmt;
+      const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", targetMember.user_line_id);
+      if (balanceError) throw balanceError;
+
+      // 2. 寫入無法竄改的系統異動明細
+      const serviceName = isSp ? order.special_projects?.title : order.service_type;
+      const desc = `[系統自動退款] 撤銷作廢訂單：${serviceName} (報名大德: ${order.user_name})`;
+      const { error: txError } = await supabase.from("wallet_transactions").insert([{
+        user_line_id: targetMember.user_line_id, amount: refundAmt, transaction_type: "refund", description: desc
+      }]);
+      if (txError) throw txError;
+
+      // 3. 標記訂單為「已退款 (refunded)」並作廢
+      const table = isSp ? "special_project_orders" : "service_orders";
+      const { error: orderError } = await supabase.from(table).update({ status: 'refunded' }).eq("id", order.id);
+      if (orderError) throw orderError;
+
+      alert(`✅ 一鍵退款成功！\n已自動加值 $${refundAmt} 至「${targetMember.name || targetMember.phone}」的錢包，並作廢該訂單。`);
+      fetchData();
+    } catch (err: any) { alert("執行失敗：" + err.message); }
+  };
+
+  // ==========================================
   // 🌟 信眾與錢包進階操作功能 (編輯、撤銷、核發)
   // ==========================================
-
   const handleUpdateMember = async () => {
     if (!editMemId) return;
     try {
@@ -386,7 +445,7 @@ export default function AdminDashboard() {
     if (currentDisplayOrders.length === 0) return alert("目前分類下沒有資料可供匯出。");
     const isSp = selectedServiceType === 'special_project';
     const headers = ["建立時間", "服務/專案名稱", "信眾姓名", "聯絡電話", "生日生辰", "地址", "明細/方案", "匯款後五碼", "狀態", "金額"];
-    const csvContent = [ headers.join(","), ...currentDisplayOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), isSp ? (order.special_projects?.title || "") : (order.service_type || ""), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待處理', order.total_price || order.amount || 0 ].join(",")) ].join("\n");
+    const csvContent = [ headers.join(","), ...currentDisplayOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), isSp ? (order.special_projects?.title || "") : (order.service_type || ""), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : order.status === 'refunded' ? '已作廢退款' : '待處理', order.total_price || order.amount || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); 
     const typeNames: Record<string, string> = { all: "全部", lamp: "點燈", burning: "代燒", booking: "問事", campaign: "特辦活動", special_project: "獨立專款專用" };
@@ -398,7 +457,7 @@ export default function AdminDashboard() {
     const campaignOrders = ordersList.filter((o: any) => o.service_details && o.service_details.includes(campaignTitle));
     if (campaignOrders.length === 0) return alert("目前尚無此活動的報名紀錄，或該活動名稱無人報名。");
     const headers = ["建立時間", "信眾姓名", "聯絡電話", "生日生辰", "地址", "報名方案與明細", "匯款後五碼", "狀態", "金額"];
-    const csvContent = [ headers.join(","), ...campaignOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : '待對帳', order.total_price || 0 ].join(",")) ].join("\n");
+    const csvContent = [ headers.join(","), ...campaignOrders.map((order: any) => [ new Date(order.created_at).toLocaleString('zh-TW'), order.user_name || "", order.user_phone || "", order.birth_date || "", `"${order.address || ""}"`, `"${(order.service_details || "").replace(/\n/g, ' ')}"`, order.bank_last_5 || "", order.status === 'completed' ? '已處理' : order.status === 'refunded' ? '已作廢退款' : '待對帳', order.total_price || 0 ].join(",")) ].join("\n");
     const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `活動名單_${campaignTitle}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
@@ -416,14 +475,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen w-full bg-background p-4 md:p-12 pb-32 animate-in fade-in duration-700">
-      <h1 className="text-3xl font-bold text-[#A61D24] dark:text-red-400 tracking-widest border-b border-border pb-4 mb-6">皇府宮管理後台</h1>
+      <h1 className="text-2xl md:text-3xl font-bold text-[#A61D24] dark:text-red-400 tracking-widest border-b border-border pb-4 mb-6">皇府宮管理後台</h1>
       
       <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border -mx-4 px-4 md:mx-0 md:px-0 py-4 mb-8">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-          <button onClick={() => { setActiveTab('content'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-5 py-3 rounded-full font-bold text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'content' ? 'bg-[#A61D24] text-white dark:bg-red-700' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>網站內容管理</button>
-          <button onClick={() => { setActiveTab('services'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-5 py-3 rounded-full font-bold text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'services' ? 'bg-[#1A432D] text-white dark:bg-emerald-700' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>祈福與專案設定</button>
-          <button onClick={() => { setActiveTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-5 py-3 rounded-full font-bold text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'orders' ? 'bg-blue-700 text-white dark:bg-blue-600' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>訂單與財務報表</button>
-          <button onClick={() => { setActiveTab('wallet'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-5 py-3 rounded-full font-bold text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'wallet' ? 'bg-purple-700 text-white dark:bg-purple-600' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>信眾與餘額管理</button>
+        <div className="flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <button onClick={() => { setActiveTab('content'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-4 md:px-5 py-2 md:py-3 rounded-full font-bold text-xs md:text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'content' ? 'bg-[#A61D24] text-white dark:bg-red-700' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>網站內容管理</button>
+          <button onClick={() => { setActiveTab('services'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-4 md:px-5 py-2 md:py-3 rounded-full font-bold text-xs md:text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'services' ? 'bg-[#1A432D] text-white dark:bg-emerald-700' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>祈福與專案設定</button>
+          <button onClick={() => { setActiveTab('orders'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-4 md:px-5 py-2 md:py-3 rounded-full font-bold text-xs md:text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'orders' ? 'bg-blue-700 text-white dark:bg-blue-600' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>訂單與財務報表</button>
+          <button onClick={() => { setActiveTab('wallet'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={`px-4 md:px-5 py-2 md:py-3 rounded-full font-bold text-xs md:text-sm tracking-widest whitespace-nowrap transition-colors shadow-sm ${activeTab === 'wallet' ? 'bg-purple-700 text-white dark:bg-purple-600' : 'bg-card border border-border text-foreground hover:bg-muted'}`}>信眾與餘額管理</button>
         </div>
       </div>
 
@@ -467,12 +526,12 @@ export default function AdminDashboard() {
                 {newsList.map((n: any) => (
                   <div key={n.id} className="flex flex-col md:flex-row md:items-center justify-between border border-border p-4 rounded-xl gap-4 hover:shadow-sm bg-card text-card-foreground">
                     <div className="flex items-center">
-                      <span className={`text-xs px-3 py-1 rounded-full mr-4 text-white font-bold ${n.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>{n.category === 'event' ? '重點活動' : '一般公告'}</span>
-                      <span className="font-bold text-[#1A432D] line-clamp-1">{n.title}</span>
+                      <span className={`text-[10px] md:text-xs px-3 py-1 rounded-full mr-4 text-white font-bold whitespace-nowrap ${n.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>{n.category === 'event' ? '重點活動' : '一般公告'}</span>
+                      <span className="font-bold text-[#1A432D] dark:text-emerald-400 line-clamp-1">{n.title}</span>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <button onClick={()=>{ setEditNewsId(n.id); setAddNewsTitle(n.title); setAddNewsContent(n.content); setAddNewsPreviewUrl(n.image_url); setAddNewsCategory(n.category || 'news'); setAddNewsActionUrl(n.action_url || ""); window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });}} className="px-4 py-2 border border-border rounded-lg text-sm font-bold text-foreground hover:bg-muted">編輯</button>
-                      <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("news_events").delete().eq("id",n.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold">刪除</button>
+                      <button onClick={()=>{ setEditNewsId(n.id); setAddNewsTitle(n.title); setAddNewsContent(n.content); setAddNewsPreviewUrl(n.image_url); setAddNewsCategory(n.category || 'news'); setAddNewsActionUrl(n.action_url || ""); window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });}} className="px-4 py-2 border border-border rounded-lg text-xs md:text-sm font-bold text-foreground hover:bg-muted">編輯</button>
+                      <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("news_events").delete().eq("id",n.id); fetchData();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-xs md:text-sm font-bold">刪除</button>
                     </div>
                   </div>
                 ))}
@@ -488,7 +547,7 @@ export default function AdminDashboard() {
                 <div><label className="block text-xs font-bold text-muted-foreground mb-2">官方 IG 連結網址</label><input value={igUrl} onChange={e=>setIgUrl(e.target.value)} className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none"/></div>
                 <div className="md:col-span-2 border-t border-border pt-6 mt-2">
                   <div className="flex items-center justify-between mb-6 bg-background text-foreground p-5 rounded-xl border border-border">
-                     <p className="font-bold tracking-widest">開放匯款與捐獻帳戶資訊</p>
+                     <p className="font-bold tracking-widest text-sm md:text-base">開放匯款與捐獻帳戶資訊</p>
                      <input type="checkbox" checked={showBankInfo} onChange={e=>setShowBankInfo(e.target.checked)} className="w-5 h-5 accent-slate-700"/>
                   </div>
                   {showBankInfo && (
@@ -504,7 +563,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ==================== 模模組 2：祈福與專案設定 ==================== */}
+        {/* ==================== 模組 2：祈福與專案設定 ==================== */}
         {activeTab === 'services' && (
           <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <section className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
@@ -519,8 +578,8 @@ export default function AdminDashboard() {
                   <div key={s.id} className="flex justify-between items-center border border-border p-4 rounded-xl bg-card">
                     <div className="flex flex-col"><span className="font-bold text-[#1A432D] text-lg">{s.title}</span><span className="text-xs text-muted-foreground mt-1">連結至：{s.link_url}</span></div>
                     <div className="flex gap-2">
-                      <button onClick={()=>{setEditSrvId(s.id); setSrvTitle(s.title); setSrvLink(s.link_url)}} className="px-4 py-2 border border-border rounded-lg text-sm font-bold text-foreground hover:bg-muted">編輯</button>
-                      <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("blessing_services").delete().eq("id",s.id); window.location.reload();}}} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-bold">刪除</button>
+                      <button onClick={()=>{setEditSrvId(s.id); setSrvTitle(s.title); setSrvLink(s.link_url)}} className="px-3 md:px-4 py-1.5 md:py-2 border border-border rounded-lg text-xs md:text-sm font-bold hover:bg-muted">編輯</button>
+                      <button onClick={async()=>{if(confirm("確定要刪除嗎？")){await supabase.from("blessing_services").delete().eq("id",s.id); window.location.reload();}}} className="px-3 md:px-4 py-1.5 md:py-2 bg-red-50 text-red-600 rounded-lg text-xs md:text-sm font-bold">刪除</button>
                     </div>
                   </div>
                 ))}
@@ -541,14 +600,14 @@ export default function AdminDashboard() {
                 {productsList.map((p: any) => (
                   <div key={p.id} className="bg-card text-card-foreground border border-border p-5 rounded-2xl flex flex-col justify-between shadow-sm">
                     <div>
-                      <div className="flex justify-between items-start mb-4"><span className={`text-xs font-bold px-3 py-1 rounded-full ${p.category === 'lamp' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>{p.category === 'lamp' ? '當月點燈' : '代燒服務'}</span><span className="text-[#A61D24] font-bold text-lg">${p.price}</span></div>
+                      <div className="flex justify-between items-start mb-4"><span className={`text-[10px] md:text-xs font-bold px-3 py-1 rounded-full ${p.category === 'lamp' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>{p.category === 'lamp' ? '當月點燈' : '代燒服務'}</span><span className="text-[#A61D24] font-bold text-lg">${p.price}</span></div>
                       {p.image_url && <div className="w-full h-40 bg-muted rounded-xl overflow-hidden mb-4"><img src={p.image_url} className="w-full h-full object-cover" /></div>}
                       <h4 className="font-bold text-xl text-foreground mb-2">{p.title}</h4>
                       <p className="text-muted-foreground text-sm line-clamp-2">{p.description}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-border">
-                      <button onClick={()=>{setEditPId(p.id); setPTitle(p.title); setPPrice(p.price); setPDesc(p.description || ""); setPCategory(p.category); setPPreviewUrl(p.image_url || "");}} className="w-full py-2.5 bg-muted text-foreground font-bold text-sm rounded-xl">編輯</button>
-                      <button onClick={async()=>{if(confirm("確定刪除嗎？")){await supabase.from("blessing_products").delete().eq("id", p.id); fetchData();}}} className="w-full py-2.5 bg-red-50 text-red-600 font-bold text-sm rounded-xl">刪除</button>
+                      <button onClick={()=>{setEditPId(p.id); setPTitle(p.title); setPPrice(p.price); setPDesc(p.description || ""); setPCategory(p.category); setPPreviewUrl(p.image_url || "");}} className="w-full py-2.5 bg-muted text-foreground font-bold text-xs md:text-sm rounded-xl">編輯</button>
+                      <button onClick={async()=>{if(confirm("確定刪除嗎？")){await supabase.from("blessing_products").delete().eq("id", p.id); fetchData();}}} className="w-full py-2.5 bg-red-50 text-red-600 font-bold text-xs md:text-sm rounded-xl">刪除</button>
                     </div>
                   </div>
                 ))}
@@ -574,9 +633,9 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-3">
                     {fcOptions.map((opt: any, idx: number) => (
-                      <div key={idx} className="flex gap-3 items-center">
-                        <input value={opt.title} onChange={e=>updateFcOption(idx, "title", e.target.value)} placeholder="方案名稱" className="flex-1 bg-background border border-border p-3 rounded-xl outline-none"/>
-                        <input type="number" value={opt.price} onChange={e=>updateFcOption(idx, "price", Number(e.target.value))} placeholder="金額" className="w-32 bg-background border border-border p-3 rounded-xl outline-none"/>
+                      <div key={idx} className="flex gap-2 md:gap-3 items-center">
+                        <input value={opt.title} onChange={e=>updateFcOption(idx, "title", e.target.value)} placeholder="方案名稱" className="flex-1 bg-background border border-border p-3 rounded-xl outline-none text-sm md:text-base"/>
+                        <input type="number" value={opt.price} onChange={e=>updateFcOption(idx, "price", Number(e.target.value))} placeholder="金額" className="w-24 md:w-32 bg-background border border-border p-3 rounded-xl outline-none text-sm md:text-base"/>
                         {fcOptions.length > 1 && <button onClick={() => removeFcOption(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold">×</button>}
                       </div>
                     ))}
@@ -584,24 +643,24 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="md:col-span-2"><label className="block text-xs font-bold text-muted-foreground mb-2">上傳活動海報圖片</label><input type="file" onChange={e=>{if(e.target.files?.[0]){setFcImageFile(e.target.files[0]); setFcPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-xs text-muted-foreground mt-1"/></div>
-                <div className="md:col-span-2 flex items-center gap-3 bg-card p-4 rounded-xl border border-border"><input type="checkbox" id="splashToggle" checked={fcSplash} onChange={e => setFcSplash(e.target.checked)} className="w-5 h-5 accent-purple-700" /><label htmlFor="splashToggle" className="text-sm font-bold text-foreground select-none">啟用「首頁全螢幕前導前導畫面」強力曝光</label></div>
+                <div className="md:col-span-2 flex items-center gap-3 bg-card p-4 rounded-xl border border-border"><input type="checkbox" id="splashToggle" checked={fcSplash} onChange={e => setFcSplash(e.target.checked)} className="w-5 h-5 accent-purple-700 shrink-0" /><label htmlFor="splashToggle" className="text-xs md:text-sm font-bold text-foreground select-none">啟用「首頁全螢幕前導前導畫面」強力曝光</label></div>
                 <div className="md:col-span-2 flex gap-3">
-                  <button onClick={handleAddFlashCampaign} className="flex-1 bg-purple-900 text-white py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm">發布並推播至首頁焦點</button>
-                  {editFcId && <button onClick={() => { setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); }} className="px-6 bg-muted text-muted-foreground py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm">取消編輯</button>}
+                  <button onClick={handleAddFlashCampaign} className="flex-1 bg-purple-900 text-white py-4 rounded-xl font-bold tracking-widest text-xs md:text-sm shadow-sm">{editFcId ? "儲存活動更新" : "發布並推播至首頁焦點"}</button>
+                  {editFcId && <button onClick={() => { setEditFcId(null); setFcTitle(""); setFcDesc(""); setFcPreviewUrl(""); setFcOptions([{ title: "", price: 0 }]); setFcImageFile(null); setFcSplash(false); setFcBankId(campaignBanks.length > 0 ? campaignBanks[0].id : ""); }} className="px-4 md:px-6 bg-muted text-muted-foreground py-4 rounded-xl font-bold tracking-widest text-xs md:text-sm shadow-sm">取消</button>}
                 </div>
               </div>
               <div className="space-y-4">
                 {flashCampaignsList.map((fc: any) => (
-                  <div key={fc.id} className="p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md">
+                  <div key={fc.id} className="p-4 md:p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md">
                     <div className="space-y-2 flex-1">
-                      <div className="flex flex-wrap items-center gap-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${fc.is_active ? 'bg-purple-700' : 'bg-stone-400'}`}>{fc.is_active ? '推播中' : '已結束'}</span><h4 className="font-bold text-foreground text-lg">{fc.title}</h4></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${fc.is_active ? 'bg-purple-700' : 'bg-stone-400'}`}>{fc.is_active ? '推播中' : '已結束'}</span><h4 className="font-bold text-foreground text-base md:text-lg">{fc.title}</h4></div>
                       <p className="text-xs text-muted-foreground font-mono">方案: {fc.options && Array.isArray(fc.options) ? fc.options.map((o:any) => `${o.title}($${o.price})`).join('、') : `$${fc.price}`}</p>
                     </div>
-                    <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-                      <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-xs font-bold bg-blue-50 text-blue-600 px-4 py-2 rounded-lg flex items-center gap-1">複製連結</button>
-                      <button onClick={() => exportCampaignCSV(fc.title)} className="text-xs font-bold bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg">報表</button>
-                      <button onClick={() => {setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false); setFcBankId(fc.bank_account_id || ""); setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-xs font-bold bg-muted text-foreground px-4 py-2 rounded-lg">編輯</button>
-                      <button onClick={async()=>{if(confirm("確定刪除此活動？")){await supabase.from("flash_campaigns").delete().eq("id", fc.id); fetchData(); window.location.reload();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2 justify-end w-full md:w-auto">
+                      <button onClick={() => handleCopyUrl(fc.id, fc.title)} className="text-[10px] md:text-xs font-bold bg-blue-50 text-blue-600 px-3 md:px-4 py-2 rounded-lg flex items-center gap-1">複製連結</button>
+                      <button onClick={() => exportCampaignCSV(fc.title)} className="text-[10px] md:text-xs font-bold bg-emerald-50 text-emerald-700 px-3 md:px-4 py-2 rounded-lg">報表</button>
+                      <button onClick={() => {setEditFcId(fc.id); setFcTitle(fc.title); setFcDesc(fc.description || ""); setFcPreviewUrl(fc.image_url || ""); setFcSplash(fc.show_splash || false); setFcBankId(fc.bank_account_id || ""); setFcOptions(fc.options && Array.isArray(fc.options) && fc.options.length > 0 ? fc.options : [{title: "", price: fc.price || 0}]); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-[10px] md:text-xs font-bold bg-muted text-foreground px-3 md:px-4 py-2 rounded-lg">編輯</button>
+                      <button onClick={async()=>{if(confirm("確定刪除此活動？")){await supabase.from("flash_campaigns").delete().eq("id", fc.id); fetchData(); window.location.reload();}}} className="text-[10px] md:text-xs font-bold bg-red-50 text-red-600 px-3 md:px-4 py-2 rounded-lg">刪除</button>
                     </div>
                   </div>
                 ))}
@@ -610,7 +669,7 @@ export default function AdminDashboard() {
 
             <section className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
               <h2 className="text-xl font-bold border-l-4 border-blue-700 pl-3 text-blue-950">9. 獨立專款專案管理 (如: 玉皇上帝金牌、建廟基金)</h2>
-              <p className="text-sm text-muted-foreground font-bold mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">提示：此區塊的認捐將繞過一般購物車走專屬獨立通道，並提供專屬獨立網址供您分享給信眾。</p>
+              <p className="text-xs md:text-sm text-muted-foreground font-bold mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">提示：此區塊的認捐將繞過一般購物車走專屬獨立通道，並提供專屬獨立網址供您分享給信眾。</p>
               
               <div className="bg-muted text-muted-foreground p-6 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-6 border border-border">
                 <div><label className="block text-xs font-bold text-muted-foreground mb-2">獨立專案主標題</label><input value={spTitle} onChange={e=>setSpTitle(e.target.value)} placeholder="例: 恭迎玉皇上帝駐駕 敬獻金牌專案" className="w-full bg-background border border-border p-3 rounded-xl outline-none"/></div>
@@ -624,9 +683,9 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-3">
                     {spOptions.map((opt: any, idx: number) => (
-                      <div key={idx} className="flex gap-3 items-center">
-                        <input value={opt.title} onChange={e=>updateSpOption(idx, "title", e.target.value)} placeholder="方案名稱" className="flex-1 bg-background border border-border p-3 rounded-xl outline-none"/>
-                        <input type="number" value={opt.price} onChange={e=>updateSpOption(idx, "price", Number(e.target.value))} placeholder="金額 (0為隨喜)" className="w-32 bg-background border border-border p-3 rounded-xl outline-none"/>
+                      <div key={idx} className="flex gap-2 md:gap-3 items-center">
+                        <input value={opt.title} onChange={e=>updateSpOption(idx, "title", e.target.value)} placeholder="方案名稱" className="flex-1 bg-background border border-border p-3 rounded-xl outline-none text-sm md:text-base"/>
+                        <input type="number" value={opt.price} onChange={e=>updateSpOption(idx, "price", Number(e.target.value))} placeholder="金額 (0為隨喜)" className="w-24 md:w-32 bg-background border border-border p-3 rounded-xl outline-none text-sm md:text-base"/>
                         {spOptions.length > 1 && <button onClick={() => removeSpOption(idx)} className="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl font-bold">×</button>}
                       </div>
                     ))}
@@ -636,27 +695,27 @@ export default function AdminDashboard() {
                 <div className="md:col-span-2"><label className="block text-xs font-bold text-muted-foreground mb-2">上傳專案主視覺圖片</label><input type="file" onChange={e=>{if(e.target.files?.[0]){setSpImageFile(e.target.files[0]); setSpPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-xs text-muted-foreground mt-1"/></div>
                 
                 <div className="md:col-span-2 flex gap-3">
-                  <button onClick={handleSaveSpecialProject} className="flex-1 bg-blue-700 text-white py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm">正式發布獨立專款專案</button>
-                  {editSpId && <button onClick={() => { setEditSpId(null); setSpTitle(""); setSpDesc(""); setSpBankInfo(""); setSpPreviewUrl(""); setSpOptions([{ title: "隨喜", price: 0 }]); setSpImageFile(null); }} className="px-6 bg-background border border-border hover:bg-muted text-foreground py-4 rounded-xl font-bold tracking-widest text-sm shadow-sm">取消編輯</button>}
+                  <button onClick={handleSaveSpecialProject} className="flex-1 bg-blue-700 text-white py-4 rounded-xl font-bold tracking-widest text-xs md:text-sm shadow-sm">正式發布獨立專款專案</button>
+                  {editSpId && <button onClick={() => { setEditSpId(null); setSpTitle(""); setSpDesc(""); setSpBankInfo(""); setSpPreviewUrl(""); setSpOptions([{ title: "隨喜", price: 0 }]); setSpImageFile(null); }} className="px-4 md:px-6 bg-background border border-border hover:bg-muted text-foreground py-4 rounded-xl font-bold tracking-widest text-xs md:text-sm shadow-sm">取消編輯</button>}
                 </div>
               </div>
 
               <div className="space-y-4">
                 {spList.map((sp: any) => (
-                  <div key={sp.id} className="p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md">
+                  <div key={sp.id} className="p-4 md:p-5 bg-card border border-border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:shadow-md">
                     <div className="space-y-2 flex-1">
-                      <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-blue-600">開放認捐中</span><h4 className="font-bold text-foreground text-lg">{sp.title}</h4></div>
+                      <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white bg-blue-600">開放認捐中</span><h4 className="font-bold text-foreground text-base md:text-lg">{sp.title}</h4></div>
                       <p className="text-xs text-muted-foreground font-mono">設定方案: {sp.options && Array.isArray(sp.options) ? sp.options.map((o:any) => `${o.title}($${o.price})`).join('、') : `未設定`}</p>
                       <p className="text-xs text-muted-foreground">專屬帳戶: {sp.bank_info}</p>
                     </div>
                     
-                    <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
-                      <button onClick={() => handleCopyUrl(sp.id, sp.title, true)} className="text-xs font-bold bg-blue-50 text-blue-600 px-4 py-2 rounded-lg">複製連結</button>
+                    <div className="flex flex-wrap gap-1.5 md:gap-2 justify-end w-full md:w-auto">
+                      <button onClick={() => handleCopyUrl(sp.id, sp.title, true)} className="text-[10px] md:text-xs font-bold bg-blue-50 text-blue-600 px-3 md:px-4 py-2 rounded-lg">複製連結</button>
                       <button onClick={() => {
                         setEditSpId(sp.id); setSpTitle(sp.title); setSpDesc(sp.description || ""); setSpBankInfo(sp.bank_info || ""); setSpPreviewUrl(sp.image_url || "");
                         setSpOptions(sp.options && Array.isArray(sp.options) && sp.options.length > 0 ? sp.options : [{title: "隨喜", price: 0}]); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                      }} className="text-xs font-bold bg-muted text-foreground px-4 py-2 rounded-lg">編輯</button>
-                      <button onClick={async()=>{if(confirm("確定刪除此專案？")){await supabase.from("special_projects").delete().eq("id", sp.id); fetchData(); window.location.reload();}}} className="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-lg">刪除</button>
+                      }} className="text-[10px] md:text-xs font-bold bg-muted text-foreground px-3 md:px-4 py-2 rounded-lg">編輯</button>
+                      <button onClick={async()=>{if(confirm("確定刪除此專案？")){await supabase.from("special_projects").delete().eq("id", sp.id); fetchData(); window.location.reload();}}} className="text-[10px] md:text-xs font-bold bg-red-50 text-red-600 px-3 md:px-4 py-2 rounded-lg">刪除</button>
                     </div>
                   </div>
                 ))}
@@ -686,13 +745,13 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ==================== 模組 3：訂單與財務報表 ==================== */}
+        {/* ==================== 模組 3：訂單與財務報表 (加入一鍵退款) ==================== */}
         {activeTab === 'orders' && (
           <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <section className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
+            <section className="bg-card text-card-foreground p-4 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 className="text-xl font-bold border-l-4 border-emerald-700 pl-3 text-emerald-950">8. 服務與預約紀錄管理</h2>
-                <button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 text-white font-bold tracking-widest rounded-xl shadow-sm">匯出當前名單 (Excel)</button>
+                <button onClick={exportToCSV} className="px-6 py-2.5 bg-emerald-700 text-white font-bold tracking-widest rounded-xl shadow-sm text-sm md:text-base">匯出當前名單 (Excel)</button>
               </div>
 
               <div className="flex flex-col gap-4 border-y border-border py-4">
@@ -701,7 +760,7 @@ export default function AdminDashboard() {
                     {monthOptions.length > 0 && (
                       <div className="flex gap-2 overflow-x-auto scrollbar-hide md:border-r border-border pr-4">
                         {monthOptions.map((month: string) => (
-                          <button key={month} onClick={() => setSelectedMonth(month)} className={`px-5 py-2 rounded-full font-bold text-sm tracking-widest shrink-0 transition-colors ${selectedMonth === month ? 'bg-emerald-700 text-white shadow-md' : 'bg-muted text-muted-foreground'}`}>{month}</button>
+                          <button key={month} onClick={() => setSelectedMonth(month)} className={`px-4 md:px-5 py-2 rounded-full font-bold text-xs md:text-sm tracking-widest shrink-0 transition-colors ${selectedMonth === month ? 'bg-emerald-700 text-white shadow-md' : 'bg-muted text-muted-foreground'}`}>{month}</button>
                         ))}
                       </div>
                     )}
@@ -714,7 +773,7 @@ export default function AdminDashboard() {
                         { id: 'campaign', label: '特辦活動' },
                         { id: 'special_project', label: '獨立專款專用' } 
                       ].map(tab => (
-                        <button key={tab.id} onClick={() => setSelectedServiceType(tab.id)} className={`px-4 py-2 rounded-xl font-bold text-sm tracking-widest shrink-0 transition-colors border ${selectedServiceType === tab.id ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-card text-muted-foreground border-border'}`}>{tab.label}</button>
+                        <button key={tab.id} onClick={() => setSelectedServiceType(tab.id)} className={`px-3 md:px-4 py-2 rounded-xl font-bold text-xs md:text-sm tracking-widest shrink-0 transition-colors border ${selectedServiceType === tab.id ? 'bg-emerald-50 border-emerald-600 text-emerald-700' : 'bg-card text-muted-foreground border-border'}`}>{tab.label}</button>
                       ))}
                     </div>
                   </div>
@@ -726,57 +785,62 @@ export default function AdminDashboard() {
               </div>
 
               {selectedMonth && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
-                  <div className="bg-muted border border-border p-5 rounded-2xl">
-                    <p className="text-xs font-bold tracking-widest mb-1 text-muted-foreground">已入帳總額</p>
-                    <p className="text-2xl font-bold text-emerald-700">${totalIncomeCompleted.toLocaleString()}</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 pb-4">
+                  <div className="bg-muted border border-border p-4 md:p-5 rounded-2xl">
+                    <p className="text-[10px] md:text-xs font-bold tracking-widest mb-1 text-muted-foreground">已入帳總額</p>
+                    <p className="text-xl md:text-2xl font-bold text-emerald-700">${totalIncomeCompleted.toLocaleString()}</p>
                   </div>
-                  <div className="bg-muted border border-border p-5 rounded-2xl">
-                    <p className="text-xs font-bold tracking-widest mb-1 text-muted-foreground">待對帳總額</p>
-                    <p className="text-2xl font-bold text-amber-600">${totalIncomePending.toLocaleString()}</p>
+                  <div className="bg-muted border border-border p-4 md:p-5 rounded-2xl">
+                    <p className="text-[10px] md:text-xs font-bold tracking-widest mb-1 text-muted-foreground">待對帳總額</p>
+                    <p className="text-xl md:text-2xl font-bold text-amber-600">${totalIncomePending.toLocaleString()}</p>
                   </div>
-                  <div className="bg-muted border border-border p-5 rounded-2xl">
-                     <p className="text-xs font-bold tracking-widest mb-1 text-muted-foreground">當前列表性質</p>
-                     <p className="text-sm font-bold text-foreground mt-2">{isShowingSpOrders ? '獨立專案 (專款專戶)' : '一般購物車 (公帳戶)'}</p>
+                  <div className="bg-muted border border-border p-4 md:p-5 rounded-2xl hidden sm:block">
+                     <p className="text-[10px] md:text-xs font-bold tracking-widest mb-1 text-muted-foreground">當前列表性質</p>
+                     <p className="text-xs md:text-sm font-bold text-foreground mt-2">{isShowingSpOrders ? '獨立專案 (專戶)' : '一般購物車 (公帳戶)'}</p>
                   </div>
-                  <div className="bg-muted border border-border p-5 rounded-2xl">
-                    <p className="text-xs font-bold tracking-widest mb-1 text-muted-foreground">當前篩選件數</p>
-                    <p className="text-3xl font-bold text-foreground mt-2">{currentDisplayOrders.length}</p>
+                  <div className="bg-muted border border-border p-4 md:p-5 rounded-2xl hidden sm:block">
+                    <p className="text-[10px] md:text-xs font-bold tracking-widest mb-1 text-muted-foreground">當前篩選件數</p>
+                    <p className="text-2xl md:text-3xl font-bold text-foreground mt-1 md:mt-2">{currentDisplayOrders.length}</p>
                   </div>
                 </div>
               )}
 
               <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-border rounded-xl relative shadow-sm scrollbar-hide">
                 <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm">
+                  <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm border-b border-border text-xs md:text-sm">
                     <tr>
-                      <th className="p-4">建立日期</th>
-                      <th className="p-4">{isShowingSpOrders ? '專案名稱' : '類別'}</th>
-                      <th className="p-4">信眾姓名</th>
-                      <th className="p-4">報名明細 / 後五碼</th>
-                      <th className="p-4">金額</th>
-                      <th className="p-4 text-center">狀態</th>
-                      <th className="p-4 text-right">操作</th>
+                      <th className="p-3 md:p-4">建立日期</th>
+                      <th className="p-3 md:p-4">{isShowingSpOrders ? '專案名稱' : '類別'}</th>
+                      <th className="p-3 md:p-4">信眾姓名</th>
+                      <th className="p-3 md:p-4">明細/五碼</th>
+                      <th className="p-3 md:p-4 text-right">金額</th>
+                      <th className="p-3 md:p-4 text-center">狀態</th>
+                      <th className="p-3 md:p-4 text-center">操作</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border bg-card text-card-foreground">
+                  <tbody className="divide-y divide-border bg-card text-card-foreground text-xs md:text-sm">
                     {currentDisplayOrders.map((order: any) => (
-                      <tr key={order.id} className="hover:bg-muted transition-colors">
-                        <td className="p-4 text-muted-foreground">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
-                        <td className="p-4 font-bold text-[#1A432D]">{isShowingSpOrders ? order.special_projects?.title : order.service_type}</td>
-                        <td className="p-4 font-bold text-foreground">{order.user_name}</td>
-                        <td className="p-4 text-muted-foreground max-w-[200px] truncate" title={order.service_details}>
-                          {order.bank_last_5 ? <span className="text-[#A61D24] font-bold mr-2">[{order.bank_last_5}]</span> : ""}
+                      <tr key={order.id} className={`hover:bg-muted transition-colors ${order.status === 'refunded' ? 'opacity-60 bg-stone-50' : ''}`}>
+                        <td className="p-3 md:p-4 text-muted-foreground">{new Date(order.created_at).toLocaleDateString('zh-TW')}</td>
+                        <td className="p-3 md:p-4 font-bold text-[#1A432D] max-w-[120px] truncate" title={isShowingSpOrders ? order.special_projects?.title : order.service_type}>{isShowingSpOrders ? order.special_projects?.title : order.service_type}</td>
+                        <td className="p-3 md:p-4 font-bold text-foreground">{order.user_name}</td>
+                        <td className="p-3 md:p-4 text-muted-foreground max-w-[150px] md:max-w-[200px] truncate" title={order.service_details}>
+                          {order.bank_last_5 ? <span className="text-[#A61D24] font-bold mr-1 md:mr-2">[{order.bank_last_5}]</span> : ""}
                           {order.service_details}
                         </td>
-                        <td className="p-4 font-bold text-foreground">${order.total_price || order.amount || 0}</td>
-                        <td className="p-4 text-center">
-                          <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{order.status === 'completed' ? '已處理' : '待對帳'}</span>
+                        <td className="p-3 md:p-4 font-bold text-right text-foreground">${order.total_price || order.amount || 0}</td>
+                        <td className="p-3 md:p-4 text-center">
+                          <span className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-xs font-bold ${order.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : order.status === 'refunded' ? 'bg-stone-200 text-stone-600' : 'bg-amber-100 text-amber-800'}`}>
+                            {order.status === 'completed' ? '已處理' : order.status === 'refunded' ? '已作廢(退款)' : '待對帳'}
+                          </span>
                         </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => toggleOrderStatus(order.id, order.status, isShowingSpOrders)} className="px-3 py-1.5 border border-border rounded-lg text-xs font-bold text-foreground hover:bg-muted">切換</button>
-                            <button onClick={() => deleteOrder(order.id, isShowingSpOrders)} className="px-3 py-1.5 border border-red-200 bg-red-50 text-red-600 rounded-lg text-xs font-bold">刪除</button>
+                        <td className="p-3 md:p-4 text-center">
+                          <div className="flex justify-center gap-1.5 md:gap-2">
+                            {order.status !== 'refunded' && (
+                              <button onClick={() => handleRefundOrder(order, isShowingSpOrders)} className="px-2 md:px-3 py-1.5 border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors">退款</button>
+                            )}
+                            <button onClick={() => toggleOrderStatus(order.id, order.status, isShowingSpOrders)} className="px-2 md:px-3 py-1.5 border border-border rounded-lg text-[10px] md:text-xs font-bold text-foreground hover:bg-muted transition-colors">切換</button>
+                            <button onClick={() => deleteOrder(order.id, isShowingSpOrders)} className="px-2 md:px-3 py-1.5 border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-[10px] md:text-xs font-bold transition-colors">刪除</button>
                           </div>
                         </td>
                       </tr>
@@ -790,96 +854,96 @@ export default function AdminDashboard() {
 
         {/* ==================== 🌟 模組 4：信眾與餘額管理 ==================== */}
         {activeTab === 'wallet' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {/* 左側：功德金退款發放控制面板 */}
-            <div className="lg:col-span-1 bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6 h-fit sticky top-24">
-              <h2 className="text-xl font-bold border-l-4 border-purple-700 pl-3">發放信眾祈福金</h2>
+            <div className="lg:col-span-1 bg-card text-card-foreground p-5 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-5 md:space-y-6 h-fit sticky top-24">
+              <h2 className="text-lg md:text-xl font-bold border-l-4 border-purple-700 pl-3">手動核發祈福金</h2>
               
-              <div className="space-y-5 text-sm">
+              <div className="space-y-4 md:space-y-5 text-xs md:text-sm">
                 
                 {/* 自動帶入目前選定的信眾 */}
-                <div className={`p-5 rounded-2xl border transition-colors ${selectedMemberId ? 'bg-purple-50 border-purple-200' : 'bg-muted border-border'}`}>
-                  <label className="block text-xs font-bold text-muted-foreground mb-3">當前發放對象</label>
+                <div className={`p-4 md:p-5 rounded-2xl border transition-colors ${selectedMemberId ? 'bg-purple-50 border-purple-200' : 'bg-muted border-border'}`}>
+                  <label className="block text-[10px] md:text-xs font-bold text-muted-foreground mb-2 md:mb-3">當前發放對象</label>
                   {selectedMemberId ? (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2 md:gap-3">
                       <div>
-                        <p className="font-bold text-foreground text-xl mb-1">{membersList.find(m=>m.user_line_id===selectedMemberId)?.name || "未設定姓名"}</p>
-                        <p className="text-sm text-muted-foreground font-mono">{membersList.find(m=>m.user_line_id===selectedMemberId)?.phone || "無電話紀錄"}</p>
+                        <p className="font-bold text-foreground text-lg md:text-xl mb-0.5 md:mb-1">{membersList.find(m=>m.user_line_id===selectedMemberId)?.name || "未設定姓名"}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground font-mono">{membersList.find(m=>m.user_line_id===selectedMemberId)?.phone || "無電話紀錄"}</p>
                       </div>
-                      <button onClick={()=>setSelectedMemberId("")} className="w-full text-xs font-bold bg-white border border-border px-3 py-2 rounded-xl shadow-sm hover:bg-muted">重新選擇信眾</button>
+                      <button onClick={()=>setSelectedMemberId("")} className="w-full text-[10px] md:text-xs font-bold bg-white border border-border px-3 py-2 rounded-xl shadow-sm hover:bg-muted">重新選擇信眾</button>
                     </div>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm font-bold text-purple-700">請從右側「名冊」中點選目標對象 👉</p>
+                    <div className="text-center py-3 md:py-4">
+                      <p className="text-xs md:text-sm font-bold text-purple-700">請從右側「名冊」中點選目標對象 👉</p>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-2">發放金額 (新台幣)</label>
-                  <input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="輸入金額，例如: 600" className="w-full bg-background text-foreground border border-border p-4 rounded-xl outline-none focus:border-purple-500 font-bold text-lg"/>
+                  <label className="block text-[10px] md:text-xs font-bold text-muted-foreground mb-1 md:mb-2">發放金額 (新台幣)</label>
+                  <input type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} placeholder="輸入金額，例如: 600" className="w-full bg-background text-foreground border border-border p-3 md:p-4 rounded-xl outline-none focus:border-purple-500 font-bold text-base md:text-lg"/>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-2">退款或加值事由說明</label>
-                  <textarea value={refundDesc} onChange={e => setRefundDesc(e.target.value)} placeholder="請輸入發放原因，例如：祝壽燈填寫疏漏，退回款項" className="w-full bg-background text-foreground border border-border p-4 rounded-xl h-24 outline-none resize-none focus:border-purple-500"/>
+                  <label className="block text-[10px] md:text-xs font-bold text-muted-foreground mb-1 md:mb-2">手動加值事由說明</label>
+                  <textarea value={refundDesc} onChange={e => setRefundDesc(e.target.value)} placeholder="例如：櫃檯現金儲值、人工退款" className="w-full bg-background text-foreground border border-border p-3 md:p-4 rounded-xl h-20 md:h-24 outline-none resize-none focus:border-purple-500"/>
                 </div>
-                <button onClick={handleAdminRefund} disabled={isProcessingRefund || !selectedMemberId} className={`w-full py-5 rounded-xl font-bold tracking-widest transition-all shadow-sm ${selectedMemberId ? 'bg-purple-700 hover:bg-purple-800 text-white shadow-md' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-70'}`}>
+                <button onClick={handleAdminRefund} disabled={isProcessingRefund || !selectedMemberId} className={`w-full py-4 md:py-5 rounded-xl font-bold tracking-widest text-xs md:text-sm transition-all shadow-sm ${selectedMemberId ? 'bg-purple-700 hover:bg-purple-800 text-white shadow-md' : 'bg-muted text-muted-foreground cursor-not-allowed opacity-70'}`}>
                   {isProcessingRefund ? "處理中..." : selectedMemberId ? "確認核發祈福金" : "請先選擇信眾"}
                 </button>
               </div>
             </div>
 
             {/* 右側：信眾名冊與歷史明細 */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-6 md:space-y-8">
               
               {/* 信眾錢包名冊 */}
-              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                  <h2 className="text-xl font-bold border-l-4 border-purple-700 pl-3">信眾錢包名冊</h2>
+              <div className="bg-card text-card-foreground p-5 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-4 md:space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 md:gap-4">
+                  <h2 className="text-lg md:text-xl font-bold border-l-4 border-purple-700 pl-3">信眾錢包名冊</h2>
                   <div className="relative w-full sm:w-72">
-                    <input type="text" placeholder="搜尋信眾姓名或電話..." value={searchMemberQuery} onChange={e => setSearchMemberQuery(e.target.value)} className="bg-background text-foreground border border-border p-3 pl-4 rounded-xl text-sm outline-none w-full focus:border-purple-500 shadow-sm"/>
+                    <input type="text" placeholder="搜尋姓名或電話..." value={searchMemberQuery} onChange={e => setSearchMemberQuery(e.target.value)} className="bg-background text-foreground border border-border p-2.5 md:p-3 pl-4 rounded-xl text-xs md:text-sm outline-none w-full focus:border-purple-500 shadow-sm"/>
                   </div>
                 </div>
                 
-                <div className="overflow-x-auto max-h-[400px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-sm bg-background">
+                <div className="overflow-x-auto max-h-[350px] md:max-h-[400px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-xs md:text-sm bg-background">
                   <table className="w-full text-left whitespace-nowrap">
                     <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm border-b border-border">
-                      <tr><th className="p-4">信眾姓名</th><th className="p-4">聯絡電話</th><th className="p-4 text-right">可用餘額</th><th className="p-4 text-center">編輯操作</th></tr>
+                      <tr><th className="p-3 md:p-4">姓名</th><th className="p-3 md:p-4">電話</th><th className="p-3 md:p-4 text-right">餘額</th><th className="p-3 md:p-4 text-center">操作</th></tr>
                     </thead>
                     <tbody className="divide-y divide-border text-foreground">
                       {filteredMembers.map((m: any) => (
                         <tr 
                           key={m.user_line_id} 
-                          onClick={() => { if(editMemId !== m.user_line_id) setSelectedMemberId(m.user_line_id); }}
+                          onClick={() => { if(editMemId !== m.user_line_id) { setSelectedMemberId(m.user_line_id); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
                           className={`transition-colors cursor-pointer ${selectedMemberId === m.user_line_id ? 'bg-purple-50' : 'hover:bg-muted'}`}
                         >
-                          <td className="p-4">
+                          <td className="p-3 md:p-4">
                             {editMemId === m.user_line_id ? (
-                              <input autoFocus value={editMemName} onChange={e=>setEditMemName(e.target.value)} onClick={e=>e.stopPropagation()} className="w-28 bg-background border border-purple-400 p-2 rounded-lg font-bold shadow-sm"/>
+                              <input autoFocus value={editMemName} onChange={e=>setEditMemName(e.target.value)} onClick={e=>e.stopPropagation()} className="w-20 md:w-28 bg-background border border-purple-400 p-1.5 md:p-2 rounded-lg font-bold shadow-sm"/>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                {selectedMemberId === m.user_line_id && <span className="w-2 h-2 rounded-full bg-purple-600"></span>}
+                              <div className="flex items-center gap-1.5 md:gap-2">
+                                {selectedMemberId === m.user_line_id && <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-purple-600"></span>}
                                 <span className="font-bold">{m.name || "未設定"}</span>
                               </div>
                             )}
                           </td>
-                          <td className="p-4 text-muted-foreground font-mono">
+                          <td className="p-3 md:p-4 text-muted-foreground font-mono">
                             {editMemId === m.user_line_id ? (
-                              <input value={editMemPhone} onChange={e=>setEditMemPhone(e.target.value)} onClick={e=>e.stopPropagation()} className="w-32 bg-background border border-purple-400 p-2 rounded-lg font-bold shadow-sm"/>
+                              <input value={editMemPhone} onChange={e=>setEditMemPhone(e.target.value)} onClick={e=>e.stopPropagation()} className="w-24 md:w-32 bg-background border border-purple-400 p-1.5 md:p-2 rounded-lg font-bold shadow-sm"/>
                             ) : (
                               m.phone || "無紀錄"
                             )}
                           </td>
-                          <td className="p-4 font-bold text-right text-purple-700 text-lg">${m.wallet_balance || 0}</td>
-                          <td className="p-4 text-center">
+                          <td className="p-3 md:p-4 font-bold text-right text-purple-700 text-base md:text-lg">${m.wallet_balance || 0}</td>
+                          <td className="p-3 md:p-4 text-center">
                             {editMemId === m.user_line_id ? (
-                              <div className="flex justify-center gap-2">
-                                 <button onClick={(e)=>{e.stopPropagation(); handleUpdateMember();}} className="text-xs font-bold bg-purple-600 text-white px-4 py-2 rounded-lg shadow-sm">儲存</button>
-                                 <button onClick={(e)=>{e.stopPropagation(); setEditMemId(null);}} className="text-xs font-bold bg-muted text-muted-foreground px-4 py-2 rounded-lg">取消</button>
+                              <div className="flex justify-center gap-1.5 md:gap-2">
+                                 <button onClick={(e)=>{e.stopPropagation(); handleUpdateMember();}} className="text-[10px] md:text-xs font-bold bg-purple-600 text-white px-3 py-1.5 rounded-lg shadow-sm">儲存</button>
+                                 <button onClick={(e)=>{e.stopPropagation(); setEditMemId(null);}} className="text-[10px] md:text-xs font-bold bg-muted text-muted-foreground px-3 py-1.5 rounded-lg">取消</button>
                               </div>
                             ) : (
-                              <button onClick={(e)=>{e.stopPropagation(); setEditMemId(m.user_line_id); setEditMemName(m.name||""); setEditMemPhone(m.phone||"");}} className="text-xs font-bold bg-card border border-border text-foreground px-5 py-2 rounded-lg shadow-sm">編輯</button>
+                              <button onClick={(e)=>{e.stopPropagation(); setEditMemId(m.user_line_id); setEditMemName(m.name||""); setEditMemPhone(m.phone||"");}} className="text-[10px] md:text-xs font-bold bg-card border border-border text-foreground px-4 py-1.5 rounded-lg shadow-sm hover:bg-muted">編輯</button>
                             )}
                           </td>
                         </tr>
@@ -890,27 +954,27 @@ export default function AdminDashboard() {
               </div>
 
               {/* 全宮廟歷史異動明細 */}
-              <div className="bg-card text-card-foreground p-6 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-6">
-                <h2 className="text-xl font-bold border-l-4 border-purple-700 pl-3">全宮廟歷史異動明細</h2>
-                <div className="overflow-x-auto max-h-[350px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-sm bg-background">
+              <div className="bg-card text-card-foreground p-5 md:p-8 rounded-[2rem] shadow-sm border border-border space-y-4 md:space-y-6">
+                <h2 className="text-lg md:text-xl font-bold border-l-4 border-purple-700 pl-3">歷史異動明細</h2>
+                <div className="overflow-x-auto max-h-[300px] md:max-h-[350px] overflow-y-auto border border-border rounded-xl relative scrollbar-hide text-xs md:text-sm bg-background">
                   <table className="w-full text-left whitespace-nowrap">
                     <thead className="bg-muted text-muted-foreground font-bold tracking-widest sticky top-0 z-10 shadow-sm border-b border-border">
-                      <tr><th className="p-4">異動時間</th><th className="p-4">信眾</th><th className="p-4">事由明細</th><th className="p-4 text-right">異動金額</th><th className="p-4 text-center">撤銷操作</th></tr>
+                      <tr><th className="p-3 md:p-4">時間</th><th className="p-3 md:p-4">信眾</th><th className="p-3 md:p-4">明細</th><th className="p-3 md:p-4 text-right">金額</th><th className="p-3 md:p-4 text-center">操作</th></tr>
                     </thead>
                     <tbody className="divide-y divide-border text-foreground">
                       {transactionsList.map((tx: any) => {
                         const txMember = membersList.find(m => m.user_line_id === tx.user_line_id);
                         return (
                         <tr key={tx.id} className="hover:bg-muted transition-colors">
-                          <td className="p-4 text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
-                          <td className="p-4 font-bold">{txMember?.name || "未知"}</td>
-                          <td className="p-4">
-                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold mr-3 ${tx.transaction_type === 'refund' ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-800'}`}>{tx.transaction_type === 'refund' ? '退款加值' : '消費扣抵'}</span>
-                             <span className="text-muted-foreground max-w-[150px] truncate inline-block align-bottom" title={tx.description}>{tx.description}</span>
+                          <td className="p-3 md:p-4 text-[10px] md:text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                          <td className="p-3 md:p-4 font-bold">{txMember?.name || tx.user_line_id.replace('phone_', '')}</td>
+                          <td className="p-3 md:p-4">
+                             <span className={`px-2 py-1 rounded-full text-[8px] md:text-[10px] font-bold mr-1.5 md:mr-3 ${tx.transaction_type === 'refund' ? 'bg-purple-100 text-purple-800' : 'bg-stone-100 text-stone-800'}`}>{tx.transaction_type === 'refund' ? '加值退款' : '消費扣抵'}</span>
+                             <span className="text-muted-foreground max-w-[100px] md:max-w-[150px] truncate inline-block align-bottom" title={tx.description}>{tx.description}</span>
                           </td>
-                          <td className={`p-4 font-bold text-right text-lg ${tx.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{tx.amount >= 0 ? `+${tx.amount}` : tx.amount}</td>
-                          <td className="p-4 text-center">
-                            <button onClick={() => handleUndoTransaction(tx)} className="text-xs font-bold bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-lg shadow-sm">撤銷</button>
+                          <td className={`p-3 md:p-4 font-bold text-right text-base md:text-lg ${tx.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>{tx.amount >= 0 ? `+${tx.amount}` : tx.amount}</td>
+                          <td className="p-3 md:p-4 text-center">
+                            <button onClick={() => handleUndoTransaction(tx)} className="text-[10px] md:text-xs font-bold bg-red-50 text-red-600 border border-red-100 px-3 md:px-4 py-1.5 md:py-2 rounded-lg shadow-sm hover:bg-red-600 hover:text-white transition-colors">撤銷</button>
                           </td>
                         </tr>
                       )})}
