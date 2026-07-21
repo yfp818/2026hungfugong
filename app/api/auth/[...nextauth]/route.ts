@@ -17,23 +17,28 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, profile }: any) {
-      // 當使用者登入且 LINE 回傳 profile 時
+    async jwt({ token, profile, account }: any) {
+      // 只有在登入的那一瞬間，profile 會有值
       if (profile) {
-        // 1. 只拿真實的 Email，沒有就是 null，絕對不捏造假信箱
-        token.email = profile.email || null;
+        // 🚨 偵錯雷達：把 LINE 傳來的所有原始資料，印在 Vercel 後台
+        console.log("=== [NextAuth] LINE 原始 Profile 回傳 ===");
+        console.log(JSON.stringify(profile, null, 2));
         
-        // 2. 存下 LINE 的真實內部 UID (sub)，這是永遠不變的身分證
+        if (account) {
+          console.log("=== [NextAuth] OIDC Account Token 回傳 ===");
+          console.log(JSON.stringify(account, null, 2));
+        }
+
+        // 嚴格寫入真實 Email，沒有就是 null
+        token.email = profile.email || null;
         token.sub = profile.sub;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session.user) {
-        // 將乾淨的 email 傳給前端 (可能是真實信箱，也可能是 null)
         session.user.email = token.email as string | null;
-        
-        // 將 LINE UID 綁定在 user.id 上，做為未來的絕對備援識別
+        // 把 LINE UID 隱含在 id 裡，做為未來的電話備援辨識使用
         session.user.id = token.sub as string;
       }
       return session;
