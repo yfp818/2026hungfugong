@@ -24,7 +24,6 @@ export default function GlobalCartPage() {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [useWallet, setUseWallet] = useState<boolean>(false);
 
-  // 安全計算總價，確保 cartItems 是有效陣列
   const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
   const totalCartPrice = safeCartItems.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
   const deductedAmount = useWallet ? Math.min(totalCartPrice, walletBalance) : 0;
@@ -98,7 +97,30 @@ export default function GlobalCartPage() {
         if (txError) throw txError;
       }
 
-      // 備份印記資料並清空購物車
+      // 🛡️ 新增機制：強制寫入會員資料庫，解決「尚未設定」斷鏈問題
+      if (session?.user?.email) {
+        const mainPhone = safeCartItems.find((item: any) => item.userPhone)?.userPhone || "";
+        const mainName = safeCartItems.find((item: any) => item.userName)?.userName || session.user.name || "未提供";
+        const mainAddress = safeCartItems.find((item: any) => item.address)?.address || "";
+
+        if (mainPhone) {
+          // 1. 同步會員檔
+          const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+          if (mpData && mpData.length > 0) {
+            await supabase.from("member_profiles").update({ phone: mainPhone, name: mainName }).eq("user_line_id", session.user.email);
+          } else {
+            await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: mainName, phone: mainPhone, wallet_balance: 0 });
+          }
+          // 2. 同步聯絡簿
+          const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+          if (ucData && ucData.length > 0) {
+            await supabase.from("user_contacts").update({ phone: mainPhone, address: mainAddress, line_name: mainName }).eq("line_id", session.user.email);
+          } else {
+            await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: mainName, phone: mainPhone, address: mainAddress });
+          }
+        }
+      }
+
       setReceiptData({
         items: [...safeCartItems],
         total: totalCartPrice,
@@ -152,8 +174,6 @@ export default function GlobalCartPage() {
 
   const parseItemDetails = (item: any) => {
     const serviceName = item?.serviceType === 'booking' ? '濟事問事' : item?.serviceType === 'lamp' ? '當月點燈' : '代燒服務';
-
-    // 🛡️ 防呆處理：確保字串存在，防止 replace 崩潰
     let rawString = (item?.itemDetails || "")
       .replace(/特辦活動:?\s*/g, '')
       .replace(/報名方案:?\s*/g, '')
@@ -191,10 +211,8 @@ export default function GlobalCartPage() {
               </div>
             ) : (
               <div className="space-y-8 animate-in fade-in duration-500">
-                
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg text-foreground tracking-wider border-l-4 border-[#A61D24] dark:border-red-500 pl-3">已加入登記項目</h3>
-                  
                   <div className="divide-y divide-border border border-border rounded-2xl bg-muted/30 overflow-hidden">
                     {safeCartItems.map((item: any) => (
                       <div key={item.id} className="p-5 flex justify-between items-start gap-4 hover:bg-muted/50 transition-colors">
@@ -230,7 +248,6 @@ export default function GlobalCartPage() {
                           <p className={`font-bold text-lg mt-0.5 ${useWallet ? 'text-purple-700' : 'text-muted-foreground'}`}>${walletBalance.toLocaleString()}</p>
                         </div>
                       </div>
-                      
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={useWallet} onChange={() => setUseWallet(!useWallet)} />
                         <div className="w-14 h-7 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
@@ -295,65 +312,45 @@ export default function GlobalCartPage() {
 
       {step === 2 && receiptData && (
         <div className="w-full max-w-md relative flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
-          
           <style>{`#global-cart-btn { display: none !important; }`}</style>
-
           <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
              <Camera size={14} className="shrink-0" />
              <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
           </div>
-
           <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
-            <img 
-              src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
-              alt="祈福印記" 
-              className="w-full h-auto block pointer-events-none select-none relative z-0" 
-            />
-
-            <style>{`
-              .receipt-text {
-                font-family: var(--font-noto-serif), "Noto Serif TC", serif !important;
-              }
-            `}</style>
-
+            <img src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" alt="祈福印記" className="w-full h-auto block pointer-events-none select-none relative z-0" />
+            <style>{`.receipt-text { font-family: var(--font-noto-serif), "Noto Serif TC", serif !important; }`}</style>
+            
             <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}>
               <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
               <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
             </div>
-
             <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
             </div>
-
             <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
             </div>
-
             <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
               <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{combinedNames}</span>
             </div>
-
             <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
               <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{combinedServices}</span>
             </div>
-
             <div className="absolute z-10 receipt-text text-[#A61D24]" style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
             </div>
-
             <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
               <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
                 {combinedOptions}
               </span>
             </div>
-
             <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}>
               <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
             </div>
           </div>
-
           <Button onClick={handleCopyReceipt} className="w-full max-w-[320px] mt-8 bg-[#06C755] hover:bg-[#05a546] text-white py-6 rounded-xl font-bold text-lg tracking-widest shadow-xl transition-transform hover:scale-[1.02]">
             一鍵複製，並打開 LINE 對帳
           </Button>
