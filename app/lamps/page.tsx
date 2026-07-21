@@ -98,23 +98,25 @@ export default function LampsPage() {
     if (!hasSelected) return alert("請至少選購一盞點燈項目！");
     if (!name || !phone || !birthDate || !address) return alert("請填寫完整的祈福聯絡與生辰資料");
 
-    // 🛡️ 核心防呆修復：強制等待寫入，並使用信眾「手動填寫的 name」而非 LINE 預設名稱
-    if (session?.user?.email) {
+    // 🔥 多重身分備援機制：預防 LINE 沒給 email 的情況
+    const userLineId = session?.user?.email || session?.user?.name || "unknown";
+
+    if (userLineId !== "unknown") {
       try {
         // 1. 強制同步到 user_contacts (全站聯絡簿)
-        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId);
         if (ucData && ucData.length > 0) {
-          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", userLineId);
         } else {
-          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+          await supabase.from("user_contacts").insert({ line_id: userLineId, line_name: name, phone: phone, address: address });
         }
 
         // 2. 強制同步到 member_profiles (會員中心與餘額系統)
-        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
         if (mpData && mpData.length > 0) {
-          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", userLineId);
         } else {
-          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+          await supabase.from("member_profiles").insert({ user_line_id: userLineId, name: name, phone: phone, wallet_balance: 0 });
         }
       } catch (error) {
         console.error("同步會員主檔失敗:", error);
