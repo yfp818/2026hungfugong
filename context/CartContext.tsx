@@ -12,7 +12,7 @@ export interface CartItem {
   address: string;
   itemDetails: string;
   price: number;
-  customBankInfo?: string; // 儲存此項目指定的獨立匯款帳戶
+  customBankInfo?: string; 
 }
 
 export interface UserContact {
@@ -57,10 +57,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshContacts = async () => {
-    if (!session?.user) return;
-    const userLineId = session.user.email || session.user.name || "unknown";
+    if (!session?.user?.email) return;
+    const userLineId = session.user.email;
     
-    const { data: contactsData } = await supabase.from("user_contacts").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false });
+    // 🛡️ 修正：統一使用 line_id 查詢聯絡簿
+    const { data: contactsData } = await supabase.from("user_contacts").select("*").eq("line_id", userLineId).order("created_at", { ascending: false });
     if (contactsData) setContacts(contactsData);
 
     const { data: lastOrder } = await supabase.from("service_orders").select("user_name, user_phone, birth_date, address").eq("user_line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -78,14 +79,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = async (item: CartItem, saveToContacts = false) => {
     setCartItems(prev => [...prev, item]);
     
-    if (saveToContacts && session?.user) {
-      const userLineId = session.user.email || session.user.name || "unknown";
-      const { data: existing } = await supabase.from("user_contacts").select("id").eq("user_line_id", userLineId).eq("contact_name", item.userName).maybeSingle();
+    if (saveToContacts && session?.user?.email) {
+      const userLineId = session.user.email;
+      // 🛡️ 修正：統一使用 line_id 查詢與寫入
+      const { data: existing } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId).eq("contact_name", item.userName).maybeSingle();
 
       if (!existing) {
         const isSelf = selfProfile && selfProfile.userName === item.userName;
         await supabase.from("user_contacts").insert([{
-          user_line_id: userLineId,
+          line_id: userLineId, // 已修正為正確的欄位
           contact_name: item.userName,
           contact_phone: item.userPhone,
           relationship_tag: isSelf ? "本人" : "親友",
@@ -110,10 +112,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {
-    // 💡 防呆機制：避免 Vercel 打包時找不到 Provider 而崩潰
     return {
       cartItems: [],
-      addToCart: () => {},
+      addToCart: async () => {},
       removeFromCart: () => {},
       clearCart: () => {},
     } as any;
