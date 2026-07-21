@@ -9,7 +9,6 @@ export const authOptions: AuthOptions = {
       authorization: {
         params: { 
           scope: "profile openid email",
-          // 這是唯一新增的一行：強制在手機瀏覽器內登入，避免跳轉到 LINE App 導致 Cookie 遺失
         },
       },
     }),
@@ -18,9 +17,14 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, profile }: any) {
+    async jwt({ token, profile, user }: any) {
+      // 1. 如果有真實 email 就用真實的
       if (profile?.email) {
         token.email = profile.email;
+      } 
+      // 2. 🛡️ 防呆機制：如果沒信箱，強制把 LINE UID 變成虛擬信箱，確保資料庫絕對有值可綁定
+      else if (token.sub || user?.id) {
+        token.email = `${token.sub || user.id}@line.user`; 
       }
       return token;
     },
@@ -30,17 +34,12 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
-    // 💡 新增的 redirect 攔截器：強制 NextAuth 聽從按鈕的 callbackUrl 指示
     async redirect({ url, baseUrl }) {
-      // 1. 如果有指定的相對路徑 (例如 "/admin")，就乖乖接上正式網址跳過去
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
-      }
-      // 2. 如果是同一個網域的絕對路徑，也放行
-      else if (new URL(url).origin === baseUrl) {
+      } else if (new URL(url).origin === baseUrl) {
         return url;
       }
-      // 3. 其他不明狀況，才回首頁
       return baseUrl;
     }
   },
