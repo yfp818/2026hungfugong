@@ -1,13 +1,15 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import html2canvas from "html2canvas";
 import { 
   Calendar, History, Wallet, UserCircle, MapPin, 
-  Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft 
+  Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft,
+  Download 
 } from "lucide-react"; 
 
 export default function MemberCenter() {
@@ -21,6 +23,31 @@ export default function MemberCenter() {
   const [profile, setProfile] = useState({ phone: "", address: "" });
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  
+  // 🌟 新增：綁定印記區塊的 Ref
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  // 🌟 新增：執行下載圖片的函數
+  const handleDownloadReceipt = async () => {
+    if (!receiptRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(receiptRef.current, { 
+        scale: 3, 
+        useCORS: true,
+        backgroundColor: null
+      });
+      
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `皇府宮_祈福印記_${selectedOrder?.user_name || "信眾"}.png`; 
+      link.click();
+    } catch (error) {
+      alert("下載失敗，請稍後再試或使用手機內建截圖功能。");
+      console.error(error);
+    }
+  };
 
   const fetchMemberData = useCallback(async () => {
     const userLineId = session?.user?.email || (session?.user as any)?.id || "unknown";
@@ -70,7 +97,6 @@ export default function MemberCenter() {
       const trueBalance = txData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
       setWalletBalance(trueBalance);
 
-      // 🚨 修復點 1：把 select("id") 改為 select("user_line_id")
       const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
          await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", userLineId);
@@ -105,7 +131,6 @@ export default function MemberCenter() {
     const safeName = session?.user?.name || "LINE信眾";
 
     try {
-      // 🚨 修復點 2：把 select("id") 改為 select("user_line_id")
       const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
       if (existData && existData.length > 0) {
         const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("user_line_id", userLineId);
@@ -121,7 +146,6 @@ export default function MemberCenter() {
         if (err2) throw new Error("聯絡簿新增失敗：" + err2.message);
       }
 
-      // 🚨 修復點 3：把 select("id") 改為 select("user_line_id")
       const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
         const { error: err3 } = await supabase.from("member_profiles").update({ phone: profile.phone, name: safeName }).eq("user_line_id", userLineId);
@@ -415,16 +439,22 @@ export default function MemberCenter() {
 
             <style>{`#global-cart-btn { display: none !important; }`}</style>
 
-            <div className="bg-[#1A432D]/90 text-[#D89F3C] border border-[#D89F3C]/50 text-xs font-bold py-2.5 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
-               <Camera size={14} className="shrink-0" />
-               <span className="tracking-widest">貼心小提示：可截圖保存此祈福印記</span>
-            </div>
+            {/* 🌟 已經換成超有質感的下載按鈕 */}
+            <button 
+              onClick={handleDownloadReceipt}
+              className="bg-[#1A432D]/90 hover:bg-[#122F20] text-[#D89F3C] border border-[#D89F3C]/50 text-sm font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px] transition-all active:scale-95 z-[60]"
+            >
+               <Download size={16} className="shrink-0" />
+               <span className="tracking-widest">點擊下載儲存印記</span>
+            </button>
 
-            <div className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
+            {/* 🌟 加上 ref={receiptRef} 讓程式知道要截圖哪裡 */}
+            <div ref={receiptRef} className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
               <img 
                 src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
                 alt="祈福印記" 
                 className="w-full h-auto block pointer-events-none select-none relative z-0" 
+                crossOrigin="anonymous" 
               />
               <style>{`.receipt-text { font-family: var(--font-noto-serif), "Noto Serif TC", serif !important; }`}</style>
 
