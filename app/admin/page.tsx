@@ -1,12 +1,12 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // 載入鑰匙
-import AdminDashboard from "./AdminDashboard";
-import LoginButton from "./LoginButton"; // 載入剛剛做的按鈕
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; 
+import LoginButton from "./LoginButton"; 
+import Link from "next/link";
+import { LayoutDashboard, ClipboardList, Users, Settings, Megaphone } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  // 💡 修正 1：把 authOptions 交給伺服器，它才解得開您的登入狀態！
   const session = await getServerSession(authOptions);
   
   // 請確認這裡有您的 LINE 綁定信箱
@@ -36,7 +36,6 @@ export default async function AdminPage() {
             )}
           </div>
           
-          {/* 💡 修正 2：使用剛剛做好的客戶端按鈕，取代原本會死結的 Link */}
           <LoginButton />
           
           <p className="text-xs text-stone-300 tracking-widest">© 2026 皇府宮 All Rights Reserved.</p>
@@ -45,5 +44,33 @@ export default async function AdminPage() {
     );
   }
 
-  return <AdminDashboard />;
+  // 💡 如果是白名單管理員，就會看到以下這個「全新總覽儀表板」的畫面
+  // 並且這個畫面會自動被我們稍早建立的 layout.tsx (左側欄) 包覆住！
+  return (
+    <div className="animate-in fade-in duration-700">
+      <div className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{session.user.name}</h1>
+        <p className="text-muted-foreground mt-2 tracking-widest">請從左側選單選擇您要管理的項目，或點擊下方快速捷徑。</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Link href="/admin/orders" className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col gap-4">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><ClipboardList size={24} /></div>
+          <div><h3 className="font-bold text-lg text-foreground">訂單與報表</h3><p className="text-xs text-muted-foreground mt-1 tracking-widest">處理信眾祈福與代辦服務</p></div>
+        </Link>
+        <Link href="/admin/members" className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col gap-4">
+          <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Users size={24} /></div>
+          <div><h3 className="font-bold text-lg text-foreground">信眾與餘額</h3><p className="text-xs text-muted-foreground mt-1 tracking-widest">管理名冊與核發祈福金</p></div>
+        </Link>
+        <Link href="/admin/content" className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col gap-4">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Megaphone size={24} /></div>
+          <div><h3 className="font-bold text-lg text-foreground">網站與公告</h3><p className="text-xs text-muted-foreground mt-1 tracking-widest">更新首頁視覺與最新消息</p></div>
+        </Link>
+        <Link href="/admin/settings" className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col gap-4">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"><Settings size={24} /></div>
+          <div><h3 className="font-bold text-lg text-foreground">服務與專案</h3><p className="text-xs text-muted-foreground mt-1 tracking-widest">設定祈福項目與快閃活動</p></div>
+        </Link>
+      </div>
+    </div>
+  );
 }
