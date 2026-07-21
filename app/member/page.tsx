@@ -23,7 +23,6 @@ export default function MemberCenter() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const fetchMemberData = useCallback(async () => {
-    // 優先抓 Email，若無則抓 UID
     const userLineId = session?.user?.email || (session?.user as any)?.id || "unknown";
     if (userLineId === "unknown") return;
 
@@ -36,7 +35,6 @@ export default function MemberCenter() {
     }
 
     let currentAddress = "";
-    // 🚨 修復點：查詢聯絡簿時，改用 user_line_id
     const { data: ucData } = await supabase.from("user_contacts").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (ucData) {
        currentAddress = ucData.address || "";
@@ -72,7 +70,8 @@ export default function MemberCenter() {
       const trueBalance = txData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
       setWalletBalance(trueBalance);
 
-      const { data: mpExist } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
+      // 🚨 修復點 1：把 select("id") 改為 select("user_line_id")
+      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
          await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", userLineId);
       } else {
@@ -106,16 +105,15 @@ export default function MemberCenter() {
     const safeName = session?.user?.name || "LINE信眾";
 
     try {
-      // 🚨 修復點：全面將 line_id 改為 user_line_id
-      const { data: existData } = await supabase.from("user_contacts").select("id").eq("user_line_id", userLineId);
+      // 🚨 修復點 2：把 select("id") 改為 select("user_line_id")
+      const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
       if (existData && existData.length > 0) {
-        // 雙重保險：同時更新 user_line_id 與 line_id，避免資料表設計殘留
         const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("user_line_id", userLineId);
         if (err1) throw new Error("聯絡簿更新失敗：" + err1.message);
       } else {
         const { error: err2 } = await supabase.from("user_contacts").insert({ 
-          user_line_id: userLineId, // 👈 資料庫要求必填的欄位
-          line_id: userLineId,      // 👈 為了相容舊版保留
+          user_line_id: userLineId, 
+          line_id: userLineId,      
           phone: profile.phone, 
           address: profile.address, 
           line_name: safeName 
@@ -123,7 +121,8 @@ export default function MemberCenter() {
         if (err2) throw new Error("聯絡簿新增失敗：" + err2.message);
       }
 
-      const { data: mpExist } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
+      // 🚨 修復點 3：把 select("id") 改為 select("user_line_id")
+      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
         const { error: err3 } = await supabase.from("member_profiles").update({ phone: profile.phone, name: safeName }).eq("user_line_id", userLineId);
         if (err3) throw new Error("會員主檔更新失敗：" + err3.message);
@@ -305,13 +304,13 @@ export default function MemberCenter() {
               </div>
               <p className="text-[10px] text-stone-400 tracking-widest pt-2 flex items-center gap-1.5">
                 <Info size={12} className="shrink-0" />
-                設定後，未來報名各項服務將會自動帶入，節省您的時間。
+                設定後，未來報名各項服務將會自動帶入，可節省時間。
               </p>
             </div>
           )}
         </div>
 
-        {/* 雙欄區塊：祈福金明細 & 祈福服務紀錄 */}
+        {/* 雙欄區塊：祈福金明細祈福服務紀錄 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* 左側：祈福金異動明細 */}
@@ -345,7 +344,7 @@ export default function MemberCenter() {
             )}
           </div>
 
-          {/* 右側：祈福與服務紀錄 */}
+          {/* 右側：祈福服務紀錄 */}
           <div className="bg-card rounded-3xl p-6 md:p-8 border border-border shadow-sm space-y-6">
             <h3 className="text-lg font-bold text-slate-800 tracking-widest flex items-center gap-2 border-b border-border pb-4">
               <Calendar className="text-[#A61D24]" size={20}/> 祈福與服務紀錄
