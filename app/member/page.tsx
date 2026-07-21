@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 import { 
   Calendar, History, Wallet, UserCircle, MapPin, 
   Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft,
-  Download, Image as ImageIcon // 新增圖示
+  ImageIcon 
 } from "lucide-react"; 
 
 export default function MemberCenter() {
@@ -24,28 +24,35 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
-  // 🌟 新增：截圖相關狀態
+  // 截圖相關狀態
   const receiptRef = useRef<HTMLDivElement>(null);
-  const [isGenerating, setIsGenerating] = useState(false); // 判斷是否正在處理中
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null); // 存放合成好的圖片
+  const [isGenerating, setIsGenerating] = useState(false); 
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null); 
+  
+  // 🌟 破解 Apple 暫存：給圖片一個固定的時間戳記，強迫重新讀取安全憑證
+  const [imageTimestamp] = useState(Date.now()); 
 
-  // 🌟 變更：將合成好的圖片直接顯示，讓信眾可以長按
   const handleGenerateReceipt = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
     
     try {
+      // 加上 logging 幫助如果還有問題可以抓錯
+      console.log("開始生成圖片...");
+      
       const canvas = await html2canvas(receiptRef.current, { 
-        scale: 3,  // 3倍高畫質
+        scale: 3,  
         useCORS: true,
+        allowTaint: false, // 確保不被污染
         backgroundColor: null
       });
       
       const image = canvas.toDataURL("image/png");
-      setGeneratedImage(image); // 成功！把合成好的照片存起來顯示
-    } catch (error) {
-      alert("圖片生成失敗，請稍後再試或使用手機內建截圖功能。");
-      console.error(error);
+      setGeneratedImage(image); 
+      console.log("圖片生成成功！");
+    } catch (error: any) {
+      alert("圖片生成失敗：" + error.message + "\n請稍後再試或使用手機內建截圖功能。");
+      console.error("Canvas Error:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -442,13 +449,11 @@ export default function MemberCenter() {
             <style>{`#global-cart-btn { display: none !important; }`}</style>
 
             {generatedImage ? (
-              // 🌟 狀態二：顯示已經合成好的「純照片」，讓信眾可以直接長按儲存
               <div className="relative w-full flex flex-col items-center animate-in zoom-in-95 duration-300">
                 <div className="bg-emerald-900/90 text-emerald-300 border border-emerald-700/50 text-sm font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
                    <ImageIcon size={16} className="shrink-0" />
                    <span className="tracking-widest">✅ 生成成功！請「長按圖片」儲存</span>
                 </div>
-                {/* 加上 pointer-events-auto 讓手機能偵測到長按動作 */}
                 <img 
                    src={generatedImage} 
                    alt="專屬祈福印記照片" 
@@ -456,7 +461,6 @@ export default function MemberCenter() {
                 />
               </div>
             ) : (
-              // 🌟 狀態一：原本的 HTML 結構，等待使用者按下生成按鈕
               <>
                 <button 
                   onClick={handleGenerateReceipt}
@@ -474,8 +478,9 @@ export default function MemberCenter() {
                 </button>
 
                 <div ref={receiptRef} className={`relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0] ${isGenerating ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300`}>
+                  {/* 🌟 加上 ?t=${imageTimestamp}，強迫 Apple 重新驗證安全憑證 */}
                   <img 
-                    src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
+                    src={`https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png?t=${imageTimestamp}`}
                     alt="祈福印記底圖" 
                     className="w-full h-auto block pointer-events-none select-none relative z-0" 
                     crossOrigin="anonymous" 
