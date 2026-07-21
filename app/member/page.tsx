@@ -24,35 +24,48 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
-  // 截圖相關狀態
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false); 
   const [generatedImage, setGeneratedImage] = useState<string | null>(null); 
   
-  // 🌟 破解 Apple 暫存：給圖片一個固定的時間戳記，強迫重新讀取安全憑證
-  const [imageTimestamp] = useState(Date.now()); 
+  // 🌟 終極殺手鐧：存放轉譯後的純文字圖片
+  const [base64Bg, setBase64Bg] = useState<string | null>(null);
+
+  // 🌟 網頁載入時，自動把外部圖片轉成純文字，徹底避開 Safari 審查
+  useEffect(() => {
+    const loadBase64Image = async () => {
+      try {
+        const response = await fetch("https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png");
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setBase64Bg(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error("圖片預載失敗，將使用原始網址", error);
+      }
+    };
+    loadBase64Image();
+  }, []);
 
   const handleGenerateReceipt = async () => {
     if (!receiptRef.current) return;
     setIsGenerating(true);
     
     try {
-      // 加上 logging 幫助如果還有問題可以抓錯
-      console.log("開始生成圖片...");
-      
       const canvas = await html2canvas(receiptRef.current, { 
         scale: 3,  
         useCORS: true,
-        allowTaint: false, // 確保不被污染
+        allowTaint: true, // 🌟 允許載入被轉譯的圖片
         backgroundColor: null
       });
       
       const image = canvas.toDataURL("image/png");
       setGeneratedImage(image); 
-      console.log("圖片生成成功！");
     } catch (error: any) {
-      alert("圖片生成失敗：" + error.message + "\n請稍後再試或使用手機內建截圖功能。");
-      console.error("Canvas Error:", error);
+      alert("圖片生成失敗，請稍後再試或使用手機內建截圖功能。");
+      console.error(error);
     } finally {
       setIsGenerating(false);
     }
@@ -429,7 +442,7 @@ export default function MemberCenter() {
         </div>
       </div>
 
-      {/* 神尊印記彈窗 (動態切換：合成前 vs 合成後) */}
+      {/* 神尊印記彈窗 */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
@@ -478,9 +491,9 @@ export default function MemberCenter() {
                 </button>
 
                 <div ref={receiptRef} className={`relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0] ${isGenerating ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300`}>
-                  {/* 🌟 加上 ?t=${imageTimestamp}，強迫 Apple 重新驗證安全憑證 */}
+                  {/* 🌟 改用轉譯後的 Base64 純文字作為圖片來源 */}
                   <img 
-                    src={`https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png?t=${imageTimestamp}`}
+                    src={base64Bg || "https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png"}
                     alt="祈福印記底圖" 
                     className="w-full h-auto block pointer-events-none select-none relative z-0" 
                     crossOrigin="anonymous" 
