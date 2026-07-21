@@ -129,13 +129,40 @@ export default function ContentPage() {
             <textarea value={title} onChange={e=>setTitle(e.target.value)} placeholder="大標題" className="w-full bg-background border border-border p-4 rounded-xl h-32 outline-none focus:border-[#A61D24] dark:focus:border-red-400 transition-colors"/>
             <textarea value={content} onChange={e=>setContent(e.target.value)} placeholder="次標題" className="w-full bg-background border border-border p-4 rounded-xl h-32 outline-none focus:border-[#A61D24] dark:focus:border-red-400 transition-colors"/>
           </div>
+          
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-border p-4 text-center rounded-xl bg-muted">
-              {previewUrl && <img src={previewUrl} className="max-h-32 mx-auto mb-3 object-cover rounded-lg shadow-sm"/>}
-              <input type="file" onChange={e => {if(e.target.files?.[0]){setImageFile(e.target.files[0]); setPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm"/>
+            {/* 💡 修正 1：主視覺照片上傳區塊 (隱藏輸入框、固定高度、加入 accept) */}
+            <div className="relative w-full h-48 border-2 border-dashed border-border rounded-xl bg-muted overflow-hidden flex flex-col items-center justify-center hover:bg-muted/80 transition-colors">
+              {previewUrl ? (
+                <img src={previewUrl} className="w-full h-full object-contain" alt="預覽圖" />
+              ) : (
+                <div className="text-center space-y-2 pointer-events-none">
+                  <div className="w-10 h-10 bg-background rounded-full flex items-center justify-center mx-auto shadow-sm">
+                    <svg className="w-5 h-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  </div>
+                  <p className="text-sm font-bold text-muted-foreground tracking-widest">點擊選擇照片</p>
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={e => {
+                  if(e.target.files?.[0]){
+                    setImageFile(e.target.files[0]); 
+                    setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+                  }
+                }} 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[16px]"
+              />
             </div>
-            <label className="block text-sm font-bold tracking-widest text-muted-foreground">遮罩濃度: {bgOpacity}%</label>
-            <input type="range" value={bgOpacity} onChange={e=>setBgOpacity(Number(e.target.value))} className="w-full accent-[#A61D24]"/>
+            
+            <div>
+              <label className="flex justify-between text-sm font-bold tracking-widest text-muted-foreground mb-2">
+                <span>遮罩濃度</span>
+                <span className="text-foreground">{bgOpacity}%</span>
+              </label>
+              <input type="range" value={bgOpacity} onChange={e=>setBgOpacity(Number(e.target.value))} className="w-full accent-[#A61D24]"/>
+            </div>
           </div>
         </div>
         <button onClick={handleSaveHero} disabled={isSavingHero} className="w-full bg-[#A61D24] hover:bg-red-800 text-white py-5 font-bold tracking-widest rounded-xl transition-colors shadow-sm">{isSavingHero?"處理中...":"儲存主視覺"}</button>
@@ -151,9 +178,33 @@ export default function ContentPage() {
           </div>
           <div><input value={addNewsActionUrl} onChange={e => setAddNewsActionUrl(e.target.value)} placeholder="專屬活動報名連結 (選填，例：/lamps)" className="w-full bg-background text-foreground border border-border p-3 rounded-xl outline-none focus:border-[#D89F3C] transition-colors"/></div>
           <textarea value={addNewsContent} onChange={e=>setAddNewsContent(e.target.value)} placeholder="內文支援換行" className="w-full bg-background text-foreground border border-border p-4 rounded-xl h-32 outline-none focus:border-[#D89F3C] transition-colors"/>
-          <input type="file" onChange={e => {if(e.target.files?.[0]){setAddNewsImageFile(e.target.files[0]); setAddNewsPreviewUrl(URL.createObjectURL(e.target.files[0]))}}} className="text-sm"/>
           
-          <div className="flex gap-4">
+          {/* 💡 修正 2：公告圖片上傳區塊 */}
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-2">上傳活動海報或配圖</label>
+            <div className="relative w-full h-40 border-2 border-dashed border-border rounded-xl bg-background overflow-hidden flex flex-col items-center justify-center hover:bg-background/80 transition-colors">
+              {addNewsPreviewUrl ? (
+                <img src={addNewsPreviewUrl} className="w-full h-full object-contain" alt="預覽圖" />
+              ) : (
+                <div className="text-center space-y-2 pointer-events-none">
+                  <p className="text-sm font-bold text-muted-foreground tracking-widest">+ 點擊選擇照片</p>
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={e => {
+                  if(e.target.files?.[0]){
+                    setAddNewsImageFile(e.target.files[0]); 
+                    setAddNewsPreviewUrl(URL.createObjectURL(e.target.files[0]));
+                  }
+                }} 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[16px]"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-4 pt-2">
             <button onClick={handleSaveNews} disabled={isAddingNews} className="flex-1 bg-[#D89F3C] hover:bg-amber-600 text-white py-5 rounded-xl font-bold tracking-widest transition-colors shadow-sm">{editNewsId?"儲存公告更新":"正式發布公告"}</button>
             {editNewsId && (
               <button onClick={() => {setEditNewsId(null); setAddNewsTitle(""); setAddNewsContent(""); setAddNewsPreviewUrl(""); setAddNewsCategory("news"); setAddNewsActionUrl("");}} className="px-6 bg-background border border-border text-foreground rounded-xl font-bold tracking-widest hover:bg-muted transition-colors">取消編輯</button>
