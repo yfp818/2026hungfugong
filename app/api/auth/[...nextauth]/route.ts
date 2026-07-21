@@ -18,25 +18,22 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, profile }: any) {
-      // 1. 只拿真實的 Email，沒有就不勉強，絕對不塞假資料
-      if (profile?.email) {
-        token.email = profile.email;
-      } else {
-        // 如果沒有拿到信箱，就把 email 欄位清空，不留垃圾資料
-        token.email = null; 
-      }
-      
-      // 2. 順便把 LINE 的真實內部 UID 存起來備用 (這不會顯示在畫面上)
-      if (profile?.sub) {
+      // 當使用者登入且 LINE 回傳 profile 時
+      if (profile) {
+        // 1. 只拿真實的 Email，沒有就是 null，絕對不捏造假信箱
+        token.email = profile.email || null;
+        
+        // 2. 存下 LINE 的真實內部 UID (sub)，這是永遠不變的身分證
         token.sub = profile.sub;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (session.user) {
-        // 把乾淨的 email 傳給前端
+        // 將乾淨的 email 傳給前端 (可能是真實信箱，也可能是 null)
         session.user.email = token.email as string | null;
-        // 把 LINE UID 隱含在 id 裡，做為未來的電話備援辨識使用
+        
+        // 將 LINE UID 綁定在 user.id 上，做為未來的絕對備援識別
         session.user.id = token.sub as string;
       }
       return session;
