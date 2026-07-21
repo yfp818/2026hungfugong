@@ -17,20 +17,27 @@ export const authOptions: AuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, profile, user }: any) {
-      // 1. 如果有真實 email 就用真實的
+    async jwt({ token, profile }: any) {
+      // 1. 只拿真實的 Email，沒有就不勉強，絕對不塞假資料
       if (profile?.email) {
         token.email = profile.email;
-      } 
-      // 2. 🛡️ 防呆機制：如果沒信箱，強制把 LINE UID 變成虛擬信箱，確保資料庫絕對有值可綁定
-      else if (token.sub || user?.id) {
-        token.email = `${token.sub || user.id}@line.user`; 
+      } else {
+        // 如果沒有拿到信箱，就把 email 欄位清空，不留垃圾資料
+        token.email = null; 
+      }
+      
+      // 2. 順便把 LINE 的真實內部 UID 存起來備用 (這不會顯示在畫面上)
+      if (profile?.sub) {
+        token.sub = profile.sub;
       }
       return token;
     },
     async session({ session, token }: any) {
-      if (session.user && token.email) {
-        session.user.email = token.email;
+      if (session.user) {
+        // 把乾淨的 email 傳給前端
+        session.user.email = token.email as string | null;
+        // 把 LINE UID 隱含在 id 裡，做為未來的電話備援辨識使用
+        session.user.id = token.sub as string;
       }
       return session;
     },
