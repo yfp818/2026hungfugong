@@ -23,20 +23,17 @@ export default function MemberCenter() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const fetchMemberData = useCallback(async () => {
-    // 🛡️ 核心修復 1：統一全站「身分證」，與結帳系統完全一致
     const userLineId = session?.user?.email || session?.user?.name || "unknown";
     if (userLineId === "unknown") return;
 
     const userName = session?.user?.name || "信眾";
 
-    // 🛡️ 核心修復 2：優先從 member_profiles (您截圖有資料的那張表) 抓取電話
     let currentPhone = "";
     const { data: mpData } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).maybeSingle();
     if (mpData && mpData.phone && mpData.phone !== 'EMPTY') {
       currentPhone = mpData.phone;
     }
 
-    // 🛡️ 核心修復 3：從 user_contacts 抓取地址，若主檔沒電話則作為備援
     let currentAddress = "";
     const { data: ucData } = await supabase.from("user_contacts").select("*").eq("line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (ucData) {
@@ -46,7 +43,6 @@ export default function MemberCenter() {
 
     setProfile({ phone: currentPhone, address: currentAddress });
 
-    // 進行舊帳號餘額吸收 (自動清整雙胞胎帳號)
     if (currentPhone) {
       const { data: oldProfiles } = await supabase
         .from("member_profiles")
@@ -63,7 +59,6 @@ export default function MemberCenter() {
       }
     }
 
-    // 無敵核算器！直接抓取所有異動明細進行精準加總
     const { data: txData } = await supabase
       .from("wallet_transactions")
       .select("*")
@@ -76,10 +71,10 @@ export default function MemberCenter() {
       const trueBalance = txData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
       setWalletBalance(trueBalance);
 
-      // 自動修正後台可能錯誤的餘額，確保資料庫與明細一致
+      // 🛡️ 修復點 1：拔除自動洗白 Bug。只允許更新餘額，嚴禁在此處覆寫 phone 與 name。
       const { data: mpExist } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
-         await supabase.from("member_profiles").update({ wallet_balance: trueBalance, phone: currentPhone, name: userName }).eq("user_line_id", userLineId);
+         await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", userLineId);
       } else {
          await supabase.from("member_profiles").insert({ user_line_id: userLineId, wallet_balance: trueBalance, phone: currentPhone, name: userName });
       }
@@ -113,28 +108,39 @@ export default function MemberCenter() {
   const handleSaveProfile = async () => {
     const userLineId = session?.user?.email || session?.user?.name || "unknown";
     
-    if (userLineId !== "unknown") {
-      if (!profile.phone) return alert("請輸入聯絡電話！");
+    if (userLineId === "unknown") return alert("無法識別身分，請重新登入！");
+    if (!profile.phone) return alert("請輸入聯絡電話！");
 
-      // 同步至 user_contacts (聯絡簿)
+    // 🛡️ 修復點 2：強制防呆，保證名字絕對不會是 null
+    const safeName = session?.user?.name || "LINE信眾";
+
+    // 🛡️ 修復點 3：裝上 try...catch 報錯雷達
+    try {
       const { data: existData } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId);
       if (existData && existData.length > 0) {
-        await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: session?.user?.name }).eq("line_id", userLineId);
+        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("line_id", userLineId);
+        if (err1) throw err1;
       } else {
-        await supabase.from("user_contacts").insert({ line_id: userLineId, phone: profile.phone, address: profile.address, line_name: session?.user?.name });
+        const { error: err2 } = await supabase.from("user_contacts").insert({ line_id: userLineId, phone: profile.phone, address: profile.address, line_name: safeName });
+        if (err2) throw err2;
       }
 
-      // 同步至 member_profiles (主檔)
       const { data: mpExist } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
       if (mpExist && mpExist.length > 0) {
-        await supabase.from("member_profiles").update({ phone: profile.phone, name: session?.user?.name }).eq("user_line_id", userLineId);
+        const { error: err3 } = await supabase.from("member_profiles").update({ phone: profile.phone, name: safeName }).eq("user_line_id", userLineId);
+        if (err3) throw err3;
       } else {
-        await supabase.from("member_profiles").insert({ user_line_id: userLineId, phone: profile.phone, name: session?.user?.name, wallet_balance: walletBalance });
+        const { error: err4 } = await supabase.from("member_profiles").insert({ user_line_id: userLineId, phone: profile.phone, name: safeName, wallet_balance: walletBalance });
+        if (err4) throw err4;
       }
 
       await fetchMemberData();
       setIsEditingProfile(false);
-      alert("資料已成功更新並同步！");
+      alert("✅ 資料已成功更新並同步！");
+    } catch (error: any) {
+      // 🚨 如果被資料庫擋下來，這邊會立刻告訴我們原因
+      alert("❌ 存檔發生錯誤：\n" + error.message);
+      console.error(error);
     }
   };
 
