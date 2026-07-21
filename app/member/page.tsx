@@ -9,7 +9,7 @@ import html2canvas from "html2canvas";
 import { 
   Calendar, History, Wallet, UserCircle, MapPin, 
   Phone, Edit3, X, FileText, Camera, Info, Coins, ArrowRightLeft,
-  Download 
+  Download, Image as ImageIcon // 新增圖示
 } from "lucide-react"; 
 
 export default function MemberCenter() {
@@ -24,28 +24,30 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   
-  // 🌟 新增：綁定印記區塊的 Ref
+  // 🌟 新增：截圖相關狀態
   const receiptRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false); // 判斷是否正在處理中
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null); // 存放合成好的圖片
 
-  // 🌟 新增：執行下載圖片的函數
-  const handleDownloadReceipt = async () => {
+  // 🌟 變更：將合成好的圖片直接顯示，讓信眾可以長按
+  const handleGenerateReceipt = async () => {
     if (!receiptRef.current) return;
+    setIsGenerating(true);
     
     try {
       const canvas = await html2canvas(receiptRef.current, { 
-        scale: 3, 
+        scale: 3,  // 3倍高畫質
         useCORS: true,
         backgroundColor: null
       });
       
       const image = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.href = image;
-      link.download = `皇府宮_祈福印記_${selectedOrder?.user_name || "信眾"}.png`; 
-      link.click();
+      setGeneratedImage(image); // 成功！把合成好的照片存起來顯示
     } catch (error) {
-      alert("下載失敗，請稍後再試或使用手機內建截圖功能。");
+      alert("圖片生成失敗，請稍後再試或使用手機內建截圖功能。");
       console.error(error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -401,7 +403,7 @@ export default function MemberCenter() {
                        <div className="flex items-center gap-2">
                          {order.status !== 'refunded' && (
                            <button
-                             onClick={() => setSelectedOrder(order)}
+                             onClick={() => { setSelectedOrder(order); setGeneratedImage(null); }}
                              className="text-[10px] font-bold px-3 py-1.5 rounded-full tracking-widest bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 border border-amber-200 dark:border-amber-800 transition-colors shadow-sm flex items-center gap-1.5 hover:scale-105"
                            >
                              <FileText size={12} /> 祈福印記
@@ -420,18 +422,18 @@ export default function MemberCenter() {
         </div>
       </div>
 
-      {/* 神尊印記彈窗 */}
+      {/* 神尊印記彈窗 (動態切換：合成前 vs 合成後) */}
       {selectedOrder && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-300"
-          onClick={() => setSelectedOrder(null)} 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => { setSelectedOrder(null); setGeneratedImage(null); }} 
         >
           <div 
             className="relative w-full max-w-[360px] flex flex-col items-center" 
             onClick={(e) => e.stopPropagation()} 
           >
             <button 
-              onClick={() => setSelectedOrder(null)} 
+              onClick={() => { setSelectedOrder(null); setGeneratedImage(null); }} 
               className="absolute -top-12 right-0 text-white hover:text-[#D89F3C] transition-colors bg-card/20 p-2 rounded-full backdrop-blur-md z-[60]"
             >
               <X size={20} />
@@ -439,62 +441,86 @@ export default function MemberCenter() {
 
             <style>{`#global-cart-btn { display: none !important; }`}</style>
 
-            {/* 🌟 已經換成超有質感的下載按鈕 */}
-            <button 
-              onClick={handleDownloadReceipt}
-              className="bg-[#1A432D]/90 hover:bg-[#122F20] text-[#D89F3C] border border-[#D89F3C]/50 text-sm font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px] transition-all active:scale-95 z-[60]"
-            >
-               <Download size={16} className="shrink-0" />
-               <span className="tracking-widest">點擊下載儲存印記</span>
-            </button>
-
-            {/* 🌟 加上 ref={receiptRef} 讓程式知道要截圖哪裡 */}
-            <div ref={receiptRef} className="relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0]">
-              <img 
-                src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
-                alt="祈福印記" 
-                className="w-full h-auto block pointer-events-none select-none relative z-0" 
-                crossOrigin="anonymous" 
-              />
-              <style>{`.receipt-text { font-family: var(--font-noto-serif), "Noto Serif TC", serif !important; }`}</style>
-
-              <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}>
-                <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
-                <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
+            {generatedImage ? (
+              // 🌟 狀態二：顯示已經合成好的「純照片」，讓信眾可以直接長按儲存
+              <div className="relative w-full flex flex-col items-center animate-in zoom-in-95 duration-300">
+                <div className="bg-emerald-900/90 text-emerald-300 border border-emerald-700/50 text-sm font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px]">
+                   <ImageIcon size={16} className="shrink-0" />
+                   <span className="tracking-widest">✅ 生成成功！請「長按圖片」儲存</span>
+                </div>
+                {/* 加上 pointer-events-auto 讓手機能偵測到長按動作 */}
+                <img 
+                   src={generatedImage} 
+                   alt="專屬祈福印記照片" 
+                   className="w-full h-auto rounded-xl drop-shadow-2xl pointer-events-auto select-auto" 
+                />
               </div>
+            ) : (
+              // 🌟 狀態一：原本的 HTML 結構，等待使用者按下生成按鈕
+              <>
+                <button 
+                  onClick={handleGenerateReceipt}
+                  disabled={isGenerating}
+                  className="bg-[#1A432D]/90 hover:bg-[#122F20] text-[#D89F3C] border border-[#D89F3C]/50 text-sm font-bold py-3 px-4 rounded-xl mb-4 flex items-center justify-center gap-2 shadow-lg w-full max-w-[280px] transition-all active:scale-95 z-[60] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                   {isGenerating ? (
+                     <span className="tracking-widest flex items-center gap-2">處理中請稍候...</span>
+                   ) : (
+                     <>
+                       <Camera size={16} className="shrink-0" />
+                       <span className="tracking-widest">點擊生成「專屬照片」</span>
+                     </>
+                   )}
+                </button>
 
-              <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
-              </div>
+                <div ref={receiptRef} className={`relative w-full max-w-[360px] drop-shadow-2xl mx-auto overflow-hidden rounded-xl bg-[#FAF7F0] ${isGenerating ? 'opacity-50' : 'opacity-100'} transition-opacity duration-300`}>
+                  <img 
+                    src="https://oyoopxulmfihblgaptva.supabase.co/storage/v1/object/public/images/20260716jpg.png" 
+                    alt="祈福印記底圖" 
+                    className="w-full h-auto block pointer-events-none select-none relative z-0" 
+                    crossOrigin="anonymous" 
+                  />
+                  <style>{`.receipt-text { font-family: var(--font-noto-serif), "Noto Serif TC", serif !important; }`}</style>
 
-              <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
-              </div>
+                  <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(44.5 / 175 * 100%)', top: 'calc(85 / 300 * 100%)', width: 'calc(90 / 175 * 100%)', height: 'calc(20 / 300 * 100%)' }}>
+                    <h2 className="text-[17px] md:text-[19px] font-bold text-[#A61D24] tracking-[0.3em] leading-none mb-1">祈福印記</h2>
+                    <p className="text-[#D89F3C] text-[10px] md:text-[11px] tracking-widest font-bold leading-none">- 大德護持 善神擁護 -</p>
+                  </div>
 
-              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
-                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
-              </div>
+                  <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(160 / 175 * 100%)', top: 'calc(75 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(150 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">天運歲次登記吉日</span>
+                  </div>
 
-              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
-                <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
-              </div>
+                  <div className="absolute z-10 receipt-text text-[#A61D24] flex items-center justify-center" style={{ left: 'calc(3 / 175 * 100%)', top: 'calc(70 / 300 * 100%)', width: 'calc(12 / 175 * 100%)', height: 'calc(180 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[14px] md:text-[11px] tracking-[0.2em]">祈求平安順心萬事如意</span>
+                  </div>
 
-              <div className="absolute z-10 receipt-text text-[#A61D24]" style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
-              </div>
+                  <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', maxHeight: 'calc(120 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>大德</span>
+                    <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.user_name}</span>
+                  </div>
 
-              <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
-                <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
-                  {formatServiceDetails(selectedOrder.service_details)}
-                </span>
-              </div>
+                  <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(90 / 175 * 100%)', top: 'calc(170 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[#A61D24] text-[12px] md:text-[13px] tracking-[0.4em] inline-block" style={{ marginBottom: '16px' }}>項目</span>
+                    <span className="font-bold text-[11px] md:text-[12px] tracking-widest leading-snug">{selectedOrder.service_type}</span>
+                  </div>
 
-              <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}>
-                <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
-              </div>
-            </div>
+                  <div className="absolute z-10 receipt-text text-[#A61D24]" style={{ left: 'calc(75 / 175 * 100%)', top: 'calc(110 / 300 * 100%)', width: 'calc(35 / 175 * 100%)', height: 'auto', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[12px] md:text-[13px] tracking-[0.4em]">方案</span>
+                  </div>
+
+                  <div className="absolute z-10 receipt-text text-stone-900" style={{ left: 'calc(40 / 175 * 100%)', top: 'calc(128 / 300 * 100%)', width: 'calc(70 / 175 * 100%)', height: 'auto', maxHeight: 'calc(102 / 300 * 100%)', writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                    <span className="font-bold text-[11px] md:text-[12px] leading-[2.5] tracking-widest whitespace-pre-wrap break-all">
+                      {formatServiceDetails(selectedOrder.service_details)}
+                    </span>
+                  </div>
+
+                  <div className="absolute z-10 receipt-text flex flex-col items-center justify-center text-center" style={{ left: 'calc(62.5 / 175 * 100%)', top: 'calc(240 / 300 * 100%)', width: 'calc(50 / 175 * 100%)', height: 'calc(10 / 300 * 100%)' }}>
+                    <span className="text-[12px] md:text-[12px] font-bold text-[#D89F3C] tracking-[0.2em]">- 功德 圓滿 -</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
