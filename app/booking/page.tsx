@@ -74,7 +74,7 @@ export default function BookingPage() {
     await supabase.auth.signInWithOAuth({
       provider: "custom:line" as any,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/booking`,
+        redirectTo: `${window.location.origin}/booking`,
       },
     });
   };
