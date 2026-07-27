@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 
 export default function FlashCampaignSection({ campaign }: { campaign: any }) {
-  const { data: session } = useSession();
+  const { data: session } = supabase.auth.getUser();
   const router = useRouter();
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
 

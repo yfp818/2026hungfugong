@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Camera, Coins } from "lucide-react"; 
 
 export default function GlobalCartPage() {
-  const { data: session } = useSession();
+  const { data: session } = supabase.auth.getUser();
   const { cartItems, removeFromCart, clearCart } = useCart();
   
   const [step, setStep] = useState(1);

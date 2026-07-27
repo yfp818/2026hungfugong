@@ -1,20 +1,20 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"; 
-import LoginButton from "./LoginButton"; 
+import { createClient } from "@/lib/supabase/server";
+import LoginButton from "./LoginButton";
 import Link from "next/link";
 import { LayoutDashboard, ClipboardList, Users, Settings, Megaphone } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   
   // 請確認這裡有您的 LINE 綁定信箱
   const adminEmails = [
     "yfp818@gmail.com", 
   ];
 
-  if (!session || !session.user?.email || !adminEmails.includes(session.user.email)) {
+  if (!user || !user.email || !adminEmails.includes(user.email)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1/2 bg-[#1A432D]"></div>
@@ -27,11 +27,11 @@ export default async function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">皇府宮管理系統</h1>
             <p className="text-muted-foreground font-medium tracking-widest text-sm mb-2">
-              {session?.user?.name ? `目前登入：${session.user.name}` : "請使用授權帳號登入"}
+              {user?.user_metadata?.name ? `目前登入：${user.user_metadata.name}` : "請使用授權帳號登入"}
             </p>
-            {session?.user?.email && !adminEmails.includes(session.user.email) && (
+            {user?.email && !adminEmails.includes(user.email) && (
               <p className="text-red-500 text-xs font-bold tracking-widest bg-red-50 py-2 rounded-lg mt-2">
-                ⚠️ 此帳號無管理權限：{session.user.email}
+                ⚠️ 此帳號無管理權限：{user.email}
               </p>
             )}
           </div>
@@ -44,12 +44,10 @@ export default async function AdminPage() {
     );
   }
 
-  // 💡 如果是白名單管理員，就會看到以下這個「全新總覽儀表板」的畫面
-  // 並且這個畫面會自動被我們稍早建立的 layout.tsx (左側欄) 包覆住！
   return (
     <div className="animate-in fade-in duration-700">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{session.user.name}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{user.user_metadata?.name || '管理員'}</h1>
         <p className="text-muted-foreground mt-2 tracking-widest">請從左側選單選擇您要管理的項目，或點擊下方快速捷徑。</p>
       </div>
 

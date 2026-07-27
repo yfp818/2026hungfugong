@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useSession, signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ShareButton";
 import { Camera } from "lucide-react"; 
 
@@ -10,7 +10,7 @@ export default function SpecialProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session } = supabase.auth.getUser();
 
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

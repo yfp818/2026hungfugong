@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { supabase } from "@/lib/supabase";
+// 引入 Supabase Client 替代 next-auth
+import { createClient } from "@/lib/supabase/client";
 
 export interface CartItem {
   id: string;
@@ -46,21 +46,32 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  // 改為儲存 Supabase 的 user
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [contacts, setContacts] = useState<UserContact[]>([]);
   const [sharedInfo, setSharedInfo] = useState<SharedInfo>({ userName: "", userPhone: "", birthDate: "", address: "" });
   const [selfProfile, setSelfProfile] = useState<SharedInfo | null>(null);
+
+  // 初始化時取得使用者狀態
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   const updateSharedInfo = (info: Partial<SharedInfo>) => {
     setSharedInfo(prev => ({ ...prev, ...info }));
   };
 
   const refreshContacts = async () => {
-    if (!session?.user?.email) return;
-    const userLineId = session.user.email;
+    // 💡 重要修改：Supabase OIDC 登入後，LINE 的 ID 會存在 user_metadata.sub
+    if (!user?.user_metadata?.sub) return;
+    const userLineId = user.user_metadata.sub;
     
-    // 🛡️ 修正：統一使用 line_id 查詢聯絡簿
     const { data: contactsData } = await supabase.from("user_contacts").select("*").eq("line_id", userLineId).order("created_at", { ascending: false });
     if (contactsData) setContacts(contactsData);
 
@@ -73,21 +84,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (session?.user) refreshContacts();
-  }, [session]);
+    if (user) refreshContacts();
+  }, [user]);
 
   const addToCart = async (item: CartItem, saveToContacts = false) => {
     setCartItems(prev => [...prev, item]);
     
-    if (saveToContacts && session?.user?.email) {
-      const userLineId = session.user.email;
-      // 🛡️ 修正：統一使用 line_id 查詢與寫入
+    // 💡 同樣修正取得 LINE ID 的方式
+    if (saveToContacts && user?.user_metadata?.sub) {
+      const userLineId = user.user_metadata.sub;
       const { data: existing } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId).eq("contact_name", item.userName).maybeSingle();
 
       if (!existing) {
         const isSelf = selfProfile && selfProfile.userName === item.userName;
         await supabase.from("user_contacts").insert([{
-          line_id: userLineId, // 已修正為正確的欄位
+          line_id: userLineId, 
           contact_name: item.userName,
           contact_phone: item.userPhone,
           relationship_tag: isSelf ? "本人" : "親友",

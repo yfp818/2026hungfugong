@@ -1,18 +1,20 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 
 export default function BookingPage() {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
   const router = useRouter();
   
-  // ✨ 引入 contacts 與 selfProfile 供名冊功能使用
+  // 引入 contacts 與 selfProfile 供名冊功能使用
   const { addToCart, updateSharedInfo, sharedInfo, contacts, selfProfile } = useCart();
   
-  // ✨ 加入 targetName (問事對象)
+  // 加入 targetName (問事對象)
   const [name, setName] = useState("");
   const [targetName, setTargetName] = useState("");
   const [phone, setPhone] = useState("");
@@ -20,10 +22,19 @@ export default function BookingPage() {
   const [address, setAddress] = useState("");
   const [question, setQuestion] = useState("");
   
-  // ✨ 加入名冊選擇狀態
+  // 加入名冊選擇狀態
   const [selectedContactId, setSelectedContactId] = useState("self");
   const [saveToContacts, setSaveToContacts] = useState(true);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    fetchUser();
+  }, [supabase]);
 
   useEffect(() => {
     // 預設帶入本人聯絡資訊
@@ -37,7 +48,7 @@ export default function BookingPage() {
     }
   }, [selfProfile, name, selectedContactId]);
 
-  // ✨ 智慧名冊切換邏輯
+  // 智慧名冊切換邏輯
   const handleContactChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
     setSelectedContactId(selectedId);
@@ -59,14 +70,23 @@ export default function BookingPage() {
     }
   };
 
+  const handleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "line" as any,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/booking`,
+      },
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if(!session) return alert("請先使用 LINE 登入！");
+    if(!user) return alert("請先使用 LINE 登入！");
     
     updateSharedInfo({ userName: name, userPhone: phone, birthDate: birthDate, address: address });
     const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
 
-    // ✨ 最終寫入購物車的大德名字：若有填問事對象就用對象，否則用聯絡人
+    // 最終寫入購物車的大德名字：若有填問事對象就用對象，否則用聯絡人
     const finalTargetName = targetName || name;
 
     addToCart({
@@ -84,7 +104,7 @@ export default function BookingPage() {
     setShowRedirectModal(true);
   };
 
-  if (status === "loading") return <div className="min-h-screen flex items-center justify-center bg-[#FAF7F0]"><div className="w-10 h-10 border-4 border-[#A61D24] border-t-transparent rounded-full animate-spin"></div></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#FAF7F0]"><div className="w-10 h-10 border-4 border-[#A61D24] border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
     <main className="min-h-screen bg-[#FAF7F0] py-16 px-6 flex items-center justify-center selection:bg-[#A61D24] selection:text-white">
@@ -96,17 +116,16 @@ export default function BookingPage() {
         </div>
 
         <div className="p-8 md:p-12">
-          {!session ? (
+          {!user ? (
             <div className="text-center space-y-8 py-8">
               <p className="text-muted-foreground tracking-widest text-sm leading-relaxed">為了保護您的隱私與加快未來填寫速度，<br/>請使用 LINE 快速登入系統。</p>
-              <Button onClick={() => signIn("line")} className="bg-[#06C755] hover:bg-[#05a546] text-white tracking-widest font-bold shadow-lg rounded-full px-10 py-7 text-lg w-full md:w-auto">
+              <Button onClick={handleLogin} className="bg-[#06C755] hover:bg-[#05a546] text-white tracking-widest font-bold shadow-lg rounded-full px-10 py-7 text-lg w-full md:w-auto">
                  使用 LINE 一鍵登入
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-700">
               
-              {/* ✨ 升級的雙欄位與名冊選擇區 */}
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
                   <h3 className="font-bold text-xl text-[#1A432D] tracking-widest border-l-4 border-[#A61D24] pl-3">問事資料填寫</h3>
@@ -183,7 +202,6 @@ export default function BookingPage() {
 
               <div className="space-y-3 relative z-10">
                 <h3 className="text-2xl font-bold text-[#1A432D] tracking-widest">已加入預約清單</h3>
-                {/* ✨ 彈窗成功顯示問事對象 */}
                 <p className="text-muted-foreground text-sm tracking-widest leading-relaxed">
                   您剛才為「<span className="text-[#1A432D] font-bold">{targetName || name}</span>」登記的項目已暫存。<br/>是否需要順道安排當月點燈或代燒服務？
                 </p>

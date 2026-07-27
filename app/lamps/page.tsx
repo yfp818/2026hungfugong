@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 
 export default function LampsPage() {
-  const { data: session, status } = useSession();
+  const { data: session, status } =supabase.auth.getUser();
   const router = useRouter();
   
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();

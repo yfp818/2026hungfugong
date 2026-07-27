@@ -1,8 +1,7 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { 
@@ -11,7 +10,10 @@ import {
 } from "lucide-react"; 
 
 export default function MemberCenter() {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const supabase = createClient();
+
   const [orders, setOrders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -22,11 +24,22 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
+  // 初始化取得使用者
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoadingUser(false);
+    };
+    fetchUser();
+  }, [supabase]);
+
   const fetchMemberData = useCallback(async () => {
-    const userLineId = session?.user?.email || (session?.user as any)?.id || "unknown";
+    if (!user) return;
+    const userLineId = user.id || user.email || "unknown";
     if (userLineId === "unknown") return;
 
-    const userName = session?.user?.name || "信眾";
+    const userName = user.user_metadata?.name || "信眾";
 
     let currentPhone = "";
     const { data: mpData } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).maybeSingle();
@@ -89,19 +102,27 @@ export default function MemberCenter() {
     }
     setOrders(historyOrders);
     setLoadingOrders(false);
-  }, [session]);
+  }, [user, supabase]);
 
   useEffect(() => {
-    fetchMemberData();
-  }, [fetchMemberData]);
+    if (user) {
+      fetchMemberData();
+    }
+  }, [user, fetchMemberData]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   const handleSaveProfile = async () => {
-    const userLineId = session?.user?.email || (session?.user as any)?.id || "unknown";
+    if (!user) return;
+    const userLineId = user.id || user.email || "unknown";
     
     if (userLineId === "unknown") return alert("無法識別身分，請重新登入！");
     if (!profile.phone) return alert("請輸入聯絡電話！");
 
-    const safeName = session?.user?.name || "LINE信眾";
+    const safeName = user.user_metadata?.name || "LINE信眾";
 
     try {
       const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
@@ -152,11 +173,11 @@ export default function MemberCenter() {
     return optionsArray.length > 3 ? limitedOptions + '等' : limitedOptions;
   };
 
-  if (status === "loading") {
+  if (loadingUser) {
     return <div className="min-h-screen bg-background flex items-center justify-center font-bold tracking-widest text-[#1A432D]">驗證信眾身分中...</div>;
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <UserCircle className="w-24 h-24 text-stone-300 mb-6" />
@@ -187,17 +208,17 @@ export default function MemberCenter() {
         {/* 帳戶基礎資訊 */}
         <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex justify-between items-center">
           <div className="flex items-center gap-5">
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="avatar" className="w-16 h-16 rounded-full border-2 border-stone-100 shadow-sm object-cover" />
+            {user?.user_metadata?.picture ? (
+              <img src={user.user_metadata.picture} alt="avatar" className="w-16 h-16 rounded-full border-2 border-stone-100 shadow-sm object-cover" />
             ) : (
               <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-stone-400 border-2 border-border shadow-sm"><UserCircle size={32} /></div>
             )}
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-foreground tracking-wider">{session?.user?.name}</h2>
+              <h2 className="text-2xl font-bold text-foreground tracking-wider">{user?.user_metadata?.name || "尊貴的信眾"}</h2>
               <p className="text-xs text-stone-400 tracking-widest">已完成 LINE 信眾身分認證</p>
             </div>
           </div>
-          <button onClick={() => signOut()} className="text-sm font-bold text-stone-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50">登出</button>
+          <button onClick={handleSignOut} className="text-sm font-bold text-stone-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50">登出</button>
         </div>
 
         {/* 💳 專屬祈福金餘額卡片 */}
