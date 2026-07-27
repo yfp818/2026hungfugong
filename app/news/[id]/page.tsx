@@ -1,7 +1,7 @@
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server"; // 👈 1. 改用伺服器端引入
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import ShareButton from "@/components/ShareButton"; // ✨ 引入我們剛剛做的分享按鈕
+import ShareButton from "@/components/ShareButton";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,26 +14,21 @@ const renderSmartContent = (content: string) => {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
 
-    // 魔法 1：辨識 **加粗文字**
     line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-black text-foreground">$1</strong>');
 
     if (line.startsWith('# ')) {
-      // 魔法 2：辨識 "# " 變成金色大標題
       if (inList) { elements.push('</ul>'); inList = false; }
       elements.push(`<h2 class="text-2xl md:text-3xl font-bold text-[#D89F3C] mt-10 mb-4 tracking-wider leading-snug">${line.substring(2)}</h2>`);
     } else if (line.startsWith('## ')) {
-      // 魔法 3：辨識 "## " 變成深綠中標題
       if (inList) { elements.push('</ul>'); inList = false; }
       elements.push(`<h3 class="text-xl md:text-2xl font-bold text-[#1A432D] mt-8 mb-3 tracking-wide">${line.substring(3)}</h3>`);
     } else if (line.startsWith('- ')) {
-      // 魔法 4：辨識 "- " 變成精美的條列式重點
       if (!inList) { elements.push('<ul class="list-none space-y-3 my-4 ml-2">'); inList = true; }
       elements.push(`<li class="flex items-start"><span class="text-[#D89F3C] mr-2 text-lg leading-tight">•</span><span class="leading-relaxed">${line.substring(2)}</span></li>`);
     } else {
-      // 一般內文
       if (inList) { elements.push('</ul>'); inList = false; }
       if (line.trim() === '') {
-        elements.push('<div class="h-4"></div>'); // 保持段落間距
+        elements.push('<div class="h-4"></div>');
       } else {
         elements.push(`<p class="leading-loose mb-4 text-stone-600 md:text-lg text-justify">${line}</p>`);
       }
@@ -44,10 +39,11 @@ const renderSmartContent = (content: string) => {
   return <div dangerouslySetInnerHTML={{ __html: elements.join('') }} />;
 };
 
-
 export default async function NewsDetailPage({ params }: any) {
   const resolvedParams = await Promise.resolve(params);
   const articleId = resolvedParams.id;
+  
+  const supabase = await createClient(); // 👈 2. 建立伺服器端實例
 
   const { data: news, error } = await supabase
     .from("news_events")
@@ -80,7 +76,6 @@ export default async function NewsDetailPage({ params }: any) {
         )}
         
         <div className="p-8 md:p-12">
-          {/* 標頭資訊區 */}
           <div className="flex items-center gap-3 mb-6">
             <span className={`text-xs font-bold px-3 py-1 rounded-full text-white ${news.category === 'event' ? 'bg-[#D89F3C]' : 'bg-stone-400'}`}>
               {news.category === 'event' ? '重點活動' : '本宮公告'}
@@ -95,15 +90,11 @@ export default async function NewsDetailPage({ params }: any) {
           </h1>
           <div className="w-12 h-1 bg-[#D89F3C] rounded-full mb-8"></div>
           
-          {/* ✨ 內文區塊 (套用聰明排版魔法) */}
           <div className="article-content">
             {renderSmartContent(news.content)}
           </div>
 
-          {/* ✨ 文章底部動作區塊 */}
           <div className="pt-10 mt-10 border-t border-stone-100 flex flex-col gap-4">
-            
-            {/* 1. 專屬活動報名 CTA 按鈕 (如果有填寫網址才會出現) */}
             {news.action_url && (
               <Link href={news.action_url} className="w-full">
                 <Button className="w-full py-8 text-lg bg-[#1A432D] hover:bg-[#122F20] text-[#D89F3C] font-bold tracking-widest rounded-xl shadow-lg hover:-translate-y-1 transition-all duration-300">
@@ -112,7 +103,6 @@ export default async function NewsDetailPage({ params }: any) {
               </Link>
             )}
 
-            {/* 2. 分享與返回按鈕列 */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 mt-2">
               <ShareButton title={news.title} />
               <Link href="/#announcements" className="w-full sm:w-auto">
@@ -121,7 +111,6 @@ export default async function NewsDetailPage({ params }: any) {
                 </Button>
               </Link>
             </div>
-
           </div>
         </div>
       </div>

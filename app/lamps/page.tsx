@@ -2,14 +2,14 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 
 export default function LampsPage() {
-  const { data: session, status } =supabase.auth.getUser();
+  const supabase = createClient(); // 👈 1. 建立 supabase 實例
   const router = useRouter();
-  
+  const [session, setSession] = useState<any>(null);
+  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   
@@ -39,18 +39,13 @@ export default function LampsPage() {
     .join("、");
 
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const { data } = await supabase.from("blessing_products").select("*").eq("category", "lamp").order("created_at", { ascending: true });
-        if (data) setProducts(data);
-      } catch (err) {
-        console.error("載入點燈項目失敗", err);
-      } finally {
-        setIsLoading(false);
-      }
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setSession(user ? { user } : null);
+      setStatus("authenticated");
     }
-    loadProducts();
-  }, []);
+    checkAuth();
+  }, [supabase]);
 
   useEffect(() => {
     if (selfProfile && !hasAutoFilled) {
@@ -158,7 +153,20 @@ export default function LampsPage() {
         {!session ? (
           <div className="bg-card p-16 rounded-[2rem] text-center space-y-8 border border-border shadow-sm max-w-2xl mx-auto">
             <p className="text-muted-foreground tracking-widest font-medium leading-relaxed">為了確保您的點燈紀錄與常用名冊正確無誤，<br/>請先使用 LINE 進行驗證登入。</p>
-            <Button onClick={() => signIn("line")} className="bg-[#06C755] hover:bg-[#05a546] text-white tracking-widest font-bold px-10 py-7 rounded-full shadow-xl text-lg">使用 LINE 快速登入</Button>
+            <Button 
+  onClick={async () => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "custom:line" as any,
+      options: {
+        redirectTo: `${window.location.origin}/lamps`
+      }
+    });
+  }} 
+  className="bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
+>
+  LINE / 信箱 安全登入
+</Button>
           </div>
         ) : isLoading ? (
           <div className="text-center py-12 text-muted-foreground font-bold tracking-widest">載入點燈項目中...</div>

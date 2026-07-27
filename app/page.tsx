@@ -5,7 +5,7 @@ export const revalidate = 0;
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { notoSerif } from "./layout";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import AOSProvider from "@/components/AOSProvider"; 
 import FlashCampaignSection from "@/components/FlashCampaignSection";
 import CampaignSplash from "@/components/CampaignSplash"; 
@@ -20,6 +20,7 @@ const stripMarkdown = (text: string) => {
 };
 
 export default async function Home() {
+  const supabase = await createClient();
   const { data: introData } = await supabase.from("site_content").select("*").eq("id", "homepage_intro").single();
   const displayTitle = introData?.title || "相信就會看見";
   const displayContent = introData?.content || "勇敢才能無畏";

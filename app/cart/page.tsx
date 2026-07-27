@@ -2,13 +2,22 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/context/CartContext";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Camera, Coins } from "lucide-react"; 
 
 export default function GlobalCartPage() {
-  const { data: session } = supabase.auth.getUser();
+  const supabase = createClient(); // 👈 1. 初始化 Supabase 客戶端
+  const [user, setUser] = useState<any>(null); // 👈 2. 用狀態儲存登入使用者
+
+  useEffect(() => {
+    async function fetchUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    fetchUser();
+  }, [supabase]);
+
   const { cartItems, removeFromCart, clearCart } = useCart();
   
   const [step, setStep] = useState(1);
@@ -41,11 +50,11 @@ export default function GlobalCartPage() {
         } catch (e) {}
       }
 
-      if (session?.user?.email) {
+      if (user?.email) {
         const { data: memberData } = await supabase
           .from("member_profiles")
           .select("wallet_balance")
-          .eq("user_line_id", session.user.email)
+          .eq("user_line_id", user.email)
           .single();
         if (memberData) {
           setWalletBalance(memberData.wallet_balance || 0);
@@ -53,7 +62,7 @@ export default function GlobalCartPage() {
       }
     }
     loadInitialData();
-  }, [session]);
+  }, [user]);
 
   const handleCheckout = async () => {
     if (safeCartItems.length === 0) return alert("購物車目前無任何項目。");
@@ -63,7 +72,7 @@ export default function GlobalCartPage() {
 
     try {
       const itemsToInsert = safeCartItems.map((item: any) => ({
-        user_line_id: session?.user?.email || session?.user?.name || "line_user",
+        user_line_id: user?.email || user?.name || "line_user",
         service_type: item.serviceType === "booking" ? "濟事問事" : item.serviceType === "lamp" ? "當月點燈" : "代燒服務",
         user_name: item.userName || "未提供姓名",
         user_phone: item.userPhone || "",
@@ -78,18 +87,18 @@ export default function GlobalCartPage() {
       const { error: orderError } = await supabase.from("service_orders").insert(itemsToInsert);
       if (orderError) throw orderError;
 
-      if (useWallet && deductedAmount > 0 && session?.user?.email) {
+      if (useWallet && deductedAmount > 0 && user?.email) {
         const newBalance = walletBalance - deductedAmount;
         const { error: balanceError } = await supabase
           .from("member_profiles")
           .update({ wallet_balance: newBalance })
-          .eq("user_line_id", session.user.email);
+          .eq("user_line_id", user.email);
         if (balanceError) throw balanceError;
 
         const { error: txError } = await supabase
           .from("wallet_transactions")
           .insert([{
-            user_line_id: session.user.email,
+            user_line_id: user?.email,
             amount: -deductedAmount,
             transaction_type: "consume",
             description: `[結帳扣抵] 祈福服務 (總額 $${totalCartPrice}，扣抵 $${deductedAmount})`
@@ -98,25 +107,25 @@ export default function GlobalCartPage() {
       }
 
       // 🛡️ 新增機制：強制寫入會員資料庫，解決「尚未設定」斷鏈問題
-      if (session?.user?.email) {
+      if (user?.email) {
         const mainPhone = safeCartItems.find((item: any) => item.userPhone)?.userPhone || "";
-        const mainName = safeCartItems.find((item: any) => item.userName)?.userName || session.user.name || "未提供";
+        const mainName = safeCartItems.find((item: any) => item.userName)?.userName || user.name || "未提供";
         const mainAddress = safeCartItems.find((item: any) => item.address)?.address || "";
 
         if (mainPhone) {
           // 1. 同步會員檔
-          const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+          const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", user.email);
           if (mpData && mpData.length > 0) {
-            await supabase.from("member_profiles").update({ phone: mainPhone, name: mainName }).eq("user_line_id", session.user.email);
+            await supabase.from("member_profiles").update({ phone: mainPhone, name: mainName }).eq("user_line_id", user.email);
           } else {
-            await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: mainName, phone: mainPhone, wallet_balance: 0 });
+            await supabase.from("member_profiles").insert({ user_line_id: user.email, name: mainName, phone: mainPhone, wallet_balance: 0 });
           }
           // 2. 同步聯絡簿
-          const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+          const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", user.email);
           if (ucData && ucData.length > 0) {
-            await supabase.from("user_contacts").update({ phone: mainPhone, address: mainAddress, line_name: mainName }).eq("line_id", session.user.email);
+            await supabase.from("user_contacts").update({ phone: mainPhone, address: mainAddress, line_name: mainName }).eq("line_id", user.email);
           } else {
-            await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: mainName, phone: mainPhone, address: mainAddress });
+            await supabase.from("user_contacts").insert({ line_id: user.email, line_name: mainName, phone: mainPhone, address: mainAddress });
           }
         }
       }

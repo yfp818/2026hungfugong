@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 
 export default function BurningServicePage() {
+  const supabase = createClient();
   const { data: session, status } = supabase.auth.getUser();
   const router = useRouter();
   
@@ -160,10 +160,29 @@ export default function BurningServicePage() {
 
         {!session ? (
           <div className="p-16 text-center space-y-8">
-            <p className="text-muted-foreground tracking-widest font-medium leading-relaxed">為了確保代燒名單正確無誤，<br/>請先使用 LINE 進行驗證登入。</p>
-            <Button onClick={() => signIn("line")} className="bg-[#06C755] hover:bg-[#05a546] text-white tracking-widest font-bold px-10 py-7 rounded-full shadow-xl text-lg">使用 LINE 快速登入</Button>
+            <p className="text-muted-foreground tracking-widest font-medium leading-relaxed">
+              為了確保代燒名單正確無誤，<br/>請先使用 LINE 進行驗證登入。
+            </p>
+            <Button 
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signInWithOAuth({
+                  provider: "custom:line" as any,
+                  options: {
+                    redirectTo: `${window.location.origin}/burning`
+                  }
+                });
+              }} 
+              className="bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all"
+            >
+              LINE / 信箱 安全登入
+            </Button>
           </div>
         ) : (
+          <div className="p-8 md:p-12">
+            {/* 這裡放登入後的表單與內容 */}
+          </div>
+        )}
           <div className="p-8 md:p-12">
             <form onSubmit={handleAddToCart} className="space-y-12 animate-in fade-in duration-500">
               
@@ -331,7 +350,7 @@ export default function BurningServicePage() {
               </div>
             </form>
           </div>
-        )}
+        )
 
         {showRedirectModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-stone-900/60 backdrop-blur-sm transition-all">

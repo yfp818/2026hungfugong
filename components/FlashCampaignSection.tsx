@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 
 export default function FlashCampaignSection({ campaign }: { campaign: any }) {
-  const { data: session } = supabase.auth.getUser();
+  const supabase = createClient(); // 👈 1. 這裡必須呼叫以建立 supabase 實例
+  const [session, setSession] = useState<any>(null); // 👈 2. 用 state 儲存登入狀態
   const router = useRouter();
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
 
@@ -27,6 +28,13 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
   const [optionQuantities, setOptionQuantities] = useState<number[]>(new Array(campaignOptions.length).fill(0));
 
   const totalPrice = campaignOptions.reduce((sum: number, opt: any, idx: number) => sum + (opt.price * optionQuantities[idx]), 0);
+
+  // 👈 3. 非同步取得使用者 session
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setSession(data.session);
+    });
+  }, []);
 
   useEffect(() => {
     if (selfProfile && !name && selectedContactId === "self") {
@@ -109,8 +117,18 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
       立即線上報名
     </button>
   ) : (
-    <button onClick={() => signIn("line")} className="w-full bg-stone-200 hover:bg-stone-300 text-stone-700 px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all">
-      登入 LINE 開始登記
+    <button 
+      onClick={async () => {
+        await supabase.auth.signInWithOAuth({
+          provider: "custom:line" as any,
+          options: {
+            redirectTo: `${window.location.origin}/booking`
+          }
+        });
+      }} 
+      className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
+    >
+      LINE 安全登入
     </button>
   )}
 </div>

@@ -1,16 +1,24 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ShareButton";
 import { Camera } from "lucide-react"; 
 
 export default function SpecialProjectPage() {
+  const supabase = createClient();
   const params = useParams();
   const projectId = params.id as string;
   const router = useRouter();
-  const { data: session } = supabase.auth.getUser();
+  const [session, setSession] = useState<any>(null); // 👈 改用 state 儲存
+
+  useEffect(() => {
+    async function fetchUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setSession(user ? { user } : null);
+    }
+    fetchUser();
+  }, [supabase]);
 
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -318,11 +326,25 @@ export default function SpecialProjectPage() {
               <h3 className="text-lg font-bold text-[#1A432D] tracking-widest border-l-4 border-[#D89F3C] pl-3">第三步：填寫登記資料</h3>
               
               {!session && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between shadow-sm">
-                  <p className="text-sm font-bold text-amber-800 tracking-widest">登入 LINE 可快速帶入資料</p>
-                  <button type="button" onClick={() => signIn("line")} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold tracking-widest shadow-sm hover:bg-amber-700 transition-colors">立即登入</button>
-                </div>
-              )}
+  <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center justify-between shadow-sm">
+    <p className="text-sm font-bold text-amber-800 tracking-widest">登入 LINE 可快速帶入資料</p>
+    <button 
+      type="button" 
+      onClick={async () => {
+        const supabase = createClient();
+        await supabase.auth.signInWithOAuth({
+          provider: "custom:line" as any,
+          options: {
+            redirectTo: `${window.location.origin}${window.location.pathname}`
+          }
+        });
+      }} 
+      className="bg-[#06C755] text-white px-4 py-2 rounded-lg text-xs font-bold tracking-widest shadow-sm hover:bg-[#05b34c] transition-colors"
+    >
+      立即登入
+    </button>
+  </div>
+)}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
                 <div className="space-y-1.5">

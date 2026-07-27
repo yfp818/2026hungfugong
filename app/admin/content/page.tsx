@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import {createClient } from "@/lib/supabase/client";
 
 export default function ContentPage() {
+  const supabase = createClient(); // 👈 在元件內建立 supabase 實例
   const [isLoading, setIsLoading] = useState(true);
 
   // --- 主視覺狀態 ---

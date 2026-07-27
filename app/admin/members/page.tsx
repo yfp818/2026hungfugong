@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export default function MembersPage() {
+  const supabase = createClient(); // 👈 關鍵：必須在這裡初始化實例！
+
   const [membersList, setMembersList] = useState<any[]>([]);
   const [transactionsList, setTransactionsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

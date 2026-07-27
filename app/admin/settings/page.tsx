@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SettingsPage() {
+  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(true);
 
   // --- 1. 首頁按鈕設定 ---

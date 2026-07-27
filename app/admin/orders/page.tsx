@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export default function OrdersPage() {
   const [ordersList, setOrdersList] = useState<any[]>([]);
+  const supabase = createClient();
   const [spOrdersList, setSpOrdersList] = useState<any[]>([]);
   const [membersList, setMembersList] = useState<any[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
