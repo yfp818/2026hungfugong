@@ -43,7 +43,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
   // 封裝新的登入處理函式
   const handleLogin = async () => {
     await supabase.auth.signInWithOAuth({
-      provider: "line" as any,
+      provider: "custom:line" as any,
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=/member`,
       },

@@ -5,7 +5,7 @@ export default function LoginButton() {
   const handleLogin = async () => {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
-      provider: "line" as any,
+      provider: "custom:line" as any,
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
       },
