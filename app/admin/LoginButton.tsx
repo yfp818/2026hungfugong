@@ -7,7 +7,7 @@ export default function LoginButton() {
     await supabase.auth.signInWithOAuth({
       provider: "custom:line" as any,
       options: {
-        redirectTo: `${window.location.origin}/admin,
+        redirectTo: `${window.location.origin}/admin`,
       },
     });
   };
