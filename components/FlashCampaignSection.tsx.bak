@@ -122,7 +122,7 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
         await supabase.auth.signInWithOAuth({
           provider: "custom:line" as any,
           options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/booking`
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/booking`
           }
         });
       }} 

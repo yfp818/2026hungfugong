@@ -1,0 +1,189 @@
+===== package.json auth dependencies =====
+25:    "next-auth": "^4.24.14",
+
+===== LINE / OAuth code =====
+app/auth/callback/route.ts:21:  const { error } = await supabase.auth.exchangeCodeForSession(code)
+app/booking/page.tsx:74:    await supabase.auth.signInWithOAuth({
+app/booking/page.tsx:75:      provider: "custom:line" as any,
+app/booking/page.tsx.bak:74:    await supabase.auth.signInWithOAuth({
+app/booking/page.tsx.bak:75:      provider: "custom:line" as any,
+app/burning/page.tsx:169:                await supabase.auth.signInWithOAuth({
+app/burning/page.tsx:170:                  provider: "custom:line" as any,
+app/burning/page.tsx.bak:169:                await supabase.auth.signInWithOAuth({
+app/burning/page.tsx.bak:170:                  provider: "custom:line" as any,
+app/admin/settings/page.tsx:183:    const url = isSp ? `${window.location.origin}/project/${id}` : `https://liff.line.me/2010604926-zQQVEwEM/campaign/${id}`;
+app/admin/LoginButton.tsx.bak:7:    await supabase.auth.signInWithOAuth({
+app/admin/LoginButton.tsx.bak:8:      provider: "custom:line" as any,
+app/admin/LoginButton.tsx:7:    await supabase.auth.signInWithOAuth({
+app/admin/LoginButton.tsx:8:      provider: "custom:line" as any,
+app/lamps/page.tsx:159:    await supabase.auth.signInWithOAuth({
+app/lamps/page.tsx:160:      provider: "custom:line" as any,
+app/lamps/page.tsx.bak:159:    await supabase.auth.signInWithOAuth({
+app/lamps/page.tsx.bak:160:      provider: "custom:line" as any,
+app/project/[id]/page.tsx:335:        await supabase.auth.signInWithOAuth({
+app/project/[id]/page.tsx:336:          provider: "custom:line" as any,
+app/project/[id]/page.tsx.bak:335:        await supabase.auth.signInWithOAuth({
+app/project/[id]/page.tsx.bak:336:          provider: "custom:line" as any,
+components/SiteHeader.tsx:45:    await supabase.auth.signInWithOAuth({
+components/SiteHeader.tsx:46:      provider: "custom:line" as any,
+components/FlashCampaignSection.tsx:122:        await supabase.auth.signInWithOAuth({
+components/FlashCampaignSection.tsx:123:          provider: "custom:line" as any,
+components/FlashCampaignSection.tsx.bak:122:        await supabase.auth.signInWithOAuth({
+components/FlashCampaignSection.tsx.bak:123:          provider: "custom:line" as any,
+components/SiteHeader.tsx.bak:45:    await supabase.auth.signInWithOAuth({
+components/SiteHeader.tsx.bak:46:      provider: "custom:line" as any,
+
+===== Supabase user/session usage =====
+app/booking/page.tsx:32:      const { data: { user } } = await supabase.auth.getUser();
+app/booking/page.tsx.bak:32:      const { data: { user } } = await supabase.auth.getUser();
+app/member/page.tsx:30:      const { data: { user } } = await supabase.auth.getUser();
+app/member/page.tsx:42:    const userName = user.user_metadata?.name || "信眾";
+app/member/page.tsx:125:    const safeName = user.user_metadata?.name || "LINE信眾";
+app/member/page.tsx:211:            {user?.user_metadata?.picture ? (
+app/member/page.tsx:212:              <img src={user.user_metadata.picture} alt="avatar" className="w-16 h-16 rounded-full border-2 border-stone-100 shadow-sm object-cover" />
+app/member/page.tsx:217:              <h2 className="text-2xl font-bold text-foreground tracking-wider">{user?.user_metadata?.name || "尊貴的信眾"}</h2>
+app/burning/page.tsx:10:  const { data: session, status } = supabase.auth.getUser();
+app/burning/page.tsx:103:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+app/burning/page.tsx:105:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+app/burning/page.tsx:107:          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+app/burning/page.tsx:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+app/burning/page.tsx:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+app/burning/page.tsx:114:          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+app/burning/page.tsx.bak:10:  const { data: session, status } = supabase.auth.getUser();
+app/burning/page.tsx.bak:103:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+app/burning/page.tsx.bak:105:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+app/burning/page.tsx.bak:107:          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+app/burning/page.tsx.bak:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+app/burning/page.tsx.bak:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+app/burning/page.tsx.bak:114:          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+app/admin/layout.tsx:20:      const { data: { user } } = await supabase.auth.getUser();
+app/admin/layout.tsx:25:    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+app/admin/layout.tsx:90:              <p className="text-sm font-bold text-foreground">{user?.user_metadata?.name || "管理員"}</p>
+app/admin/layout.tsx:93:            {user?.user_metadata?.picture ? (
+app/admin/layout.tsx:94:              <img src={user.user_metadata.picture} alt="avatar" className="w-10 h-10 rounded-full border border-border shadow-sm" />
+app/admin/page.tsx:10:  const { data: { user } } = await supabase.auth.getUser();
+app/admin/page.tsx:30:              {user?.user_metadata?.name ? `目前登入：${user.user_metadata.name}` : "請使用授權帳號登入"}
+app/admin/page.tsx:50:        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{user.user_metadata?.name || '管理員'}</h1>
+app/lamps/page.tsx:43:      const { data: { user } } = await supabase.auth.getUser();
+app/lamps/page.tsx:44:      setSession(user ? { user } : null);
+app/lamps/page.tsx.bak:43:      const { data: { user } } = await supabase.auth.getUser();
+app/lamps/page.tsx.bak:44:      setSession(user ? { user } : null);
+app/project/[id]/page.tsx:17:      const { data: { user } } = await supabase.auth.getUser();
+app/project/[id]/page.tsx:18:      setSession(user ? { user } : null);
+app/project/[id]/page.tsx:55:    if (session?.user?.name && !name) setName(session.user.name);
+app/project/[id]/page.tsx.bak:17:      const { data: { user } } = await supabase.auth.getUser();
+app/project/[id]/page.tsx.bak:18:      setSession(user ? { user } : null);
+app/project/[id]/page.tsx.bak:55:    if (session?.user?.name && !name) setName(session.user.name);
+app/cart/page.tsx:15:      const { data: { user } } = await supabase.auth.getUser();
+components/SiteHeader.tsx:19:      const { data: { user } } = await supabase.auth.getUser();
+components/SiteHeader.tsx:25:    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+components/FlashCampaignSection.tsx:34:    supabase.auth.getUser().then(({ data }) => {
+components/FlashCampaignSection.tsx.bak:34:    supabase.auth.getUser().then(({ data }) => {
+components/SiteHeader.tsx.bak:19:      const { data: { user } } = await supabase.auth.getUser();
+components/SiteHeader.tsx.bak:25:    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+context/CartContext.tsx:60:      const { data: { user } } = await supabase.auth.getUser();
+context/CartContext.tsx:71:    // 💡 重要修改：Supabase OIDC 登入後，LINE 的 ID 會存在 user_metadata.sub
+context/CartContext.tsx:72:    if (!user?.user_metadata?.sub) return;
+context/CartContext.tsx:73:    const userLineId = user.user_metadata.sub;
+context/CartContext.tsx:94:    if (saveToContacts && user?.user_metadata?.sub) {
+context/CartContext.tsx:95:      const userLineId = user.user_metadata.sub;
+
+===== Member/profile tables =====
+app/member/page.tsx:45:    const { data: mpData } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).maybeSingle();
+app/member/page.tsx:51:    const { data: ucData } = await supabase.from("user_contacts").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+app/member/page.tsx:61:        .from("member_profiles")
+app/member/page.tsx:64:        .neq("user_line_id", userLineId);
+app/member/page.tsx:68:          await supabase.from("wallet_transactions").update({ user_line_id: userLineId }).eq("user_line_id", old.user_line_id);
+app/member/page.tsx:69:          await supabase.from("member_profiles").delete().eq("user_line_id", old.user_line_id);
+app/member/page.tsx:71:        await supabase.from("service_orders").update({ user_line_id: userLineId }).eq("user_phone", currentPhone);
+app/member/page.tsx:78:      .eq("user_line_id", userLineId)
+app/member/page.tsx:86:      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
+app/member/page.tsx:88:         await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", userLineId);
+app/member/page.tsx:90:         await supabase.from("member_profiles").insert({ user_line_id: userLineId, wallet_balance: trueBalance, phone: currentPhone, name: userName });
+app/member/page.tsx:95:    const { data: ordersByLine } = await supabase.from("service_orders").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false });
+app/member/page.tsx:128:      const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
+app/member/page.tsx:130:        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("user_line_id", userLineId);
+app/member/page.tsx:134:          user_line_id: userLineId, 
+app/member/page.tsx:135:          line_id: userLineId,      
+app/member/page.tsx:143:      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
+app/member/page.tsx:145:        const { error: err3 } = await supabase.from("member_profiles").update({ phone: profile.phone, name: safeName }).eq("user_line_id", userLineId);
+app/member/page.tsx:148:        const { error: err4 } = await supabase.from("member_profiles").insert({ user_line_id: userLineId, phone: profile.phone, name: safeName, wallet_balance: walletBalance });
+app/burning/page.tsx:103:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+app/burning/page.tsx:105:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+app/burning/page.tsx:107:          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+app/burning/page.tsx:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+app/burning/page.tsx:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+app/burning/page.tsx:114:          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+app/burning/page.tsx.bak:103:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", session.user.email);
+app/burning/page.tsx.bak:105:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", session.user.email);
+app/burning/page.tsx.bak:107:          await supabase.from("user_contacts").insert({ line_id: session.user.email, line_name: name, phone: phone, address: address });
+app/burning/page.tsx.bak:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", session.user.email);
+app/burning/page.tsx.bak:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", session.user.email);
+app/burning/page.tsx.bak:114:          await supabase.from("member_profiles").insert({ user_line_id: session.user.email, name: name, phone: phone });
+app/admin/members/page.tsx:27:    const { data: mData } = await supabase.from("member_profiles").select("*").order("created_at", { ascending: false });
+app/admin/members/page.tsx:41:    return (m.name?.toLowerCase().includes(q) || m.phone?.includes(q) || m.user_line_id?.toLowerCase().includes(q));
+app/admin/members/page.tsx:49:      const { error } = await supabase.from("member_profiles").update({ name: editMemName, phone: editMemPhone }).eq("user_line_id", editMemId);
+app/admin/members/page.tsx:60:      const member = membersList.find(m => m.user_line_id === tx.user_line_id);
+app/admin/members/page.tsx:63:        const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", tx.user_line_id);
+app/admin/members/page.tsx:81:      const target = membersList.find(m => m.user_line_id === selectedMemberId);
+app/admin/members/page.tsx:84:      const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", selectedMemberId);
+app/admin/members/page.tsx:87:      const { error: txError } = await supabase.from("wallet_transactions").insert([{ user_line_id: selectedMemberId, amount: amt, transaction_type: "refund", description: refundDesc }]);
+app/admin/members/page.tsx:116:                  <p className="font-bold text-foreground text-lg md:text-xl mb-0.5 md:mb-1">{membersList.find(m=>m.user_line_id===selectedMemberId)?.name || "未設定姓名"}</p>
+app/admin/members/page.tsx:117:                  <p className="text-xs md:text-sm text-muted-foreground font-mono">{membersList.find(m=>m.user_line_id===selectedMemberId)?.phone || "無電話紀錄"}</p>
+app/admin/members/page.tsx:162:                    key={m.user_line_id} 
+app/admin/members/page.tsx:163:                    onClick={() => { if(editMemId !== m.user_line_id) { setSelectedMemberId(m.user_line_id); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+app/admin/members/page.tsx:164:                    className={`transition-colors cursor-pointer ${selectedMemberId === m.user_line_id ? 'bg-purple-50' : 'hover:bg-muted'}`}
+app/admin/members/page.tsx:167:                      {editMemId === m.user_line_id ? (
+app/admin/members/page.tsx:171:                          {selectedMemberId === m.user_line_id && <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-purple-600"></span>}
+app/admin/members/page.tsx:177:                      {editMemId === m.user_line_id ? (
+app/admin/members/page.tsx:185:                      {editMemId === m.user_line_id ? (
+app/admin/members/page.tsx:191:                        <button onClick={(e)=>{e.stopPropagation(); setEditMemId(m.user_line_id); setEditMemName(m.name||""); setEditMemPhone(m.phone||"");}} className="text-[10px] md:text-xs font-bold bg-card border border-border text-foreground px-4 py-1.5 rounded-lg shadow-sm hover:bg-muted transition-colors">編輯</button>
+app/admin/members/page.tsx:211:                  const txMember = membersList.find(m => m.user_line_id === tx.user_line_id);
+app/admin/members/page.tsx:215:                    <td className="p-3 md:p-4 font-bold">{txMember?.name || tx.user_line_id.replace('phone_', '')}</td>
+app/admin/orders/page.tsx:29:    const { data: mData } = await supabase.from("member_profiles").select("*").order("created_at", { ascending: false });
+app/admin/orders/page.tsx:116:    let targetMember = membersList.find(m => m.user_line_id === order.user_line_id);
+app/admin/orders/page.tsx:118:    if (!targetMember && order.user_phone) targetMember = membersList.find(m => m.user_line_id === `phone_${order.user_phone}`);
+app/admin/orders/page.tsx:126:      const { error: balanceError } = await supabase.from("member_profiles").update({ wallet_balance: newBalance }).eq("user_line_id", targetMember.user_line_id);
+app/admin/orders/page.tsx:132:        user_line_id: targetMember.user_line_id, amount: refundAmt, transaction_type: "refund", description: desc
+app/lamps/page.tsx:102:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId);
+app/lamps/page.tsx:104:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", userLineId);
+app/lamps/page.tsx:106:          await supabase.from("user_contacts").insert({ line_id: userLineId, line_name: name, phone: phone, address: address });
+app/lamps/page.tsx:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
+app/lamps/page.tsx:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", userLineId);
+app/lamps/page.tsx:114:          await supabase.from("member_profiles").insert({ user_line_id: userLineId, name: name, phone: phone, wallet_balance: 0 });
+app/lamps/page.tsx.bak:102:        const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId);
+app/lamps/page.tsx.bak:104:          await supabase.from("user_contacts").update({ phone: phone, address: address, line_name: name }).eq("line_id", userLineId);
+app/lamps/page.tsx.bak:106:          await supabase.from("user_contacts").insert({ line_id: userLineId, line_name: name, phone: phone, address: address });
+app/lamps/page.tsx.bak:110:        const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", userLineId);
+app/lamps/page.tsx.bak:112:          await supabase.from("member_profiles").update({ phone: phone, name: name }).eq("user_line_id", userLineId);
+app/lamps/page.tsx.bak:114:          await supabase.from("member_profiles").insert({ user_line_id: userLineId, name: name, phone: phone, wallet_balance: 0 });
+app/cart/page.tsx:55:          .from("member_profiles")
+app/cart/page.tsx:57:          .eq("user_line_id", user.email)
+app/cart/page.tsx:75:        user_line_id: user?.email || user?.name || "line_user",
+app/cart/page.tsx:93:          .from("member_profiles")
+app/cart/page.tsx:95:          .eq("user_line_id", user.email);
+app/cart/page.tsx:101:            user_line_id: user?.email,
+app/cart/page.tsx:117:          const { data: mpData } = await supabase.from("member_profiles").select("id").eq("user_line_id", user.email);
+app/cart/page.tsx:119:            await supabase.from("member_profiles").update({ phone: mainPhone, name: mainName }).eq("user_line_id", user.email);
+app/cart/page.tsx:121:            await supabase.from("member_profiles").insert({ user_line_id: user.email, name: mainName, phone: mainPhone, wallet_balance: 0 });
+app/cart/page.tsx:124:          const { data: ucData } = await supabase.from("user_contacts").select("id").eq("line_id", user.email);
+app/cart/page.tsx:126:            await supabase.from("user_contacts").update({ phone: mainPhone, address: mainAddress, line_name: mainName }).eq("line_id", user.email);
+app/cart/page.tsx:128:            await supabase.from("user_contacts").insert({ line_id: user.email, line_name: mainName, phone: mainPhone, address: mainAddress });
+context/CartContext.tsx:75:    const { data: contactsData } = await supabase.from("user_contacts").select("*").eq("line_id", userLineId).order("created_at", { ascending: false });
+context/CartContext.tsx:78:    const { data: lastOrder } = await supabase.from("service_orders").select("user_name, user_phone, birth_date, address").eq("user_line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+context/CartContext.tsx:96:      const { data: existing } = await supabase.from("user_contacts").select("id").eq("line_id", userLineId).eq("contact_name", item.userName).maybeSingle();
+context/CartContext.tsx:101:          line_id: userLineId, 
+
+===== Auth and callback files =====
+app/admin/LoginButton.tsx
+app/admin/LoginButton.tsx.bak
+app/admin/members/page.tsx
+app/auth/callback/route.ts
+app/member/page.tsx
+app/middleware.ts
+
+===== Environment variable names only =====
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<hidden>
+NEXT_PUBLIC_SUPABASE_URL=<hidden>
+NEXTAUTH_SECRET=<hidden>
+NEXTAUTH_URL=<hidden>
