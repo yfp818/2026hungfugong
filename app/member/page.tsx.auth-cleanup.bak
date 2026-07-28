@@ -25,6 +25,15 @@ export default function MemberCenter() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
+  // 初始化取得使用者
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoadingUser(false);
+    };
+    fetchUser();
+  }, [supabase]);
 
   const fetchMemberData = useCallback(async () => {
     if (!user) return;

@@ -28,6 +28,14 @@ export default function BookingPage() {
   const [saveToContacts, setSaveToContacts] = useState(true);
   const [showRedirectModal, setShowRedirectModal] = useState(false);
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    fetchUser();
+  }, [supabase]);
 
   useEffect(() => {
     // 預設帶入本人聯絡資訊

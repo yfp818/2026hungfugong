@@ -54,6 +54,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [sharedInfo, setSharedInfo] = useState<SharedInfo>({ userName: "", userPhone: "", birthDate: "", address: "" });
   const [selfProfile, setSelfProfile] = useState<SharedInfo | null>(null);
 
+  // 初始化時取得使用者狀態
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+  }, []);
 
   const updateSharedInfo = (info: Partial<SharedInfo>) => {
     setSharedInfo(prev => ({ ...prev, ...info }));

@@ -39,6 +39,14 @@ export default function LampsPage() {
     .map(p => `${p.title} x${itemQuantities[p.id]} ($${p.price * itemQuantities[p.id]})`)
     .join("、");
 
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setSession(user ? { user } : null);
+      setStatus("authenticated");
+    }
+    checkAuth();
+  }, [supabase]);
 
   useEffect(() => {
     if (selfProfile && !hasAutoFilled) {
