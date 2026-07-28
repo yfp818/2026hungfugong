@@ -2,7 +2,7 @@
 import { signOut } from "next-auth/react";
 import { useLegacyUser } from "@/lib/auth/useLegacyUser";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import {
 
 export default function MemberCenter() {
   const { user, loading: loadingUser } = useLegacyUser();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [orders, setOrders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
