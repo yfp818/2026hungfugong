@@ -38,7 +38,7 @@ export default function MemberCenter() {
     }
 
     let currentAddress = "";
-    const { data: ucData } = await supabase.from("user_contacts").select("*").eq("line_id", memberLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: ucData } = await supabase.from("user_contacts").select("*").eq("user_line_id", memberLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (ucData) {
        currentAddress = ucData.address || "";
        if (!currentPhone && ucData.phone) currentPhone = ucData.phone;
@@ -115,14 +115,16 @@ export default function MemberCenter() {
     const safeName = user.user_metadata?.name || "LINE信眾";
 
     try {
-      const { data: existData } = await supabase.from("user_contacts").select("line_id").eq("line_id", userLineId);
+      const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
       if (existData && existData.length > 0) {
-        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("line_id", userLineId);
+        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, contact_phone: profile.phone, address: profile.address, line_name: safeName, contact_name: safeName }).eq("user_line_id", userLineId);
         if (err1) throw new Error("聯絡簿更新失敗：" + err1.message);
       } else {
         const { error: err2 } = await supabase.from("user_contacts").insert({ 
           user_line_id: userLineId,
           line_id: userLineId,      
+          contact_name: safeName,
+          contact_phone: profile.phone,
           phone: profile.phone, 
           address: profile.address, 
           line_name: safeName 
