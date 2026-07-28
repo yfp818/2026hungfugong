@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth/options";
 import LoginButton from "./LoginButton";
 import Link from "next/link";
 import { LayoutDashboard, ClipboardList, Users, Settings, Megaphone } from "lucide-react";
@@ -6,15 +7,19 @@ import { LayoutDashboard, ClipboardList, Users, Settings, Megaphone } from "luci
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+  const user = session?.user ?? null;
   
-  // 請確認這裡有您的 LINE 綁定信箱
-  const adminEmails = [
-    "yfp818@gmail.com", 
-  ];
+  const adminLineIds = (process.env.ADMIN_LINE_USER_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
 
-  if (!user || !user.email || !adminEmails.includes(user.email)) {
+  const isAdmin = Boolean(
+    user?.id && adminLineIds.includes(user.id)
+  );
+
+  if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1/2 bg-[#1A432D]"></div>
@@ -27,11 +32,11 @@ export default async function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-[#1A432D] tracking-widest mb-2">皇府宮管理系統</h1>
             <p className="text-muted-foreground font-medium tracking-widest text-sm mb-2">
-              {user?.user_metadata?.name ? `目前登入：${user.user_metadata.name}` : "請使用授權帳號登入"}
+              {user?.name ? `目前登入：${user.name}` : "請使用授權帳號登入"}
             </p>
-            {user?.email && !adminEmails.includes(user.email) && (
+            {user?.id && !adminLineIds.includes(user.id) && (
               <p className="text-red-500 text-xs font-bold tracking-widest bg-red-50 py-2 rounded-lg mt-2">
-                ⚠️ 此帳號無管理權限：{user.email}
+                ⚠️ 此 LINE 帳號無管理權限
               </p>
             )}
           </div>
@@ -47,7 +52,7 @@ export default async function AdminPage() {
   return (
     <div className="animate-in fade-in duration-700">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{user.user_metadata?.name || '管理員'}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-widest">歡迎回來，{user.name || "管理員"}</h1>
         <p className="text-muted-foreground mt-2 tracking-widest">請從左側選單選擇您要管理的項目，或點擊下方快速捷徑。</p>
       </div>
 

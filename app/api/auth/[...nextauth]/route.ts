@@ -1,63 +1,6 @@
-import NextAuth, { type NextAuthOptions } from "next-auth"
-import LineProvider from "next-auth/providers/line"
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/auth/options";
 
-export const authOptions: NextAuthOptions = {
-  providers: [
-    LineProvider({
-      clientId: process.env.LINE_CLIENT_ID!,
-      clientSecret: process.env.LINE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          scope: "profile openid",
-        },
-      },
-    }),
-  ],
+const handler = NextAuth(authOptions);
 
-  session: {
-    strategy: "jwt",
-  },
-
-  callbacks: {
-    async jwt({ token, profile, account }) {
-      if (account?.provider === "line" && profile) {
-        const lineProfile = profile as {
-          sub?: string
-          name?: string
-          picture?: string
-        }
-
-        token.lineUserId = lineProfile.sub
-        token.lineName = lineProfile.name
-        token.linePicture = lineProfile.picture
-      }
-
-      return token
-    },
-
-    async session({ session, token }) {
-      session.user = {
-        ...session.user,
-        id: typeof token.lineUserId === "string" ? token.lineUserId : "",
-        name:
-          typeof token.lineName === "string"
-            ? token.lineName
-            : session.user?.name,
-        image:
-          typeof token.linePicture === "string"
-            ? token.linePicture
-            : session.user?.image,
-      }
-
-      return session
-    },
-  },
-
-  pages: {
-    error: "/?login_error=nextauth",
-  },
-}
-
-const handler = NextAuth(authOptions)
-
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };
