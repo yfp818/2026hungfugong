@@ -39,6 +39,29 @@ export default function LampsPage() {
     .map(p => `${p.title} x${itemQuantities[p.id]} ($${p.price * itemQuantities[p.id]})`)
     .join("、");
 
+  useEffect(() => {
+    async function loadProducts() {
+      setIsLoading(true);
+
+      const { data, error } = await supabase
+        .from("blessing_products")
+        .select("*")
+        .eq("category", "lamp")
+        .order("title", { ascending: true });
+
+      if (error) {
+        console.error("載入點燈商品失敗：", error);
+        setProducts([]);
+      } else {
+        setProducts(data ?? []);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadProducts();
+  }, []);
+
 
   useEffect(() => {
     if (selfProfile && !hasAutoFilled) {
