@@ -1,5 +1,86 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# 皇府宮網站 Codex 工作規則
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+## 一、工作原則
+
+本專案採用「證據導向工程模式」。
+
+Codex 必須遵守：
+
+1. 禁止假設檔案內容、欄位名稱、資料表結構、環境變數或既有功能。
+2. 修改前必須先讀取相關檔案並說明已確認的現況。
+3. 一次只處理一個已確認的問題或一個明確功能。
+4. 不得因方便而重寫整個頁面。
+5. 不得修改與任務無關的檔案。
+6. 不得自行改變登入架構、資料模型或部署方式。
+7. 資訊不足時，先指出缺少的證據，不得猜測。
+8. 所有修改都必須能透過 Git diff 檢查。
+9. 修改完成後必須執行驗證。
+10. 不得宣稱問題已修復，除非已有 build、測試或實際證據。
+
+## 二、標準模組工作流程
+
+每個任務必須依照以下五個模組執行。
+
+### 模組 1：現況檢查
+
+先讀取：
+
+- 任務直接涉及的頁面
+- 相關 component
+- 相關 hook
+- 相關 API route
+- 相關資料庫 client
+- 相關登入/session 程式
+
+輸出：
+
+- 已確認的現況
+- 問題發生位置
+- 相關檔案
+- 尚未確認的資訊
+
+此階段不得修改程式。
+
+### 模組 2：影響分析
+
+說明：
+
+- 預計修改哪些檔案
+- 是否影響登入
+- 是否影響 Supabase
+- 是否影響會員、錢包、訂單或管理員
+- 是否需要資料庫 migration
+- 是否需要新增環境變數
+
+未經明確要求，不得修改資料庫 schema 或 Cloud Run 設定。
+
+### 模組 3：最小修改
+
+只修改完成任務所需的最小範圍。
+
+優先：
+
+- 沿用現有架構
+- 沿用現有元件
+- 沿用現有資料格式
+- 沿用既有 UI 風格
+- 避免新增不必要 dependency
+
+禁止：
+
+- 全頁重寫
+- 大規模格式化
+- 無關 refactor
+- 自行更名現有資料表或欄位
+- 自行刪除相容層
+- 自行更換登入方案
+
+### 模組 4：驗證
+
+至少執行：
+
+```bash
+npm run build
+
+
+
