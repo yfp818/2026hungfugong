@@ -1,4 +1,6 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -6,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 
 export default function FlashCampaignSection({ campaign }: { campaign: any }) {
-  const supabase = createClient(); // 👈 1. 這裡必須呼叫以建立 supabase 實例
-  const [session, setSession] = useState<any>(null); // 👈 2. 用 state 儲存登入狀態
+  const supabase = createClient();
+  const { session } = useLegacyUser();
   const router = useRouter();
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
 
@@ -119,12 +121,7 @@ export default function FlashCampaignSection({ campaign }: { campaign: any }) {
   ) : (
     <button 
       onClick={async () => {
-        await supabase.auth.signInWithOAuth({
-          provider: "custom:line" as any,
-          options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/booking`
-          }
-        });
+        await signIn("line", { callbackUrl: "/booking" });
       }} 
       className="w-full bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
     >

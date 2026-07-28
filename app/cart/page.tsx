@@ -1,4 +1,5 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/context/CartContext";
@@ -7,16 +8,8 @@ import Link from "next/link";
 import { Camera, Coins } from "lucide-react"; 
 
 export default function GlobalCartPage() {
-  const supabase = createClient(); // 👈 1. 初始化 Supabase 客戶端
-  const [user, setUser] = useState<any>(null); // 👈 2. 用狀態儲存登入使用者
-
-  useEffect(() => {
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    }
-    fetchUser();
-  }, [supabase]);
+  const supabase = createClient(); // Supabase 僅用於資料庫操作
+  const { user } = useLegacyUser();
 
   const { cartItems, removeFromCart, clearCart } = useCart();
   

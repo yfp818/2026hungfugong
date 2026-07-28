@@ -1,4 +1,5 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
 import React, { createContext, useContext, useState, useEffect } from "react";
 // 引入 Supabase Client 替代 next-auth
 import { createClient } from "@/lib/supabase/client";
@@ -46,8 +47,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  // 改為儲存 Supabase 的 user
-  const [user, setUser] = useState<any>(null);
+  const { user } = useLegacyUser();
   const supabase = createClient();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [contacts, setContacts] = useState<UserContact[]>([]);

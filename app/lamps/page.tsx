@@ -1,4 +1,6 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -6,10 +8,9 @@ import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 
 export default function LampsPage() {
-  const supabase = createClient(); // 👈 1. 建立 supabase 實例
+  const supabase = createClient(); // Supabase 僅用於資料庫操作
   const router = useRouter();
-  const [session, setSession] = useState<any>(null);
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
+  const { session, status } = useLegacyUser();
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   
@@ -155,13 +156,7 @@ export default function LampsPage() {
             <p className="text-muted-foreground tracking-widest font-medium leading-relaxed">為了確保您的點燈紀錄與常用名冊正確無誤，<br/>請先使用 LINE 進行驗證登入。</p>
             <Button 
   onClick={async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "custom:line" as any,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/lamps`
-      }
-    });
+    await signIn("line", { callbackUrl: "/lamps" });
   }} 
   className="bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2"
 >

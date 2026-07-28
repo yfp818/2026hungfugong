@@ -1,15 +1,8 @@
 "use client";
-import { createClient } from "@/lib/supabase/client";
-
+import { signIn } from "next-auth/react";
 export default function LoginButton() {
   const handleLogin = async () => {
-    const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
-      provider: "custom:line" as any,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/admin`,
-      },
-    });
+    await signIn("line", { callbackUrl: "/admin" });
   };
 
   return (

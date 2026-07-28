@@ -1,4 +1,5 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,8 +11,7 @@ import {
 } from "lucide-react"; 
 
 export default function MemberCenter() {
-  const [user, setUser] = useState<any>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  const { user, loading: loadingUser } = useLegacyUser();
   const supabase = createClient();
 
   const [orders, setOrders] = useState<any[]>([]);

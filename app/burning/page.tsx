@@ -1,4 +1,6 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -7,7 +9,7 @@ import { useCart } from "@/context/CartContext";
 
 export default function BurningServicePage() {
   const supabase = createClient();
-  const { data: session, status } = supabase.auth.getUser();
+  const { session, status } = useLegacyUser();
   const router = useRouter();
   
   const { contacts, addToCart, updateSharedInfo, selfProfile } = useCart();
@@ -165,13 +167,7 @@ export default function BurningServicePage() {
             </p>
             <Button 
               onClick={async () => {
-                const supabase = createClient();
-                await supabase.auth.signInWithOAuth({
-                  provider: "custom:line" as any,
-                  options: {
-                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/burning`
-                  }
-                });
+                await signIn("line", { callbackUrl: "/burning" });
               }} 
               className="bg-[#06C755] hover:bg-[#05b34c] text-white px-8 py-4 rounded-xl font-bold tracking-widest text-base shadow-sm hover:shadow transition-all"
             >

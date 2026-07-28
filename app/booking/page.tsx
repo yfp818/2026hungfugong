@@ -1,4 +1,6 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -6,8 +8,7 @@ import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 
 export default function BookingPage() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading } = useLegacyUser();
   const supabase = createClient();
   const router = useRouter();
   
@@ -71,12 +72,7 @@ export default function BookingPage() {
   };
 
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "custom:line" as any,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/booking`
-      }
-    });
+    await signIn("line", { callbackUrl: "/booking" });
   };
 
   const handleSubmit = (e: React.FormEvent) => {

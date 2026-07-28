@@ -1,33 +1,15 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
-// 引入 Supabase Client 替代 next-auth
-import { createClient } from "@/lib/supabase/client"; 
 
 export default function SiteHeader({ fontClassName = "" }: { fontClassName?: string }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  // 改為儲存 Supabase 的 user
-  const [user, setUser] = useState<any>(null);
-  const supabase = createClient();
-
-  // 初始化時取得使用者狀態
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
-    // 監聽登入狀態改變
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  const { user } = useLegacyUser();
 
   if (pathname && pathname.startsWith("/admin")) {
     return null;
@@ -42,12 +24,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
 
   // 封裝新的登入處理函式
   const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "custom:line" as any,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/member`,
-      },
-    });
+    await signIn("line", { callbackUrl: "/member" });
   };
 
   return (

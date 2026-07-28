@@ -1,4 +1,6 @@
 "use client";
+import { useLegacyUser } from "@/lib/auth/useLegacyUser";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,15 +12,7 @@ export default function SpecialProjectPage() {
   const params = useParams();
   const projectId = params.id as string;
   const router = useRouter();
-  const [session, setSession] = useState<any>(null); // 👈 改用 state 儲存
-
-  useEffect(() => {
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setSession(user ? { user } : null);
-    }
-    fetchUser();
-  }, [supabase]);
+  const { session } = useLegacyUser();
 
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -331,13 +325,7 @@ export default function SpecialProjectPage() {
     <button 
       type="button" 
       onClick={async () => {
-        const supabase = createClient();
-        await supabase.auth.signInWithOAuth({
-          provider: "custom:line" as any,
-          options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`
-          }
-        });
+        await signIn("line", { callbackUrl: window.location.pathname });
       }} 
       className="bg-[#06C755] text-white px-4 py-2 rounded-lg text-xs font-bold tracking-widest shadow-sm hover:bg-[#05b34c] transition-colors"
     >
