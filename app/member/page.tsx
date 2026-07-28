@@ -14,6 +14,8 @@ import {
 export default function MemberCenter() {
   const { user, loading: loadingUser } = useLegacyUser();
   const supabase = useMemo(() => createClient(), []);
+  const memberLineId = user?.id || user?.email || "unknown";
+  const memberName = user?.user_metadata?.name || "信眾";
 
   const [orders, setOrders] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -27,20 +29,16 @@ export default function MemberCenter() {
 
 
   const fetchMemberData = useCallback(async () => {
-    if (!user) return;
-    const userLineId = user.id || user.email || "unknown";
-    if (userLineId === "unknown") return;
-
-    const userName = user.user_metadata?.name || "信眾";
+    if (memberLineId === "unknown") return;
 
     let currentPhone = "";
-    const { data: mpData } = await supabase.from("member_profiles").select("*").eq("user_line_id", userLineId).maybeSingle();
+    const { data: mpData } = await supabase.from("member_profiles").select("*").eq("user_line_id", memberLineId).maybeSingle();
     if (mpData && mpData.phone && mpData.phone !== 'EMPTY') {
       currentPhone = mpData.phone;
     }
 
     let currentAddress = "";
-    const { data: ucData } = await supabase.from("user_contacts").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: ucData } = await supabase.from("user_contacts").select("*").eq("line_id", memberLineId).order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (ucData) {
        currentAddress = ucData.address || "";
        if (!currentPhone && ucData.phone) currentPhone = ucData.phone;
@@ -53,21 +51,21 @@ export default function MemberCenter() {
         .from("member_profiles")
         .select("*")
         .eq("phone", currentPhone)
-        .neq("user_line_id", userLineId);
+        .neq("user_line_id", memberLineId);
 
       if (oldProfiles && oldProfiles.length > 0) {
         for (const old of oldProfiles) {
-          await supabase.from("wallet_transactions").update({ user_line_id: userLineId }).eq("user_line_id", old.user_line_id);
+          await supabase.from("wallet_transactions").update({ user_line_id: memberLineId }).eq("user_line_id", old.user_line_id);
           await supabase.from("member_profiles").delete().eq("user_line_id", old.user_line_id);
         }
-        await supabase.from("service_orders").update({ user_line_id: userLineId }).eq("user_phone", currentPhone);
+        await supabase.from("service_orders").update({ user_line_id: memberLineId }).eq("user_phone", currentPhone);
       }
     }
 
     const { data: txData } = await supabase
       .from("wallet_transactions")
       .select("*")
-      .eq("user_line_id", userLineId)
+      .eq("user_line_id", memberLineId)
       .order("created_at", { ascending: false });
 
     if (txData) {
@@ -75,16 +73,16 @@ export default function MemberCenter() {
       const trueBalance = txData.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
       setWalletBalance(trueBalance);
 
-      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", userLineId);
+      const { data: mpExist } = await supabase.from("member_profiles").select("user_line_id").eq("user_line_id", memberLineId);
       if (mpExist && mpExist.length > 0) {
-         await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", userLineId);
+         await supabase.from("member_profiles").update({ wallet_balance: trueBalance }).eq("user_line_id", memberLineId);
       } else {
-         await supabase.from("member_profiles").insert({ user_line_id: userLineId, wallet_balance: trueBalance, phone: currentPhone, name: userName });
+         await supabase.from("member_profiles").insert({ user_line_id: memberLineId, wallet_balance: trueBalance, phone: currentPhone, name: memberName });
       }
     }
 
     let historyOrders: any[] = [];
-    const { data: ordersByLine } = await supabase.from("service_orders").select("*").eq("user_line_id", userLineId).order("created_at", { ascending: false });
+    const { data: ordersByLine } = await supabase.from("service_orders").select("*").eq("user_line_id", memberLineId).order("created_at", { ascending: false });
     
     if (ordersByLine && ordersByLine.length > 0) {
       historyOrders = ordersByLine;
@@ -94,13 +92,13 @@ export default function MemberCenter() {
     }
     setOrders(historyOrders);
     setLoadingOrders(false);
-  }, [user, supabase]);
+  }, [memberLineId, memberName, supabase]);
 
   useEffect(() => {
-    if (user) {
+    if (memberLineId !== "unknown") {
       fetchMemberData();
     }
-  }, [user, fetchMemberData]);
+  }, [memberLineId, fetchMemberData]);
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -117,13 +115,12 @@ export default function MemberCenter() {
     const safeName = user.user_metadata?.name || "LINE信眾";
 
     try {
-      const { data: existData } = await supabase.from("user_contacts").select("user_line_id").eq("user_line_id", userLineId);
+      const { data: existData } = await supabase.from("user_contacts").select("line_id").eq("line_id", userLineId);
       if (existData && existData.length > 0) {
-        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("user_line_id", userLineId);
+        const { error: err1 } = await supabase.from("user_contacts").update({ phone: profile.phone, address: profile.address, line_name: safeName }).eq("line_id", userLineId);
         if (err1) throw new Error("聯絡簿更新失敗：" + err1.message);
       } else {
         const { error: err2 } = await supabase.from("user_contacts").insert({ 
-          user_line_id: userLineId, 
           line_id: userLineId,      
           phone: profile.phone, 
           address: profile.address, 
