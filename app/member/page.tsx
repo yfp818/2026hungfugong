@@ -121,6 +121,7 @@ export default function MemberCenter() {
         if (err1) throw new Error("聯絡簿更新失敗：" + err1.message);
       } else {
         const { error: err2 } = await supabase.from("user_contacts").insert({ 
+          user_line_id: userLineId,
           line_id: userLineId,      
           phone: profile.phone, 
           address: profile.address, 
