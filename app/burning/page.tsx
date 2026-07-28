@@ -169,7 +169,7 @@ export default function BurningServicePage() {
                 await supabase.auth.signInWithOAuth({
                   provider: "custom:line" as any,
                   options: {
-                    redirectTo: `${window.location.origin}/burning`
+                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/burning`
                   }
                 });
               }} 

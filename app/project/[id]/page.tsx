@@ -335,7 +335,7 @@ export default function SpecialProjectPage() {
         await supabase.auth.signInWithOAuth({
           provider: "custom:line" as any,
           options: {
-            redirectTo: `${window.location.origin}${window.location.pathname}`
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}${window.location.pathname}`
           }
         });
       }} 

@@ -159,7 +159,7 @@ export default function LampsPage() {
     await supabase.auth.signInWithOAuth({
       provider: "custom:line" as any,
       options: {
-        redirectTo: `${window.location.origin}/lamps`
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/lamps`
       }
     });
   }} 

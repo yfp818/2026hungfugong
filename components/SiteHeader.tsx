@@ -45,7 +45,7 @@ export default function SiteHeader({ fontClassName = "" }: { fontClassName?: str
     await supabase.auth.signInWithOAuth({
       provider: "custom:line" as any,
       options: {
-        redirectTo: `${window.location.origin}/member`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/member`,
       },
     });
   };
